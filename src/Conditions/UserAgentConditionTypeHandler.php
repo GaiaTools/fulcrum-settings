@@ -54,7 +54,7 @@ class UserAgentConditionTypeHandler implements ConditionTypeHandler
         }
 
         if (is_array($scope)) {
-            return 'array:'.md5(serialize($scope));
+            return 'array:'.hash('sha256', serialize($scope));
         }
 
         if (is_object($scope)) {

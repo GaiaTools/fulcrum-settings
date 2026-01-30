@@ -86,7 +86,7 @@ class CachedSettingResolver implements SettingResolver
         if ($scope === null) {
             $scopeKey = $this->resolveDefaultScopeKey();
         } else {
-            $scopeKey = is_scalar($scope) ? (string) $scope : md5(serialize($scope));
+            $scopeKey = is_scalar($scope) ? (string) $scope : hash('sha256', serialize($scope));
         }
 
         return "{$this->prefix}:{$key}:{$scopeKey}";
