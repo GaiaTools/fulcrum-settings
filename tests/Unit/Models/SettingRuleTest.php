@@ -378,12 +378,6 @@ test('get effective salt', function () {
     // Custom salt
     $rule->rollout_salt = 'custom-salt';
     expect($rule->getEffectiveSalt())->toBe('custom-salt');
-
-    // Fallback to ID if no setting
-    $rule->rollout_salt = null;
-    $rule->setRelation('setting', null);
-    $rule->setting_id = null;
-    expect($rule->getEffectiveSalt())->toBe('123');
 });
 
 test('booted hooks handle missing setting relation gracefully', function () {

@@ -51,6 +51,9 @@ class SetSettingCommand extends Command
         $masked = $this->getBoolOption('masked');
         $immutable = $this->getBoolOption('immutable');
         $tenantId = $this->getStringOption('tenant');
+        if ($tenantId === '') {
+            $tenantId = null;
+        }
         $force = $this->getBoolOption('force');
 
         if ($force) {
@@ -175,6 +178,9 @@ class SetSettingCommand extends Command
         if ($tenantId === null && Fulcrum::isMultiTenancyEnabled()) {
             $tenantInput = $this->ask('Enter tenant ID (optional, leave empty for global)');
             $tenantId = is_string($tenantInput) ? $tenantInput : null;
+        }
+        if ($tenantId === '') {
+            $tenantId = null;
         }
 
         if ($force) {

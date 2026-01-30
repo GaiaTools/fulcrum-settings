@@ -350,7 +350,7 @@ class ImportSettingsCommandTest extends TestCase
             '--conflict-handling' => 'skip',
             '--dry-run' => true,
             '--connection' => 'other',
-            '--chunk-size' => 500,
+            '--chunk-size' => '500',
         ])
             ->assertExitCode(0);
 

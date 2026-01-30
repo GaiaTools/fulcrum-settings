@@ -5,15 +5,17 @@ declare(strict_types=1);
 namespace GaiaTools\FulcrumSettings\Tests\Unit\Drivers;
 
 use GaiaTools\FulcrumSettings\Drivers\StratifiedDistributionStrategy;
+use GaiaTools\FulcrumSettings\Enums\SettingType;
+use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Models\SettingRule;
-use GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant;
 use GaiaTools\FulcrumSettings\Tests\TestCase;
-use Illuminate\Support\Collection;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 
 class StratifiedDistributionStrategyTest extends TestCase
 {
     use MockeryPHPUnitIntegration;
+    use RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -25,19 +27,24 @@ class StratifiedDistributionStrategyTest extends TestCase
     {
         $strategy = new StratifiedDistributionStrategy;
 
-        $rule = new SettingRule;
-        $rule->rollout_salt = 'test-salt';
+        $setting = Setting::create([
+            'key' => 'test.setting.distribution',
+            'type' => SettingType::STRING,
+        ]);
 
-        $variant1 = new SettingRuleRolloutVariant;
-        $variant1->id = 1;
-        $variant1->weight = 30; // 30%
+        $rule = SettingRule::create([
+            'setting_id' => $setting->id,
+            'rollout_salt' => 'test-salt',
+        ]);
 
-        $variant2 = new SettingRuleRolloutVariant;
-        $variant2->id = 2;
-        $variant2->weight = 70; // 70%
-
-        $variants = new Collection([$variant1, $variant2]);
-        $rule->setRelation('rolloutVariants', $variants);
+        $variant1 = $rule->rolloutVariants()->create([
+            'name' => 'Variant A',
+            'weight' => 30, // 30%
+        ]);
+        $variant2 = $rule->rolloutVariants()->create([
+            'name' => 'Variant B',
+            'weight' => 70, // 70%
+        ]);
 
         $results = [];
         for ($i = 0; $i < 100; $i++) {
@@ -45,26 +52,32 @@ class StratifiedDistributionStrategyTest extends TestCase
             $results[$variant->id] = ($results[$variant->id] ?? 0) + 1;
         }
 
-        $this->assertEquals(30, $results[1]);
-        $this->assertEquals(70, $results[2]);
+        $this->assertEquals(30, $results[$variant1->id]);
+        $this->assertEquals(70, $results[$variant2->id]);
     }
 
     public function test_it_is_deterministic()
     {
         $strategy = new StratifiedDistributionStrategy;
 
-        $rule = new SettingRule;
-        $rule->rollout_salt = 'test-salt';
+        $setting = Setting::create([
+            'key' => 'test.setting.deterministic',
+            'type' => SettingType::STRING,
+        ]);
 
-        $variant1 = new SettingRuleRolloutVariant;
-        $variant1->id = 1;
-        $variant1->weight = 50;
+        $rule = SettingRule::create([
+            'setting_id' => $setting->id,
+            'rollout_salt' => 'test-salt',
+        ]);
 
-        $variant2 = new SettingRuleRolloutVariant;
-        $variant2->id = 2;
-        $variant2->weight = 50;
-
-        $rule->setRelation('rolloutVariants', new Collection([$variant1, $variant2]));
+        $rule->rolloutVariants()->create([
+            'name' => 'Variant A',
+            'weight' => 50,
+        ]);
+        $rule->rolloutVariants()->create([
+            'name' => 'Variant B',
+            'weight' => 50,
+        ]);
 
         $firstRun = [];
         for ($i = 0; $i < 100; $i++) {
@@ -83,22 +96,38 @@ class StratifiedDistributionStrategyTest extends TestCase
     {
         $strategy = new StratifiedDistributionStrategy;
 
-        $rule1 = new SettingRule;
-        $rule1->rollout_salt = 'salt-1';
+        $setting = Setting::create([
+            'key' => 'test.setting.salt',
+            'type' => SettingType::STRING,
+        ]);
 
-        $rule2 = new SettingRule;
-        $rule2->rollout_salt = 'salt-2';
+        $rule1 = SettingRule::create([
+            'setting_id' => $setting->id,
+            'rollout_salt' => 'salt-1',
+        ]);
 
-        $variant1 = new SettingRuleRolloutVariant;
-        $variant1->id = 1;
-        $variant1->weight = 50;
+        $rule2 = SettingRule::create([
+            'setting_id' => $setting->id,
+            'rollout_salt' => 'salt-2',
+        ]);
 
-        $variant2 = new SettingRuleRolloutVariant;
-        $variant2->id = 2;
-        $variant2->weight = 50;
+        $rule1->rolloutVariants()->create([
+            'name' => 'Variant A',
+            'weight' => 50,
+        ]);
+        $rule1->rolloutVariants()->create([
+            'name' => 'Variant B',
+            'weight' => 50,
+        ]);
 
-        $rule1->setRelation('rolloutVariants', new Collection([$variant1, $variant2]));
-        $rule2->setRelation('rolloutVariants', new Collection([$variant1, $variant2]));
+        $rule2->rolloutVariants()->create([
+            'name' => 'Variant A',
+            'weight' => 50,
+        ]);
+        $rule2->rolloutVariants()->create([
+            'name' => 'Variant B',
+            'weight' => 50,
+        ]);
 
         $run1 = [];
         for ($i = 0; $i < 100; $i++) {

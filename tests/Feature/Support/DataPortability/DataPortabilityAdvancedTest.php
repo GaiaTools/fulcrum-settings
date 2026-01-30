@@ -299,7 +299,8 @@ class DataPortabilityAdvancedTest extends TestCase
         $this->assertStringContainsString('<rules>', $xml);
 
         $parsed = $formatter->parse($xml);
-        $this->assertArrayHasKey('setting', $parsed);
+        $this->assertCount(1, $parsed);
+        $this->assertEquals('s1', $parsed[0]['key'] ?? null);
     }
 
     public function test_import_manager_get_content_fallback_to_storage()
