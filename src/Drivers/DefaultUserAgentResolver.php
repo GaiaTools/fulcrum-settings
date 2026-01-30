@@ -94,6 +94,10 @@ class DefaultUserAgentResolver implements UserAgentResolver
     protected function detectBrowserVersion(string $userAgent): ?string
     {
         $browser = $this->detectBrowser($userAgent);
+        if (! is_string($browser)) {
+            return null;
+        }
+
         $patterns = [
             'Chrome' => '/Chrome\/([0-9\.]+)/i',
             'Firefox' => '/Firefox\/([0-9\.]+)/i',
