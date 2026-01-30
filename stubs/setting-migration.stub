@@ -1,0 +1,141 @@
+<?php
+
+declare(strict_types=1);
+
+use GaiaTools\FulcrumSettings\Database\Migrations\ConditionModifier;
+use GaiaTools\FulcrumSettings\Database\Migrations\RolloutDefinition;
+use GaiaTools\FulcrumSettings\Database\Migrations\RuleDefinition;
+use GaiaTools\FulcrumSettings\Database\Migrations\RuleModifier;
+use GaiaTools\FulcrumSettings\Database\Migrations\SettingDefinition;
+use GaiaTools\FulcrumSettings\Database\Migrations\SettingMigration;
+use GaiaTools\FulcrumSettings\Database\Migrations\SettingModifier;
+use GaiaTools\FulcrumSettings\Database\Migrations\VariantModifier;
+
+return new class extends SettingMigration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        // =====================================================================
+        // CREATING SETTINGS
+        // =====================================================================
+
+        // Create a boolean feature flag
+        // $this->create('feature.new_checkout', function (SettingDefinition $setting) {
+        //     $setting->boolean()
+        //         ->default(false)
+        //         ->description('Enable new checkout flow');
+        // });
+
+        // Create a setting with rules
+        // $this->create('feature.dark_mode', function (SettingDefinition $setting) {
+        //     $setting->boolean()
+        //         ->default(false)
+        //         ->description('Enable dark mode')
+        //         ->rule(function (RuleDefinition $rule) {
+        //             $rule->name('beta_users')
+        //                 ->priority(10)
+        //                 ->when('user.is_beta', 'is_true')
+        //                 ->then(true);
+        //         });
+        // });
+
+        // =====================================================================
+        // MODIFYING SETTINGS
+        // =====================================================================
+
+        // Modify an existing setting
+        // $this->modify('feature.dark_mode', function (SettingModifier $setting) {
+        //     $setting->updateDescription('New description')
+        //         ->addRule(function (RuleDefinition $rule) {
+        //             $rule->name('premium_users')
+        //                 ->when('user.plan', 'equals', 'premium')
+        //                 ->then(true);
+        //         });
+        // });
+
+        // Direct property updates (no callback needed)
+        // $this->updateDefault('feature.limit', 100);
+        // $this->updateDescription('feature.limit', 'Maximum items allowed');
+        // $this->makeImmutable('feature.limit');
+
+        // =====================================================================
+        // RULES
+        // =====================================================================
+
+        // Add a simple rule
+        // $this->addSimpleRule('feature.enabled', 'default', true, priority: 100);
+
+        // Add a conditional rule
+        // $this->addConditionalRule(
+        //     settingKey: 'feature.checkout',
+        //     ruleName: 'premium',
+        //     value: true,
+        //     attribute: 'user.plan',
+        //     operator: 'equals',
+        //     conditionValue: 'premium'
+        // );
+
+        // Modify a rule
+        // $this->modifyRule('feature.checkout', 'premium', function (RuleModifier $rule) {
+        //     $rule->updatePriority(5)
+        //         ->addCondition('user.active', 'is_true');
+        // });
+
+        // =====================================================================
+        // ROLLOUTS & A/B TESTS
+        // =====================================================================
+
+        // Add a 50/50 A/B test
+        // $this->addABTest('feature.checkout', 'experiment', 'v1', 'v2');
+
+        // Add a gradual rollout (10% of users)
+        // $this->addGradualRollout('feature.new_ui', 'rollout', true, 10.0);
+
+        // Add a custom rollout
+        // $this->addRollout('feature.variants', 'multi_variant', function (RolloutDefinition $rollout) {
+        //     $rollout->variant('control', 33.3, 'original')
+        //         ->variant('variant_a', 33.3, 'design_a')
+        //         ->variant('variant_b', 33.4, 'design_b');
+        // });
+
+        // Update rollout weights
+        // $this->updateVariantWeight('feature.checkout', 'ab_test', 'treatment', 70.0);
+
+        // =====================================================================
+        // SCHEDULED RULES
+        // =====================================================================
+
+        // Add a time-bounded rule
+        // $this->addScheduledRule(
+        //     settingKey: 'feature.holiday_theme',
+        //     ruleName: 'christmas',
+        //     value: 'festive',
+        //     startsAt: '2025-12-01',
+        //     endsAt: '2025-12-31'
+        // );
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        // Delete a setting
+        // $this->delete('feature.new_checkout');
+
+        // Delete a rule
+        // $this->deleteRule('feature.dark_mode', 'beta_users');
+
+        // Delete a condition
+        // $this->deleteCondition('feature.checkout', 'premium', 'user.plan');
+
+        // Delete a variant
+        // $this->deleteVariant('feature.checkout', 'ab_test', 'treatment');
+
+        // Bulk delete
+        // $this->deleteMany(['feature.old_1', 'feature.old_2', 'feature.old_3']);
+    }
+};

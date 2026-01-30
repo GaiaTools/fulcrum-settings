@@ -1,0 +1,107 @@
+<?php
+
+declare(strict_types=1);
+
+namespace GaiaTools\FulcrumSettings\Models;
+
+use GaiaTools\FulcrumSettings\Enums\SettingType;
+use GaiaTools\FulcrumSettings\Exceptions\ImmutableSettingException;
+use GaiaTools\FulcrumSettings\Models\Concerns\HasMaskedValue;
+use GaiaTools\FulcrumSettings\Models\Scopes\TenantScope;
+use GaiaTools\FulcrumSettings\Support\FulcrumContext;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Gate;
+
+/**
+ * @property int $id
+ * @property string $key
+ * @property SettingType $type
+ * @property string|null $description
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ */
+class Setting extends Model
+{
+    use HasMaskedValue;
+
+    protected $fillable = [
+        'key',
+        'tenant_id',
+        'type',
+        'description',
+        'masked',
+        'immutable',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'type' => SettingType::class,
+            'masked' => 'boolean',
+            'immutable' => 'boolean',
+        ];
+    }
+
+    /**
+     * @return HasMany<SettingRule>
+     */
+    public function rules(): HasMany
+    {
+        return $this->hasMany(SettingRule::class);
+    }
+
+    /**
+     * @return MorphOne<SettingValue>
+     */
+    public function defaultValue(): MorphOne
+    {
+        return $this->morphOne(SettingValue::class, 'valuable');
+    }
+
+    public function getDefaultValue(): mixed
+    {
+        $valueModel = $this->defaultValue;
+
+        if (! $valueModel) {
+            return null;
+        }
+
+        return $this->applyMasking($valueModel->value);
+    }
+
+    /**
+     * Resolve the parent setting model.
+     */
+    public function resolveSetting(): ?Setting
+    {
+        return $this;
+    }
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new TenantScope);
+
+        // Prevent updates if immutable (unless forced)
+        static::updating(function (self $model) {
+            if ($model->immutable && ! FulcrumContext::shouldForce()) {
+                throw new ImmutableSettingException('Setting is immutable. Changes are not allowed.');
+            }
+        });
+
+        // Control deletion: allow via force, or via gate if enabled
+        static::deleting(function (self $model) {
+            if (! $model->immutable || FulcrumContext::shouldForce()) {
+                return true;
+            }
+
+            if ((bool) config('fulcrum.immutability.allow_delete_via_gate', true) && Gate::allows((string) config('fulcrum.immutability.delete_ability', 'deleteImmutableSetting'), $model)) {
+                return true;
+            }
+
+            throw new ImmutableSettingException('Setting is immutable. Deletion is not allowed.');
+        });
+    }
+}
