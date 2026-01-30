@@ -1,0 +1,291 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "name": "Fulcrum Settings",
+    "description": "Advanced feature flags and configuration management for Laravel with rule-based targeting",
+    "version": "1.x",
+    "repository": "https://github.com/gaiatools/fulcrum-settings",
+    "tags": [
+        "laravel",
+        "feature-flags",
+        "configuration",
+        "settings",
+        "rules-engine"
+    ],
+    "head": {
+        "title": "Fulcrum Settings Documentation"
+    },
+    "nav": [
+        {
+            "text": "Guide",
+            "link": "installation"
+        },
+        {
+            "text": "Reference",
+            "link": "reference/overview"
+        },
+        {
+            "text": "GitHub",
+            "link": "https://github.com/gaiatools/fulcrum-settings"
+        }
+    ],
+    "sidebar": [
+        {
+            "text": "Introduction",
+            "items": [
+                {
+                    "text": "What is Fulcrum?",
+                    "link": "index"
+                },
+                {
+                    "text": "Overview",
+                    "link": "overview"
+                },
+                {
+                    "text": "Feature Comparison",
+                    "link": "comparison"
+                }
+            ]
+        },
+        {
+            "text": "Getting Started",
+            "items": [
+                {
+                    "text": "Installation",
+                    "link": "installation"
+                },
+                {
+                    "text": "Configuration",
+                    "link": "getting-started/configuration"
+                },
+                {
+                    "text": "Quick Start",
+                    "link": "quick-start"
+                }
+            ]
+        },
+        {
+            "text": "Core Concepts",
+            "items": [
+                {
+                    "text": "Overview",
+                    "link": "concepts/overview"
+                },
+                {
+                    "text": "Settings",
+                    "link": "concepts/settings"
+                },
+                {
+                    "text": "Rules & Conditions",
+                    "link": "condition-logic"
+                },
+                {
+                    "text": "Percentage Rollouts",
+                    "link": "concepts/rollouts"
+                },
+                {
+                    "text": "Multi-Tenancy",
+                    "link": "multi-tenancy"
+                }
+            ]
+        },
+        {
+            "text": "Usage",
+            "items": [
+                {
+                    "text": "Overview",
+                    "link": "usage/overview"
+                },
+                {
+                    "text": "Database Migrations",
+                    "link": "usage/migrations"
+                },
+                {
+                    "text": "Settings Classes",
+                    "link": "usage/settings-classes"
+                },
+                {
+                    "text": "Resolving Values",
+                    "link": "usage/resolving"
+                }
+            ]
+        },
+        {
+            "text": "Targeting",
+            "items": [
+                {
+                    "text": "Overview",
+                    "link": "targeting-rules"
+                },
+                {
+                    "text": "User Targeting",
+                    "link": "usage/targeting/user-targeting"
+                },
+                {
+                    "text": "Segment Targeting",
+                    "link": "usage/targeting/segment-targeting"
+                },
+                {
+                    "text": "Geographic Targeting",
+                    "link": "usage/targeting/geo-targeting"
+                },
+                {
+                    "text": "Device Targeting",
+                    "link": "usage/targeting/device-targeting"
+                },
+                {
+                    "text": "Time-Based Targeting",
+                    "link": "usage/targeting/time-targeting"
+                },
+                {
+                    "text": "Percentage Rollouts",
+                    "link": "usage/targeting/percentage-rollouts"
+                }
+            ]
+        },
+        {
+            "text": "Advanced",
+            "items": [
+                {
+                    "text": "Overview",
+                    "link": "advanced/overview"
+                },
+                {
+                    "text": "Custom Type Handlers",
+                    "link": "custom-types"
+                },
+                {
+                    "text": "Caching",
+                    "link": "advanced/caching"
+                },
+                {
+                    "text": "Events",
+                    "link": "advanced/events"
+                },
+                {
+                    "text": "Testing",
+                    "link": "advanced/testing"
+                },
+                {
+                    "text": "Security",
+                    "link": "advanced/security"
+                }
+            ]
+        },
+        {
+            "text": "Integrations",
+            "items": [
+                {
+                    "text": "Overview",
+                    "link": "integrations/overview"
+                },
+                {
+                    "text": "Laravel Pennant",
+                    "link": "integrations/pennant"
+                },
+                {
+                    "text": "Spatie Permissions",
+                    "link": "integrations/spatie-permissions"
+                },
+                {
+                    "text": "Laravel Telescope",
+                    "link": "integrations/telescope"
+                },
+                {
+                    "text": "Yasumi Holidays",
+                    "link": "integrations/yasumi-holidays"
+                }
+            ]
+        },
+        {
+            "text": "Reference",
+            "items": [
+                {
+                    "text": "Overview",
+                    "link": "reference/overview"
+                },
+                {
+                    "text": "Configuration",
+                    "link": "reference/configuration"
+                },
+                {
+                    "text": "Artisan Commands",
+                    "link": "reference/commands"
+                },
+                {
+                    "text": "Facade Methods",
+                    "link": "reference/facades"
+                },
+                {
+                    "text": "Contracts",
+                    "link": "reference/contracts"
+                },
+                {
+                    "text": "Events",
+                    "link": "reference/events"
+                },
+                {
+                    "text": "Exceptions",
+                    "link": "reference/exceptions"
+                },
+                {
+                    "text": "Comparison Operators",
+                    "link": "reference/comparison-operators"
+                },
+                {
+                    "text": "API Reference",
+                    "link": "api-reference"
+                }
+            ]
+        },
+        {
+            "text": "Guides",
+            "items": [
+                {
+                    "text": "Overview",
+                    "link": "guides/overview"
+                },
+                {
+                    "text": "Data Portability",
+                    "link": "data-portability"
+                },
+                {
+                    "text": "Best Practices",
+                    "link": "guides/best-practices"
+                },
+                {
+                    "text": "Performance",
+                    "link": "guides/performance"
+                },
+                {
+                    "text": "Troubleshooting",
+                    "link": "guides/troubleshooting"
+                },
+                {
+                    "text": "Use Cases",
+                    "link": "use-cases"
+                }
+            ]
+        },
+        {
+            "text": "Migrate",
+            "items": [
+                {
+                    "text": "Overview",
+                    "link": "migrate/overview"
+                },
+                {
+                    "text": "Spatie",
+                    "link": "migrate/spatie"
+                },
+                {
+                    "text": "Pennant",
+                    "link": "migrate/pennant"
+                },
+                {
+                    "text": "LD/ConfigCat",
+                    "link": "migrate/launchdarkly-configcat"
+                }
+            ]
+        }
+    ]
+}
