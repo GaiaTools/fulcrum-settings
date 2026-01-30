@@ -28,16 +28,16 @@ class UserAgentTargetingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-    $this->segmentDriver = Mockery::mock(SegmentDriver::class);
-    $this->geoResolver = Mockery::mock(GeoResolver::class);
-    $this->uaResolver = Mockery::mock(UserAgentResolver::class);
-    $this->holidayResolver = Mockery::mock(HolidayResolver::class);
-    $this->app->instance(GeoResolver::class, $this->geoResolver);
-    $this->app->instance(UserAgentResolver::class, $this->uaResolver);
-    $this->evaluator = new RuleEvaluator(
-        $this->segmentDriver,
-        $this->holidayResolver
-    );
+        $this->segmentDriver = Mockery::mock(SegmentDriver::class);
+        $this->geoResolver = Mockery::mock(GeoResolver::class);
+        $this->uaResolver = Mockery::mock(UserAgentResolver::class);
+        $this->holidayResolver = Mockery::mock(HolidayResolver::class);
+        $this->app->instance(GeoResolver::class, $this->geoResolver);
+        $this->app->instance(UserAgentResolver::class, $this->uaResolver);
+        $this->evaluator = new RuleEvaluator(
+            $this->segmentDriver,
+            $this->holidayResolver
+        );
     }
 
     public function test_it_resolves_browser_attributes()

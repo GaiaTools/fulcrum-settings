@@ -6,7 +6,6 @@ namespace GaiaTools\FulcrumSettings\Conditions;
 
 use GaiaTools\FulcrumSettings\Contracts\ConditionTypeHandler;
 use GaiaTools\FulcrumSettings\Contracts\UserAgentResolver;
-use GaiaTools\FulcrumSettings\Conditions\AttributeValue;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Arr;
 

@@ -98,7 +98,6 @@ class RuleEvaluator implements RuleEvaluatorContract
         return $this;
     }
 
-
     protected function resolveConditionValue(string $type, string $field, mixed $scope): \GaiaTools\FulcrumSettings\Conditions\AttributeValue
     {
         $handler = $this->conditionTypeHandlers[$type]

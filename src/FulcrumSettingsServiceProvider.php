@@ -287,13 +287,13 @@ class FulcrumSettingsServiceProvider extends ServiceProvider
             'middleware' => config('fulcrum.portability.routes.middleware', ['api', 'auth']),
         ], function () {
             Route::get('export/create', [DataPortabilityController::class, 'showExport'])
-                 ->name('fulcrum.portability.export.create');
+                ->name('fulcrum.portability.export.create');
             Route::post('export', [DataPortabilityController::class, 'export'])
-                 ->name('fulcrum.portability.export');
+                ->name('fulcrum.portability.export');
             Route::get('import/create', [DataPortabilityController::class, 'showImport'])
-                 ->name('fulcrum.portability.import.create');
+                ->name('fulcrum.portability.import.create');
             Route::post('import', [DataPortabilityController::class, 'import'])
-                 ->name('fulcrum.portability.import');
+                ->name('fulcrum.portability.import');
         });
     }
 

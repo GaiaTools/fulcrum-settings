@@ -8,8 +8,8 @@ use GaiaTools\FulcrumSettings\Contracts\GeoResolver;
 use GaiaTools\FulcrumSettings\Contracts\HolidayResolver;
 use GaiaTools\FulcrumSettings\Contracts\SegmentDriver;
 use GaiaTools\FulcrumSettings\Contracts\UserAgentResolver;
-use GaiaTools\FulcrumSettings\Enums\ConditionType;
 use GaiaTools\FulcrumSettings\Enums\ComparisonOperator;
+use GaiaTools\FulcrumSettings\Enums\ConditionType;
 use GaiaTools\FulcrumSettings\Enums\SettingType;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Models\SettingRule;
@@ -34,16 +34,16 @@ class GeoTargetingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-    $this->segmentDriver = Mockery::mock(SegmentDriver::class);
-    $this->geoResolver = Mockery::mock(GeoResolver::class);
-    $this->uaResolver = Mockery::mock(UserAgentResolver::class);
-    $this->holidayResolver = Mockery::mock(HolidayResolver::class);
-    $this->app->instance(GeoResolver::class, $this->geoResolver);
-    $this->app->instance(UserAgentResolver::class, $this->uaResolver);
-    $this->evaluator = new RuleEvaluator(
-        $this->segmentDriver,
-        $this->holidayResolver
-    );
+        $this->segmentDriver = Mockery::mock(SegmentDriver::class);
+        $this->geoResolver = Mockery::mock(GeoResolver::class);
+        $this->uaResolver = Mockery::mock(UserAgentResolver::class);
+        $this->holidayResolver = Mockery::mock(HolidayResolver::class);
+        $this->app->instance(GeoResolver::class, $this->geoResolver);
+        $this->app->instance(UserAgentResolver::class, $this->uaResolver);
+        $this->evaluator = new RuleEvaluator(
+            $this->segmentDriver,
+            $this->holidayResolver
+        );
     }
 
     public function test_it_resolves_geo_attributes_using_geo_resolver(): void

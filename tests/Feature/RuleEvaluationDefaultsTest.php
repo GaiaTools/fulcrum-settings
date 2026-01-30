@@ -43,7 +43,7 @@ class RuleEvaluationDefaultsTest extends TestCase
 
     public function test_default_resolution_uses_authenticated_user(): void
     {
-        $user = new User();
+        $user = new User;
         $user->forceFill([
             'id' => 10,
             'email' => 'user@company.com',

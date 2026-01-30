@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+use GaiaTools\FulcrumSettings\Conditions\DateTimeConditionTypeHandler;
+use GaiaTools\FulcrumSettings\Conditions\GeocodingConditionTypeHandler;
+use GaiaTools\FulcrumSettings\Conditions\UserAgentConditionTypeHandler;
+use GaiaTools\FulcrumSettings\Conditions\UserConditionTypeHandler;
 use GaiaTools\FulcrumSettings\Drivers\WeightDistributionStrategy;
 use GaiaTools\FulcrumSettings\Drivers\YasumiHolidayResolver;
 use GaiaTools\FulcrumSettings\Services\Crc32BucketCalculator;
@@ -12,10 +16,6 @@ use GaiaTools\FulcrumSettings\Types\FloatTypeHandler;
 use GaiaTools\FulcrumSettings\Types\IntegerTypeHandler;
 use GaiaTools\FulcrumSettings\Types\JsonTypeHandler;
 use GaiaTools\FulcrumSettings\Types\StringTypeHandler;
-use GaiaTools\FulcrumSettings\Conditions\UserConditionTypeHandler;
-use GaiaTools\FulcrumSettings\Conditions\GeocodingConditionTypeHandler;
-use GaiaTools\FulcrumSettings\Conditions\UserAgentConditionTypeHandler;
-use GaiaTools\FulcrumSettings\Conditions\DateTimeConditionTypeHandler;
 
 return [
     /*

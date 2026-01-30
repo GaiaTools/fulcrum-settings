@@ -6,7 +6,6 @@ namespace GaiaTools\FulcrumSettings\Conditions;
 
 use Carbon\Carbon;
 use GaiaTools\FulcrumSettings\Contracts\ConditionTypeHandler;
-use GaiaTools\FulcrumSettings\Conditions\AttributeValue;
 use Illuminate\Contracts\Auth\Authenticatable;
 
 class DateTimeConditionTypeHandler implements ConditionTypeHandler

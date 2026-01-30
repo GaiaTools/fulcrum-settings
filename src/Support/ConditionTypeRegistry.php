@@ -43,6 +43,7 @@ class ConditionTypeRegistry
         if (! $this->has($type)) {
             throw MissingConditionTypeHandlerException::forType($type);
         }
+
         return app($this->handlers[$type]);
     }
 

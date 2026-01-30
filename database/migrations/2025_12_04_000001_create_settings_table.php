@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
+use GaiaTools\FulcrumSettings\Enums\ConditionType;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use GaiaTools\FulcrumSettings\Enums\ConditionType;
 
 return new class extends Migration
 {

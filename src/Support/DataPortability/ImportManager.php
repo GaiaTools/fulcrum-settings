@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace GaiaTools\FulcrumSettings\Support\DataPortability;
 
+use GaiaTools\FulcrumSettings\Enums\ConditionType;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Models\SettingRule;
 use GaiaTools\FulcrumSettings\Models\SettingRuleCondition;
 use GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant;
 use GaiaTools\FulcrumSettings\Models\SettingValue;
-use GaiaTools\FulcrumSettings\Enums\ConditionType;
 use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\Formatter;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use Illuminate\Support\Facades\DB;
