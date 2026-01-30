@@ -41,9 +41,8 @@ class CachedSettingResolver implements SettingResolver
     {
         $clone = clone $this;
         $clone->resolver = $this->resolver->forUser($user);
-        $clone->userIdentifier = $user?->getAuthIdentifier() !== null
-            ? (string) $user->getAuthIdentifier()
-            : null;
+        $identifier = $user?->getAuthIdentifier();
+        $clone->userIdentifier = is_scalar($identifier) ? (string) $identifier : null;
 
         return $clone;
     }
@@ -100,8 +99,11 @@ class CachedSettingResolver implements SettingResolver
         }
 
         $user = auth()->user();
-        if ($user && $user->getAuthIdentifier() !== null) {
-            return 'user:'.(string) $user->getAuthIdentifier();
+        if ($user) {
+            $identifier = $user->getAuthIdentifier();
+            if (is_scalar($identifier)) {
+                return 'user:'.(string) $identifier;
+            }
         }
 
         return 'global';

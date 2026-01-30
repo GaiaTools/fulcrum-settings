@@ -11,6 +11,7 @@ use Illuminate\Support\Arr;
 
 class UserAgentConditionTypeHandler implements ConditionTypeHandler
 {
+    /** @var array<string, mixed>|null */
     protected ?array $uaData = null;
 
     protected ?string $uaScopeKey = null;
@@ -27,6 +28,9 @@ class UserAgentConditionTypeHandler implements ConditionTypeHandler
         return new AttributeValue($exists, $value);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function resolveUserAgentData(mixed $scope): array
     {
         $scopeKey = $this->scopeKey($scope);

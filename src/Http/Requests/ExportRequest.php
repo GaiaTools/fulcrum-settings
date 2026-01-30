@@ -13,7 +13,8 @@ class ExportRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $ability = (string) config('fulcrum.portability.export_ability', 'exportFulcrumSettings');
+        $ability = config('fulcrum.portability.export_ability', 'exportFulcrumSettings');
+        $ability = is_string($ability) ? $ability : 'exportFulcrumSettings';
 
         return Gate::allows($ability);
     }
@@ -27,6 +28,9 @@ class ExportRequest extends FormRequest
         throw new HttpResponseException(redirect()->back()->withErrors('This action is unauthorized.'));
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [

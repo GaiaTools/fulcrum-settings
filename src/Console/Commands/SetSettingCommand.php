@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace GaiaTools\FulcrumSettings\Console\Commands;
 
+use GaiaTools\FulcrumSettings\Console\Commands\Concerns\InteractsWithCommandOptions;
 use GaiaTools\FulcrumSettings\Enums\ComparisonOperator;
 use GaiaTools\FulcrumSettings\Enums\ConditionType;
 use GaiaTools\FulcrumSettings\Enums\SettingType;
@@ -11,12 +12,15 @@ use GaiaTools\FulcrumSettings\Facades\Fulcrum;
 use GaiaTools\FulcrumSettings\Models\Scopes\TenantScope;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Models\SettingRule;
+use GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use GaiaTools\FulcrumSettings\Support\TypeRegistry;
 use Illuminate\Console\Command;
 
 class SetSettingCommand extends Command
 {
+    use InteractsWithCommandOptions;
+
     protected $signature = 'fulcrum:set
                             {key? : The setting key to create or update}
                             {value? : The value to set}
@@ -31,8 +35,8 @@ class SetSettingCommand extends Command
 
     public function handle(TypeRegistry $typeRegistry): int
     {
-        $key = $this->argument('key');
-        $value = $this->argument('value');
+        $key = $this->getStringArgument('key');
+        $value = $this->getStringArgument('value');
 
         if ($key === null) {
             return $this->runInteractive($typeRegistry);
@@ -42,12 +46,12 @@ class SetSettingCommand extends Command
         if ($value === null) {
             return $this->runInteractive($typeRegistry, $key);
         }
-        $type = $this->option('type');
-        $description = $this->option('description');
-        $masked = $this->option('masked');
-        $immutable = $this->option('immutable');
-        $tenantId = $this->option('tenant');
-        $force = $this->option('force');
+        $type = $this->getStringOption('type') ?? 'string';
+        $description = $this->getStringOption('description');
+        $masked = $this->getBoolOption('masked');
+        $immutable = $this->getBoolOption('immutable');
+        $tenantId = $this->getStringOption('tenant');
+        $force = $this->getBoolOption('force');
 
         if ($force) {
             FulcrumContext::force(true);
@@ -65,7 +69,7 @@ class SetSettingCommand extends Command
             $setting = $query->first();
 
             if ($setting) {
-                if ($this->hasOption('type') && $this->option('type') !== 'string') {
+                if ($this->hasOption('type') && $type !== 'string') {
                     // Only update type if explicitly provided and different from default
                     $setting->type = SettingType::from($type);
                 }
@@ -74,11 +78,11 @@ class SetSettingCommand extends Command
                     $setting->description = $description;
                 }
 
-                if ($this->option('masked')) {
+                if ($masked) {
                     $setting->masked = true;
                 }
 
-                if ($this->option('immutable')) {
+                if ($immutable) {
                     $setting->immutable = true;
                 }
 
@@ -138,13 +142,13 @@ class SetSettingCommand extends Command
         }
     }
 
-    protected function convertValue(string $value, SettingType $type): mixed
+    protected function convertValue(mixed $value, SettingType $type): mixed
     {
         return match ($type) {
-            SettingType::BOOLEAN => filter_var($value, FILTER_VALIDATE_BOOLEAN),
-            SettingType::INTEGER => (int) $value,
-            SettingType::FLOAT => (float) $value,
-            SettingType::JSON => is_array($value) ? $value : json_decode($value, true),
+            SettingType::BOOLEAN => filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false,
+            SettingType::INTEGER => is_numeric($value) ? (int) $value : 0,
+            SettingType::FLOAT => is_numeric($value) ? (float) $value : 0.0,
+            SettingType::JSON => is_array($value) ? $value : (is_string($value) ? json_decode($value, true) : null),
             default => $value,
         };
     }
@@ -153,22 +157,24 @@ class SetSettingCommand extends Command
     {
         $this->info('--- Fulcrum Setting Wizard ---');
 
-        $force = $this->option('force');
+        $force = $this->getBoolOption('force');
 
         if ($key === null) {
-            $key = $this->ask('Enter the setting key');
-            if (! $key) {
+            $keyInput = $this->ask('Enter the setting key');
+            if (! is_string($keyInput) || $keyInput === '') {
                 $this->error('Key is required.');
 
                 return 1;
             }
+            $key = $keyInput;
         } else {
             $this->line("Setting key: <info>{$key}</info>");
         }
 
-        $tenantId = $this->option('tenant');
+        $tenantId = $this->getStringOption('tenant');
         if ($tenantId === null && Fulcrum::isMultiTenancyEnabled()) {
-            $tenantId = $this->ask('Enter tenant ID (optional, leave empty for global)');
+            $tenantInput = $this->ask('Enter tenant ID (optional, leave empty for global)');
+            $tenantId = is_string($tenantInput) ? $tenantInput : null;
         }
 
         if ($force) {
@@ -192,12 +198,13 @@ class SetSettingCommand extends Command
             } else {
                 $this->info("Creating new setting [{$key}] for tenant [".($tenantId ?: 'global').']');
                 $typeStr = $this->choice('Select setting type', array_column(SettingType::cases(), 'value'), 'string');
-                $type = SettingType::from($typeStr);
+                $type = SettingType::from(is_string($typeStr) ? $typeStr : 'string');
             }
 
-            $description = $this->ask('Enter description', $setting?->description);
-            $masked = $this->confirm('Is this setting sensitive/masked?', $setting?->masked ?? false);
-            $immutable = $this->confirm('Is this setting immutable?', $setting?->immutable ?? false);
+            $descriptionDefault = $setting ? $setting->description : null;
+            $description = $this->ask('Enter description', $descriptionDefault);
+            $masked = $this->confirm('Is this setting sensitive/masked?', $setting ? $setting->masked : false);
+            $immutable = $this->confirm('Is this setting immutable?', $setting ? $setting->immutable : false);
 
             if ($immutable && ! FulcrumContext::shouldForce()) {
                 if (! $this->confirm('Setting is/will be immutable. Continue?')) {
@@ -252,7 +259,7 @@ class SetSettingCommand extends Command
         }
     }
 
-    protected function saveValue($model, mixed $value, TypeRegistry $typeRegistry, ?string $tenantId): void
+    protected function saveValue(Setting|SettingRule|SettingRuleRolloutVariant $model, mixed $value, TypeRegistry $typeRegistry, ?string $tenantId): void
     {
         $setting = ($model instanceof Setting) ? $model : $model->resolveSetting();
         if (! $setting) {
@@ -261,7 +268,9 @@ class SetSettingCommand extends Command
         $handler = $typeRegistry->getHandler($setting->type);
 
         if (! $handler->validate($value)) {
-            throw new \InvalidArgumentException('Invalid value ['.json_encode($value)."] for type [{$setting->type->value}].");
+            $valueDescription = json_encode($value);
+            $valueDescription = $valueDescription === false ? 'null' : $valueDescription;
+            throw new \InvalidArgumentException('Invalid value ['.$valueDescription."] for type [{$setting->type->value}].");
         }
 
         $storageValue = $handler->set($value);
@@ -305,16 +314,18 @@ class SetSettingCommand extends Command
             if ($action === 'Add Rule') {
                 $this->addOrEditRule($setting, null, $typeRegistry, $tenantId);
             } elseif ($action === 'Edit Rule') {
-                $ruleId = $this->ask('Enter Rule ID to edit');
-                $rule = $setting->rules()->find($ruleId);
+                $ruleIdInput = $this->ask('Enter Rule ID to edit');
+                $ruleId = is_numeric($ruleIdInput) ? (int) $ruleIdInput : null;
+                $rule = $ruleId !== null ? $setting->rules()->find($ruleId) : null;
                 if ($rule) {
                     $this->addOrEditRule($setting, $rule, $typeRegistry, $tenantId);
                 } else {
                     $this->error('Rule not found.');
                 }
             } elseif ($action === 'Delete Rule') {
-                $ruleId = $this->ask('Enter Rule ID to delete');
-                $rule = $setting->rules()->find($ruleId);
+                $ruleIdInput = $this->ask('Enter Rule ID to delete');
+                $ruleId = is_numeric($ruleIdInput) ? (int) $ruleIdInput : null;
+                $rule = $ruleId !== null ? $setting->rules()->find($ruleId) : null;
                 if ($rule && $this->confirm("Are you sure you want to delete rule [{$rule->name}]?")) {
                     $rule->delete();
                     $this->info('Rule deleted.');
@@ -326,7 +337,9 @@ class SetSettingCommand extends Command
     protected function addOrEditRule(Setting $setting, ?SettingRule $rule, TypeRegistry $typeRegistry, ?string $tenantId): void
     {
         $name = $this->ask('Rule name', $rule?->name);
-        $priority = (int) $this->ask('Priority (lower runs first)', (string) ($rule?->priority ?? 100));
+        $priorityDefault = $rule ? $rule->priority : 100;
+        $priorityInput = $this->ask('Priority (lower runs first)', (string) $priorityDefault);
+        $priority = is_numeric($priorityInput) ? (int) $priorityInput : (int) $priorityDefault;
 
         if ($rule) {
             $rule->update(['name' => $name, 'priority' => $priority]);
@@ -354,7 +367,11 @@ class SetSettingCommand extends Command
         if ($isRollout) {
             $this->manageRollouts($rule, $typeRegistry, $tenantId);
         } else {
-            $value = $this->ask("Enter rule value ({$setting->type->value})", $rule->getValue());
+            $defaultValue = $rule->getValue();
+            $value = $this->ask(
+                "Enter rule value ({$setting->type->value})",
+                is_string($defaultValue) ? $defaultValue : null
+            );
             $convertedValue = $this->convertValue($value, $setting->type);
             $this->saveValue($rule, $convertedValue, $typeRegistry, $tenantId);
         }
@@ -381,13 +398,20 @@ class SetSettingCommand extends Command
 
             if ($action === 'Add Condition') {
                 $attribute = $this->ask('Attribute (e.g., user_id, email, segment)');
+                if (! is_string($attribute) || $attribute === '') {
+                    $this->error('Attribute is required.');
+
+                    continue;
+                }
                 $operatorStr = $this->choice('Operator', array_column(ComparisonOperator::cases(), 'value'), 'equals');
-                $operator = ComparisonOperator::from($operatorStr);
+                $operator = ComparisonOperator::from(is_string($operatorStr) ? $operatorStr : 'equals');
 
                 $value = null;
                 if ($operator->requiresValue()) {
                     if ($operator->requiresArrayValue()) {
-                        $value = explode(',', $this->ask('Enter values (comma separated)'));
+                        $valuesInput = $this->ask('Enter values (comma separated)');
+                        $valuesString = is_string($valuesInput) ? $valuesInput : '';
+                        $value = array_filter(array_map('trim', explode(',', $valuesString)), static fn ($item) => $item !== '');
                     } else {
                         $value = $this->ask('Enter value');
 
@@ -410,8 +434,11 @@ class SetSettingCommand extends Command
 
                 $rule->conditions()->create($attributes);
             } elseif ($action === 'Delete Condition') {
-                $condId = $this->ask('Enter Condition ID to delete');
-                $rule->conditions()->find($condId)?->delete();
+                $condIdInput = $this->ask('Enter Condition ID to delete');
+                $condId = is_numeric($condIdInput) ? (int) $condIdInput : null;
+                if ($condId !== null) {
+                    $rule->conditions()->find($condId)?->delete();
+                }
             }
         }
     }
@@ -419,9 +446,10 @@ class SetSettingCommand extends Command
     protected function manageRollouts(SettingRule $rule, TypeRegistry $typeRegistry, ?string $tenantId): void
     {
         while (true) {
+            /** @var \Illuminate\Database\Eloquent\Collection<int, SettingRuleRolloutVariant> $variants */
             $variants = $rule->rolloutVariants;
             if ($variants->isNotEmpty()) {
-                $this->table(['ID', 'Name', 'Weight (%)', 'Value'], $variants->map(fn ($v) => [
+                $this->table(['ID', 'Name', 'Weight (%)', 'Value'], $variants->map(fn (SettingRuleRolloutVariant $v) => [
                     $v->id,
                     $v->name,
                     $v->weight_percentage,
@@ -443,7 +471,8 @@ class SetSettingCommand extends Command
 
             if ($action === 'Add Variant') {
                 $name = $this->ask('Variant name');
-                $weightPct = (float) $this->ask('Weight percentage (0-100)');
+                $weightInput = $this->ask('Weight percentage (0-100)');
+                $weightPct = is_numeric($weightInput) ? (float) $weightInput : 0.0;
                 $value = $this->ask("Variant value ({$rule->setting->type->value})");
                 $convertedValue = $this->convertValue($value, $rule->setting->type);
 
@@ -461,8 +490,11 @@ class SetSettingCommand extends Command
 
                 $this->saveValue($variant, $convertedValue, $typeRegistry, $tenantId);
             } elseif ($action === 'Delete Variant') {
-                $varId = $this->ask('Enter Variant ID to delete');
-                $rule->rolloutVariants()->find($varId)?->delete();
+                $varIdInput = $this->ask('Enter Variant ID to delete');
+                $varId = is_numeric($varIdInput) ? (int) $varIdInput : null;
+                if ($varId !== null) {
+                    $rule->rolloutVariants()->find($varId)?->delete();
+                }
             }
         }
     }

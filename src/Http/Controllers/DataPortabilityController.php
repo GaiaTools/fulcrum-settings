@@ -25,9 +25,10 @@ class DataPortabilityController extends Controller
         return app(ExportViewResponseContract::class);
     }
 
-    public function export(ExportRequest $request)
+    public function export(ExportRequest $request): ExportResponseContract
     {
-        return (new Pipeline(app()))
+        /** @var ExportResponseContract $response */
+        $response = (new Pipeline(app()))
             ->send($request)
             ->through([
                 PrepareExport::class,
@@ -35,6 +36,8 @@ class DataPortabilityController extends Controller
             ->then(function ($request) {
                 return app(ExportResponseContract::class, ['exportData' => $request->attributes->get('export_data')]);
             });
+
+        return $response;
     }
 
     public function showImport(Request $request): ImportViewResponseContract
@@ -42,9 +45,10 @@ class DataPortabilityController extends Controller
         return app(ImportViewResponseContract::class);
     }
 
-    public function import(ImportRequest $request)
+    public function import(ImportRequest $request): ImportResponseContract
     {
-        return (new Pipeline(app()))
+        /** @var ImportResponseContract $response */
+        $response = (new Pipeline(app()))
             ->send($request)
             ->through([
                 ValidateFile::class,
@@ -54,5 +58,7 @@ class DataPortabilityController extends Controller
             ->then(function ($request) {
                 return app(ImportResponseContract::class, ['importResult' => $request->attributes->get('import_result')]);
             });
+
+        return $response;
     }
 }

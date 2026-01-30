@@ -10,12 +10,20 @@ use GaiaTools\FulcrumSettings\Exceptions\MissingConditionTypeHandlerException;
 
 class ConditionTypeRegistry
 {
-    /** @var array<string, string> */
+    /** @var array<string, class-string<ConditionTypeHandler>> */
     protected array $handlers = [];
 
     public function __construct()
     {
-        foreach (config('fulcrum.condition_types', []) as $type => $handlerClass) {
+        $types = config('fulcrum.condition_types', []);
+        if (! is_array($types)) {
+            $types = [];
+        }
+
+        foreach ($types as $type => $handlerClass) {
+            if (! is_string($type) || ! is_string($handlerClass)) {
+                continue;
+            }
             $this->register($type, $handlerClass);
         }
     }

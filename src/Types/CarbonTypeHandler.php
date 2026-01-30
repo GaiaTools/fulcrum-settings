@@ -16,7 +16,13 @@ class CarbonTypeHandler implements SettingTypeHandler
             return null;
         }
 
-        $carbon = Carbon::parse($value);
+        if ($value instanceof \DateTimeInterface) {
+            $carbon = Carbon::instance($value);
+        } elseif (is_string($value) || is_int($value) || is_float($value)) {
+            $carbon = Carbon::parse($value);
+        } else {
+            return null;
+        }
 
         $timezone = $this->getTimezone();
         if ($timezone) {
@@ -30,10 +36,14 @@ class CarbonTypeHandler implements SettingTypeHandler
     {
         // Check if there is a context-specific timezone set
         if (app()->bound('fulcrum.context.timezone')) {
-            return app('fulcrum.context.timezone');
+            $timezone = app('fulcrum.context.timezone');
+
+            return is_string($timezone) ? $timezone : null;
         }
 
-        return Config::get('fulcrum.carbon.output_timezone');
+        $timezone = Config::get('fulcrum.carbon.output_timezone');
+
+        return is_string($timezone) ? $timezone : null;
     }
 
     public function set(mixed $value): ?string
@@ -43,7 +53,13 @@ class CarbonTypeHandler implements SettingTypeHandler
         }
 
         if (! $value instanceof Carbon) {
-            $value = Carbon::parse($value);
+            if ($value instanceof \DateTimeInterface) {
+                $value = Carbon::instance($value);
+            } elseif (is_string($value) || is_int($value) || is_float($value)) {
+                $value = Carbon::parse($value);
+            } else {
+                return null;
+            }
         }
 
         if (Config::get('fulcrum.carbon.store_utc', true)) {

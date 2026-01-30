@@ -128,6 +128,9 @@ class SettingResolver implements SettingResolverContract
     /**
      * Build a base query for finding settings, respecting tenant scope.
      */
+    /**
+     * @return Builder<Setting>
+     */
     protected function buildSettingQuery(string $key, ?string $tenantId): Builder
     {
         return Setting::withoutGlobalScope(TenantScope::class)
@@ -145,6 +148,9 @@ class SettingResolver implements SettingResolverContract
 
     /**
      * Find a setting by key, respecting tenant scope.
+     */
+    /**
+     * @param  array<int, string>  $with
      */
     protected function findSettingByKey(string $key, ?string $tenantId, array $with = []): ?Setting
     {
@@ -251,7 +257,8 @@ class SettingResolver implements SettingResolverContract
     protected function calculateBucket(SettingRule $rule, string $identifier): int
     {
         $salt = $rule->getEffectiveSalt();
-        $precision = (int) config('fulcrum.rollout.bucket_precision', 100_000);
+        $precisionConfig = config('fulcrum.rollout.bucket_precision', 100_000);
+        $precision = is_numeric($precisionConfig) ? (int) $precisionConfig : 100_000;
 
         return $this->bucketCalculator->calculate($identifier, $salt, $precision);
     }
@@ -291,8 +298,19 @@ class SettingResolver implements SettingResolverContract
         }
 
         $result = $resolver($scope, $this->user);
+        if ($result === null) {
+            return null;
+        }
 
-        return $result !== null ? (string) $result : null;
+        if (is_scalar($result)) {
+            return (string) $result;
+        }
+
+        if (is_object($result) && method_exists($result, '__toString')) {
+            return (string) $result;
+        }
+
+        return null;
     }
 
     /**
@@ -300,9 +318,9 @@ class SettingResolver implements SettingResolverContract
      */
     protected function extractIdentifierFromUser(): ?string
     {
-        return $this->user?->getAuthIdentifier() !== null
-            ? (string) $this->user->getAuthIdentifier()
-            : null;
+        $identifier = $this->user?->getAuthIdentifier();
+
+        return is_scalar($identifier) ? (string) $identifier : null;
     }
 
     /**
@@ -312,8 +330,8 @@ class SettingResolver implements SettingResolverContract
     {
         return match (true) {
             is_scalar($scope) => (string) $scope,
-            is_array($scope) && isset($scope['id']) => (string) $scope['id'],
-            is_object($scope) && property_exists($scope, 'id') => (string) $scope->id,
+            is_array($scope) && isset($scope['id']) && is_scalar($scope['id']) => (string) $scope['id'],
+            is_object($scope) && property_exists($scope, 'id') && is_scalar($scope->id) => (string) $scope->id,
             default => null,
         };
     }
@@ -338,7 +356,7 @@ class SettingResolver implements SettingResolverContract
 
         event(new VariantAssigned(
             settingKey: $setting->key,
-            ruleName: $rule?->name ?? 'unnamed',
+            ruleName: $rule && is_string($rule->name) ? $rule->name : 'unnamed',
             variantName: $variant->name,
             value: $variant->getValue(),
             identifier: $this->resolveRolloutIdentifier($scope) ?? 'unknown',
@@ -360,6 +378,16 @@ class SettingResolver implements SettingResolverContract
             return;
         }
 
+        $scopeData = null;
+        if (is_array($context->scope)) {
+            $scopeData = [];
+            foreach ($context->scope as $key => $value) {
+                if (is_string($key)) {
+                    $scopeData[$key] = $value;
+                }
+            }
+        }
+
         event(new SettingResolved(
             key: $context->key,
             value: $context->value,
@@ -369,7 +397,7 @@ class SettingResolver implements SettingResolverContract
             source: $context->source,
             tenantId: $context->tenantId,
             userId: $user?->getAuthIdentifier(),
-            scope: is_array($context->scope) ? $context->scope : null,
+            scope: $scopeData,
             durationMs: $context->durationMs,
         ));
     }

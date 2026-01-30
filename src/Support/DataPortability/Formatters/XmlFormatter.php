@@ -21,9 +21,30 @@ class XmlFormatter implements Formatter
             return [];
         }
 
-        return json_decode(json_encode($xml) ?: '', true) ?: [];
+        $encoded = json_encode($xml);
+        if ($encoded === false) {
+            return [];
+        }
+
+        $decoded = json_decode($encoded, true);
+
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($decoded as $row) {
+            if (is_array($row)) {
+                $normalized[] = $row;
+            }
+        }
+
+        return $normalized;
     }
 
+    /**
+     * @param  array<int|string, mixed>  $data
+     */
     protected function arrayToXml(array $data, \SimpleXMLElement $xml): void
     {
         foreach ($data as $key => $value) {
@@ -31,11 +52,30 @@ class XmlFormatter implements Formatter
                 $key = 'setting';
             }
             if (is_array($value)) {
-                $subnode = $xml->addChild($key);
+                $subnode = $xml->addChild((string) $key);
                 $this->arrayToXml($value, $subnode);
             } else {
-                $xml->addChild($key, htmlspecialchars((string) $value));
+                $xml->addChild((string) $key, htmlspecialchars($this->stringifyValue($value)));
             }
         }
+    }
+
+    protected function stringifyValue(mixed $value): string
+    {
+        if (is_string($value)) {
+            return $value;
+        }
+
+        if (is_scalar($value)) {
+            return (string) $value;
+        }
+
+        if (is_object($value) && method_exists($value, '__toString')) {
+            return (string) $value;
+        }
+
+        $encoded = json_encode($value);
+
+        return $encoded === false ? '' : $encoded;
     }
 }

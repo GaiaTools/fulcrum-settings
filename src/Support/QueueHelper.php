@@ -13,7 +13,9 @@ class QueueHelper
      */
     public static function getConnection(): ?string
     {
-        return config('fulcrum.queue.connection');
+        $connection = config('fulcrum.queue.connection');
+
+        return is_string($connection) ? $connection : null;
     }
 
     /**
@@ -26,7 +28,7 @@ class QueueHelper
     {
         $queue = config("fulcrum.queue.queues.{$type}");
 
-        if ($queue === null) {
+        if (! is_string($queue)) {
             throw new InvalidArgumentException("Invalid queue type: {$type}");
         }
 
@@ -40,10 +42,24 @@ class QueueHelper
      */
     public static function getDefaultSettings(): array
     {
-        return config('fulcrum.queue.defaults') ?? [
+        $defaults = config('fulcrum.queue.defaults');
+        $fallback = [
             'tries' => 3,
             'timeout' => 60,
             'backoff' => 60,
         ];
+
+        if (! is_array($defaults)) {
+            return $fallback;
+        }
+
+        $normalized = $fallback;
+        foreach ($fallback as $key => $value) {
+            if (array_key_exists($key, $defaults) && is_numeric($defaults[$key])) {
+                $normalized[$key] = (int) $defaults[$key];
+            }
+        }
+
+        return $normalized;
     }
 }

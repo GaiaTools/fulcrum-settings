@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace GaiaTools\FulcrumSettings\Console\Commands;
 
+use GaiaTools\FulcrumSettings\Console\Commands\Concerns\InteractsWithCommandOptions;
 use GaiaTools\FulcrumSettings\Enums\SettingType;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Schema;
 
 class MigrateFromSpatieCommand extends Command
 {
+    use InteractsWithCommandOptions;
+
     protected $signature = 'fulcrum:migrate-spatie
                             {--table=settings : The Spatie settings table name}
                             {--connection= : The database connection where Spatie settings are located}
@@ -28,8 +31,12 @@ class MigrateFromSpatieCommand extends Command
 
     public function handle(): int
     {
-        $spatieTable = $this->option('table');
-        $connection = $this->option('connection') ?: config('database.default');
+        $spatieTable = $this->getStringOption('table') ?? 'settings';
+        $connection = $this->getStringOption('connection');
+        if ($connection === null) {
+            $defaultConnection = config('database.default');
+            $connection = is_string($defaultConnection) ? $defaultConnection : null;
+        }
 
         if ($spatieTable === 'settings' && ! Schema::connection($connection)->hasColumn('settings', 'group') && Schema::connection($connection)->hasTable('spatie_settings')) {
             $spatieTable = 'spatie_settings';
@@ -37,7 +44,8 @@ class MigrateFromSpatieCommand extends Command
         }
 
         if (! Schema::connection($connection)->hasTable($spatieTable)) {
-            $this->error("Spatie settings table [{$spatieTable}] not found on connection [{$connection}].");
+            $connectionLabel = $connection ?? 'default';
+            $this->error("Spatie settings table [{$spatieTable}] not found on connection [{$connectionLabel}].");
 
             return 1;
         }

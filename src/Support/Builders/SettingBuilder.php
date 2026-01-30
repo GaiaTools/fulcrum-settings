@@ -20,6 +20,7 @@ class SettingBuilder
 
     protected string $description = '';
 
+    /** @var array<int, RuleBuilder> */
     protected array $rules = [];
 
     protected bool $masked = false;
@@ -37,7 +38,7 @@ class SettingBuilder
 
     public function type(string|BackedEnum $type): self
     {
-        $typeString = $type instanceof BackedEnum ? $type->value : $type;
+        $typeString = $type instanceof BackedEnum ? (string) $type->value : $type;
         $typeRegistry = app(TypeRegistry::class);
 
         if (! $typeRegistry->has($typeString)) {

@@ -7,14 +7,30 @@ use GaiaTools\FulcrumSettings\Enums\SettingType;
 
 class IntegerTypeHandler implements SettingTypeHandler
 {
-    public function get(mixed $value): mixed
+    public function get(mixed $value): int
     {
-        return (int) $value;
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_bool($value)) {
+            return $value ? 1 : 0;
+        }
+
+        if (is_float($value)) {
+            return (int) $value;
+        }
+
+        if (is_string($value) && is_numeric($value)) {
+            return (int) $value;
+        }
+
+        return 0;
     }
 
     public function set(mixed $value): string
     {
-        return (string) (int) $value;
+        return (string) $this->get($value);
     }
 
     public function validate(mixed $value): bool

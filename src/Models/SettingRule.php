@@ -20,12 +20,18 @@ use Illuminate\Support\Str;
 /**
  * @property int $id
  * @property int $setting_id
+ * @property string|null $tenant_id
  * @property string|null $name
  * @property int $priority
+ * @property string|null $rollout_salt
+ * @property Carbon|null $starts_at
+ * @property Carbon|null $ends_at
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property Setting $setting
- * @property-read SettingRule[] $rules
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, SettingRule> $rules
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, SettingRuleCondition> $conditions
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, SettingRuleRolloutVariant> $rolloutVariants
  * @property-read SettingValue|null $value
  */
 class SettingRule extends Model
@@ -52,7 +58,7 @@ class SettingRule extends Model
     }
 
     /**
-     * @return BelongsTo<Setting, SettingRule>
+     * @return BelongsTo<Setting, $this>
      */
     public function setting(): BelongsTo
     {
@@ -60,14 +66,14 @@ class SettingRule extends Model
     }
 
     /**
-     * @return HasMany<SettingRuleCondition>
+     * @return HasMany<SettingRuleCondition, $this>
      */
     public function conditions(): HasMany
     {
         return $this->hasMany(SettingRuleCondition::class);
     }
 
-    /** @return HasMany<SettingRule> */
+    /** @return HasMany<SettingRule, $this> */
     public function rules(): HasMany
     {
         // A rule doesn't have child rules in the current schema
@@ -75,7 +81,7 @@ class SettingRule extends Model
     }
 
     /**
-     * @return MorphOne<SettingValue>
+     * @return MorphOne<SettingValue, $this>
      */
     public function value(): MorphOne
     {
@@ -116,7 +122,7 @@ class SettingRule extends Model
 
         $guard = function (self $model) {
             $setting = $model->setting;
-            if ($setting && $setting->immutable && ! FulcrumContext::shouldForce()) {
+            if ($setting->immutable && ! FulcrumContext::shouldForce()) {
                 throw new ImmutableSettingException('Setting is immutable. Changes are not allowed.');
             }
         };
@@ -125,8 +131,9 @@ class SettingRule extends Model
         static::updating($guard);
         static::deleting(function (self $model) {
             $setting = $model->setting;
-            if ($setting && $setting->immutable && ! FulcrumContext::shouldForce()) {
-                $ability = (string) config('fulcrum.immutability.delete_ability', 'deleteImmutableSetting');
+            if ($setting->immutable && ! FulcrumContext::shouldForce()) {
+                $ability = config('fulcrum.immutability.delete_ability', 'deleteImmutableSetting');
+                $ability = is_string($ability) ? $ability : 'deleteImmutableSetting';
                 if (Gate::allows($ability, $setting)) {
                     return true;
                 }
@@ -136,7 +143,7 @@ class SettingRule extends Model
     }
 
     /**
-     * @return HasMany<SettingRuleRolloutVariant>
+     * @return HasMany<SettingRuleRolloutVariant, $this>
      */
     public function rolloutVariants(): HasMany
     {
@@ -188,10 +195,14 @@ class SettingRule extends Model
     public function getTotalRolloutWeightAttribute(): int
     {
         if ($this->relationLoaded('rolloutVariants')) {
-            return $this->rolloutVariants->sum('weight');
+            $sum = $this->rolloutVariants->sum('weight');
+
+            return is_numeric($sum) ? (int) $sum : 0;
         }
 
-        return $this->rolloutVariants()->sum('weight');
+        $sum = $this->rolloutVariants()->sum('weight');
+
+        return (int) $sum;
     }
 
     /**
@@ -221,6 +232,6 @@ class SettingRule extends Model
      */
     public function getEffectiveSalt(): string
     {
-        return $this->rollout_salt ?? $this->setting?->key ?? (string) $this->id;
+        return $this->rollout_salt ?? $this->setting->key;
     }
 }

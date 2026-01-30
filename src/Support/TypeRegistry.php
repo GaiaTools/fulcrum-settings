@@ -9,11 +9,20 @@ use GaiaTools\FulcrumSettings\Exceptions\MissingTypeHandlerException;
 
 class TypeRegistry
 {
+    /** @var array<string, class-string<SettingTypeHandler>> */
     protected array $handlers = [];
 
     public function __construct()
     {
-        foreach (config('fulcrum.types', []) as $type => $handlerClass) {
+        $types = config('fulcrum.types', []);
+        if (! is_array($types)) {
+            $types = [];
+        }
+
+        foreach ($types as $type => $handlerClass) {
+            if (! is_string($type) || ! is_string($handlerClass)) {
+                continue;
+            }
             $this->register($type, $handlerClass);
         }
     }
@@ -45,7 +54,7 @@ class TypeRegistry
     /**
      * Get handler for a type.
      */
-    public function getHandler(string|SettingType $type): ?SettingTypeHandler
+    public function getHandler(string|SettingType $type): SettingTypeHandler
     {
         $typeStr = $type instanceof SettingType ? $type->value : (string) $type;
 

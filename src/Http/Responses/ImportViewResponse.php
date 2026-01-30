@@ -8,9 +8,9 @@ use GaiaTools\FulcrumSettings\Contracts\DataPortability\ImportViewResponse as Co
 
 class ImportViewResponse implements Contract
 {
-    public function toResponse($request)
+    public function toResponse($request): \Symfony\Component\HttpFoundation\Response
     {
-        return view('fulcrum::import.form', [
+        return response()->view('fulcrum::import.form', [
             'supportedFormats' => ['json', 'csv', 'xml'],
             'maxFileSize' => '10MB',
         ]);

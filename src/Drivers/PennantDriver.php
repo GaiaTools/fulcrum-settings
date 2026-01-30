@@ -37,14 +37,26 @@ class PennantDriver implements DefinesFeaturesExternally, Driver
      */
     public function defined(): array
     {
-        return Setting::pluck('key')->all();
+        return Setting::pluck('key')
+            ->map(static function ($key): string {
+                if (is_scalar($key)) {
+                    return (string) $key;
+                }
+                if (is_object($key) && method_exists($key, '__toString')) {
+                    return (string) $key;
+                }
+
+                return '';
+            })
+            ->values()
+            ->all();
     }
 
     /**
      * Get multiple feature flag values.
      *
-     * @param  array<string, array<int, mixed>>  $features
-     * @return array<string, array<int, mixed>>
+     * @param  array<int, string>|array<string, array<int, mixed>>  $features
+     * @return array<string, array<int, mixed>|mixed>
      */
     public function getAll(array $features): array
     {
@@ -59,10 +71,14 @@ class PennantDriver implements DefinesFeaturesExternally, Driver
                 $isConvenienceCall = false;
             }
 
+            if (! is_array($scopes)) {
+                continue;
+            }
+
             $results[$feature] = [];
 
             foreach ($scopes as $scope) {
-                $value = $this->get($feature, $scope);
+                $value = $this->get((string) $feature, $scope);
 
                 if ($isConvenienceCall) {
                     $results[$feature] = $value;
@@ -130,7 +146,7 @@ class PennantDriver implements DefinesFeaturesExternally, Driver
     /**
      * Build context array from scope.
      *
-     * @return array<string, mixed>|null
+     * @return array<int|string, mixed>|null
      */
     protected function buildContext(mixed $scope): ?array
     {
@@ -149,7 +165,7 @@ class PennantDriver implements DefinesFeaturesExternally, Driver
             // If it's a user, add common user properties
             if ($scope instanceof Authenticatable) {
                 $context['id'] = $scope->getAuthIdentifier();
-                if (method_exists($scope, 'getEmailForPasswordReset')) {
+                if ($scope instanceof \Illuminate\Contracts\Auth\CanResetPassword) {
                     $context['email'] = $scope->getEmailForPasswordReset();
                 } elseif (isset($scope->email)) {
                     $context['email'] = $scope->email;
@@ -197,6 +213,6 @@ class PennantDriver implements DefinesFeaturesExternally, Driver
 
     public function definedFeaturesForScope(mixed $scope): array
     {
-        return $this->defined();
+        return array_values($this->defined());
     }
 }

@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Gate;
  * @property int $id
  * @property string $valuable_type
  * @property int $valuable_id
+ * @property string|null $tenant_id
  * @property mixed $value
  * @property Carbon $created_at
  * @property Carbon $updated_at
@@ -38,7 +39,7 @@ class SettingValue extends Model
     // so we don't use native JSON casting here.
 
     /**
-     * @return MorphTo<Model, SettingValue>
+     * @return MorphTo<Model, $this>
      */
     public function valuable(): MorphTo
     {
@@ -47,6 +48,9 @@ class SettingValue extends Model
 
     /**
      * Accessor/Mutator: Handle type resolution, serialization/deserialization, and encryption.
+     */
+    /**
+     * @return Attribute<mixed, mixed>
      */
     public function value(): Attribute
     {
@@ -57,7 +61,7 @@ class SettingValue extends Model
                 }
 
                 $setting = $this->resolveSetting();
-                if ($setting && $setting->masked) {
+                if ($setting && $setting->masked && is_string($value)) {
                     try {
                         $value = Crypt::decryptString($value);
                     } catch (\Throwable) {
@@ -80,12 +84,15 @@ class SettingValue extends Model
                 $type = $attributes['valuable_type'] ?? $this->valuable_type ?? $this->attributes['valuable_type'] ?? null;
                 $id = $attributes['valuable_id'] ?? $this->valuable_id ?? $this->attributes['valuable_id'] ?? null;
 
-                $setting = $this->resolveSetting($type, $id);
+                $typeString = is_string($type) ? $type : null;
+                $idValue = is_scalar($id) ? $id : null;
+                $setting = $this->resolveSetting($typeString, $idValue);
 
                 if (! $setting) {
                     // Try with raw valuable_id from attributes if it differs from cast/accessed id
                     $id = $attributes['valuable_id'] ?? $id;
-                    $setting = $this->resolveSetting($type, $id);
+                    $idValue = is_scalar($id) ? $id : null;
+                    $setting = $this->resolveSetting($typeString, $idValue);
                 }
 
                 if (! $setting && ! $this->exists) {
@@ -110,14 +117,26 @@ class SettingValue extends Model
                 }
 
                 if (! $setting) {
-                    throw new SettingNotFoundException("Setting record not found for value. (Type: {$type}, ID: {$id})");
+                    $typeLabel = is_scalar($type) ? (string) $type : 'unknown';
+                    $idLabel = is_scalar($id) ? (string) $id : 'unknown';
+                    throw new SettingNotFoundException("Setting record not found for value. (Type: {$typeLabel}, ID: {$idLabel})");
                 }
 
                 $handler = app(TypeRegistry::class)->getHandler($setting->type);
                 $serialized = $handler->set($value);
 
                 if ($setting->masked) {
-                    return Crypt::encryptString((string) $serialized);
+                    if (! is_string($serialized)) {
+                        if (is_scalar($serialized)) {
+                            $serialized = (string) $serialized;
+                        } elseif (is_object($serialized) && method_exists($serialized, '__toString')) {
+                            $serialized = (string) $serialized;
+                        } else {
+                            $serialized = json_encode($serialized) ?: '';
+                        }
+                    }
+
+                    return Crypt::encryptString($serialized);
                 }
 
                 return $serialized;
@@ -141,22 +160,18 @@ class SettingValue extends Model
     protected function resolveSetting(?string $type = null, mixed $id = null): ?Setting
     {
         // Try to get setting from valuable relation
-        try {
-            $owner = $this->valuable;
-        } catch (\Throwable) {
-            $owner = null;
-        }
+        $owner = $this->relationLoaded('valuable') ? $this->getRelation('valuable') : null;
 
         if (! $owner) {
             // If the relation is not loaded, try to find it via the IDs
             $type = $type ?? $this->valuable_type;
             $id = $id ?? $this->valuable_id;
 
-            if ($type === Setting::class && $id) {
+            if ($type === Setting::class) {
                 $owner = Setting::query()->find($id);
-            } elseif ($type === SettingRule::class && $id) {
+            } elseif ($type === SettingRule::class) {
                 $owner = SettingRule::query()->find($id);
-            } elseif ($type === SettingRuleRolloutVariant::class && $id) {
+            } elseif ($type === SettingRuleRolloutVariant::class) {
                 $owner = SettingRuleRolloutVariant::query()->find($id);
             }
         }
@@ -199,7 +214,8 @@ class SettingValue extends Model
             $setting = $model->resolveSetting();
             if ($setting && $setting->immutable && ! FulcrumContext::shouldForce()) {
                 if ((bool) config('fulcrum.immutability.allow_delete_via_gate', true)) {
-                    $ability = (string) config('fulcrum.immutability.delete_ability', 'deleteImmutableSetting');
+                    $ability = config('fulcrum.immutability.delete_ability', 'deleteImmutableSetting');
+                    $ability = is_string($ability) ? $ability : 'deleteImmutableSetting';
                     if (Gate::allows($ability, $setting)) {
                         return true;
                     }

@@ -13,10 +13,15 @@ use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\YamlFormatter;
 
 class ProcessImport
 {
-    public function handle(ImportRequest $request, \Closure $next)
+    public function handle(ImportRequest $request, \Closure $next): mixed
     {
         $file = $request->file('file');
-        $format = $request->input('format');
+        if (! $file) {
+            throw new \RuntimeException('Import file is missing.');
+        }
+
+        $formatInput = $request->input('format');
+        $format = is_string($formatInput) ? $formatInput : null;
 
         if (! $format) {
             $ext = $file->getClientOriginalExtension();
@@ -36,7 +41,12 @@ class ProcessImport
         };
 
         $request->attributes->set('formatter', $formatter);
-        $request->attributes->set('file_path', $file->getRealPath());
+
+        $filePath = $file->getRealPath();
+        if ($filePath === false) {
+            throw new \RuntimeException('Unable to resolve import file path.');
+        }
+        $request->attributes->set('file_path', $filePath);
 
         return $next($request);
     }

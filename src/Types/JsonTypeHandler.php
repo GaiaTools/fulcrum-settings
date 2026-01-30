@@ -28,7 +28,9 @@ class JsonTypeHandler implements SettingTypeHandler
 
     public function set(mixed $value): string
     {
-        return json_encode($value);
+        $encoded = json_encode($value);
+
+        return $encoded === false ? 'null' : $encoded;
     }
 
     public function validate(mixed $value): bool

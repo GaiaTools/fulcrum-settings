@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property int $setting_rule_id
+ * @property string|null $tenant_id
  * @property string|null $type
  * @property string $attribute
  * @property ComparisonOperator $operator
@@ -45,7 +46,7 @@ class SettingRuleCondition extends Model
     }
 
     /**
-     * @return BelongsTo<SettingRule, SettingRuleCondition>
+     * @return BelongsTo<SettingRule, $this>
      */
     public function rule(): BelongsTo
     {
@@ -71,8 +72,8 @@ class SettingRuleCondition extends Model
         });
 
         $guard = function (self $model) {
-            $setting = $model->rule?->setting;
-            if ($setting && $setting->immutable && ! FulcrumContext::shouldForce()) {
+            $setting = $model->rule->setting;
+            if ($setting->immutable && ! FulcrumContext::shouldForce()) {
                 throw new ImmutableSettingException('Setting is immutable. Changes are not allowed.');
             }
         };

@@ -19,6 +19,19 @@ class YamlFormatter implements Formatter
             return [];
         }
 
-        return Yaml::parse($content) ?: [];
+        $parsed = Yaml::parse($content);
+
+        if (! is_array($parsed)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($parsed as $row) {
+            if (is_array($row)) {
+                $normalized[] = $row;
+            }
+        }
+
+        return $normalized;
     }
 }

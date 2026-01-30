@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace GaiaTools\FulcrumSettings\Console\Commands;
 
+use GaiaTools\FulcrumSettings\Console\Commands\Concerns\InteractsWithCommandOptions;
+use GaiaTools\FulcrumSettings\Contracts\SettingResolver;
 use GaiaTools\FulcrumSettings\Facades\Fulcrum;
 use GaiaTools\FulcrumSettings\Support\MaskedValue;
 use Illuminate\Console\Command;
 
 class GetSettingCommand extends Command
 {
+    use InteractsWithCommandOptions;
+
     protected $signature = 'fulcrum:get
                             {key : The setting key to retrieve}
                             {--tenant= : The tenant ID for scoped resolution}
@@ -20,14 +24,26 @@ class GetSettingCommand extends Command
 
     public function handle(): int
     {
-        $key = $this->argument('key');
-        $tenantId = $this->option('tenant');
-        $reveal = $this->option('reveal');
+        $key = $this->getStringArgument('key');
+        if ($key === null || $key === '') {
+            $this->error('A valid setting key is required.');
+
+            return 1;
+        }
+
+        $tenantId = $this->getStringOption('tenant');
+        $reveal = $this->getBoolOption('reveal');
         $scope = $this->option('scope');
 
+        /** @var SettingResolver|null $resolver */
         $resolver = Fulcrum::getFacadeRoot();
+        if ($resolver === null) {
+            $this->error('Setting resolver is not available.');
 
-        if ($tenantId) {
+            return 1;
+        }
+
+        if ($tenantId !== null && $tenantId !== '') {
             $resolver = $resolver->forTenant($tenantId);
         }
 
@@ -59,13 +75,21 @@ class GetSettingCommand extends Command
         }
 
         if (is_array($value) || is_object($value)) {
-            return json_encode($value, JSON_PRETTY_PRINT);
+            return json_encode($value, JSON_PRETTY_PRINT) ?: '';
         }
 
         if (is_bool($value)) {
             return $value ? 'true' : 'false';
         }
 
-        return (string) $value;
+        if (is_scalar($value)) {
+            return (string) $value;
+        }
+
+        if (is_object($value) && method_exists($value, '__toString')) {
+            return (string) $value;
+        }
+
+        return '';
     }
 }

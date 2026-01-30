@@ -306,7 +306,7 @@ class RuleModifier
         // Handle rollout/value changes
         $this->applyValueChanges();
 
-        return $this->rule->fresh();
+        return $this->rule->fresh() ?? $this->rule;
     }
 
     /**

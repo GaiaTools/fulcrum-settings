@@ -18,7 +18,8 @@ class YasumiHolidayResolver implements HolidayResolver
 
         $regionCode = $this->resolveRegion($region);
         $provider = $this->resolveProvider($regionCode);
-        $locale = (string) config('fulcrum.holidays.locale', 'en_US');
+        $localeConfig = config('fulcrum.holidays.locale', 'en_US');
+        $locale = is_string($localeConfig) ? $localeConfig : 'en_US';
 
         if ($provider === null) {
             return false;
@@ -33,13 +34,24 @@ class YasumiHolidayResolver implements HolidayResolver
         return $holidayProvider->isHoliday($date);
     }
 
+    /**
+     * @param  array<int|string, string>|string|null  $region
+     */
     protected function resolveRegion(string|array|null $region): ?string
     {
         if (is_array($region)) {
-            return $region[0] ?? null;
+            $first = $region[0] ?? null;
+
+            return is_string($first) ? $first : null;
         }
 
-        return $region ?? config('fulcrum.holidays.default_region');
+        if (is_string($region)) {
+            return $region;
+        }
+
+        $defaultRegion = config('fulcrum.holidays.default_region');
+
+        return is_string($defaultRegion) ? $defaultRegion : null;
     }
 
     protected function resolveProvider(?string $region): ?string

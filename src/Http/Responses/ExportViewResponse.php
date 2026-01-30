@@ -8,9 +8,9 @@ use GaiaTools\FulcrumSettings\Contracts\DataPortability\ExportViewResponse as Co
 
 class ExportViewResponse implements Contract
 {
-    public function toResponse($request)
+    public function toResponse($request): \Symfony\Component\HttpFoundation\Response
     {
-        return view('fulcrum::export.form', [
+        return response()->view('fulcrum::export.form', [
             'supportedFormats' => ['json', 'csv', 'xml'],
         ]);
     }

@@ -224,7 +224,7 @@ abstract class SettingMigration extends Migration
             $setting = Setting::withoutGlobalScopes()->where('key', $from)->firstOrFail();
             $setting->update(['key' => $to]);
 
-            return $setting->fresh();
+            return $setting->fresh() ?? $setting;
         });
     }
 
@@ -855,6 +855,9 @@ abstract class SettingMigration extends Migration
      * });
      * ```
      */
+    /**
+     * @param  Closure(): mixed  $callback
+     */
     protected function raw(Closure $callback): mixed
     {
         return $this->withinContext(fn () => DB::transaction($callback));
@@ -904,6 +907,12 @@ abstract class SettingMigration extends Migration
         ?string $endsAt
     ): SettingRule {
         return $this->modifyRule($settingKey, $ruleName, function (RuleModifier $rule) use ($startsAt, $endsAt) {
+            if ($startsAt === null || $endsAt === null) {
+                $rule->removeTimeBounds();
+
+                return;
+            }
+
             $rule->updateTimeBounds($startsAt, $endsAt);
         });
     }

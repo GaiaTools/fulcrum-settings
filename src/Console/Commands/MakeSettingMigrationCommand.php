@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace GaiaTools\FulcrumSettings\Console\Commands;
 
+use GaiaTools\FulcrumSettings\Console\Commands\Concerns\InteractsWithCommandOptions;
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Str;
 
 class MakeSettingMigrationCommand extends Command
 {
+    use InteractsWithCommandOptions;
+
     /**
      * The name and signature of the console command.
      */
@@ -33,7 +36,14 @@ class MakeSettingMigrationCommand extends Command
      */
     public function handle(): int
     {
-        $name = Str::snake(trim($this->argument('name')));
+        $nameArg = $this->getStringArgument('name');
+        if ($nameArg === null || $nameArg === '') {
+            $this->components->error('A valid migration name is required.');
+
+            return self::FAILURE;
+        }
+
+        $name = Str::snake(trim($nameArg));
         $path = $this->getMigrationPath();
 
         $this->ensureDirectoryExists($path);
@@ -67,7 +77,8 @@ class MakeSettingMigrationCommand extends Command
      */
     protected function getMigrationPath(): string
     {
-        if ($path = $this->option('path')) {
+        $path = $this->getStringOption('path');
+        if ($path !== null && $path !== '') {
             return $this->laravel->basePath($path);
         }
 

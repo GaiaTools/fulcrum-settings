@@ -20,6 +20,9 @@ use Illuminate\Support\Facades\Gate;
  * @property string $key
  * @property SettingType $type
  * @property string|null $description
+ * @property bool $masked
+ * @property bool $immutable
+ * @property string|null $tenant_id
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
@@ -46,7 +49,7 @@ class Setting extends Model
     }
 
     /**
-     * @return HasMany<SettingRule>
+     * @return HasMany<SettingRule, $this>
      */
     public function rules(): HasMany
     {
@@ -54,7 +57,7 @@ class Setting extends Model
     }
 
     /**
-     * @return MorphOne<SettingValue>
+     * @return MorphOne<SettingValue, $this>
      */
     public function defaultValue(): MorphOne
     {
@@ -97,7 +100,9 @@ class Setting extends Model
                 return true;
             }
 
-            if ((bool) config('fulcrum.immutability.allow_delete_via_gate', true) && Gate::allows((string) config('fulcrum.immutability.delete_ability', 'deleteImmutableSetting'), $model)) {
+            $ability = config('fulcrum.immutability.delete_ability', 'deleteImmutableSetting');
+            $ability = is_string($ability) ? $ability : 'deleteImmutableSetting';
+            if ((bool) config('fulcrum.immutability.allow_delete_via_gate', true) && Gate::allows($ability, $model)) {
                 return true;
             }
 

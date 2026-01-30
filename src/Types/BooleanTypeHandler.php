@@ -13,7 +13,7 @@ class BooleanTypeHandler implements SettingTypeHandler
      */
     public function get(mixed $value): bool
     {
-        if (is_null($value)) {
+        if ($value === null) {
             return false;
         }
 
@@ -21,7 +21,19 @@ class BooleanTypeHandler implements SettingTypeHandler
             return $value;
         }
 
-        return in_array((string) $value, ['1', 'true'], true);
+        if (is_int($value)) {
+            return $value === 1;
+        }
+
+        if (is_float($value)) {
+            return $value !== 0.0;
+        }
+
+        if (is_string($value)) {
+            return in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
+        }
+
+        return false;
     }
 
     /**
@@ -29,7 +41,7 @@ class BooleanTypeHandler implements SettingTypeHandler
      */
     public function set(mixed $value): string
     {
-        return $value ? '1' : '0';
+        return $this->get($value) ? '1' : '0';
     }
 
     /**

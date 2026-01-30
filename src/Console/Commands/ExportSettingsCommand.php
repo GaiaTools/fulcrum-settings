@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace GaiaTools\FulcrumSettings\Console\Commands;
 
+use GaiaTools\FulcrumSettings\Console\Commands\Concerns\InteractsWithCommandOptions;
 use GaiaTools\FulcrumSettings\Jobs\ExportSettingsJob;
 use GaiaTools\FulcrumSettings\Support\DataPortability\ExportManager;
 use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\CsvFormatter;
@@ -16,6 +17,8 @@ use Illuminate\Support\Str;
 
 class ExportSettingsCommand extends Command
 {
+    use InteractsWithCommandOptions;
+
     protected $signature = 'fulcrum:export
                             {--format=csv : The file format (csv, json, xml, yaml, sql)}
                             {--directory=. : The directory to export to}
@@ -33,7 +36,7 @@ class ExportSettingsCommand extends Command
 
     public function handle(ExportManager $manager): int
     {
-        $format = $this->option('format');
+        $format = $this->getStringOption('format') ?? 'csv';
         $formatter = match ($format) {
             'json' => new JsonFormatter,
             'xml' => new XmlFormatter,
@@ -50,25 +53,27 @@ class ExportSettingsCommand extends Command
         }
 
         $options = [
-            'decrypt' => $this->option('decrypt'),
-            'anonymize' => $this->option('anonymize'),
-            'gzip' => $this->option('gzip'),
-            'dry_run' => $this->option('dry-run'),
-            'directory' => $this->option('directory'),
-            'filename' => $this->option('filename'),
-            'connection' => $this->option('connection'),
+            'decrypt' => $this->getBoolOption('decrypt'),
+            'anonymize' => $this->getBoolOption('anonymize'),
+            'gzip' => $this->getBoolOption('gzip'),
+            'dry_run' => $this->getBoolOption('dry-run'),
+            'directory' => $this->getStringOption('directory') ?? '.',
+            'filename' => $this->getStringOption('filename'),
+            'connection' => $this->getStringOption('connection'),
         ];
 
-        if ($this->option('queue')) {
+        if ($this->getBoolOption('queue')) {
             $batchId = Str::uuid()->toString();
             $job = new ExportSettingsJob($format, array_filter($options, fn ($value) => $value !== null), null, $batchId);
 
-            if ($this->option('queue-connection')) {
-                $job->onConnection($this->option('queue-connection'));
+            $queueConnection = $this->getStringOption('queue-connection');
+            if ($queueConnection !== null) {
+                $job->onConnection($queueConnection);
             }
 
-            if ($this->option('queue-name')) {
-                $job->onQueue($this->option('queue-name'));
+            $queueName = $this->getStringOption('queue-name');
+            if ($queueName !== null) {
+                $job->onQueue($queueName);
             }
 
             dispatch($job);

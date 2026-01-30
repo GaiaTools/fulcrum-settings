@@ -19,7 +19,9 @@ class SettingResolutionWatcher extends Watcher
      */
     public function register($app): void
     {
-        $app['events']->listen(SettingResolved::class, [$this, 'recordResolution']);
+        /** @var \Illuminate\Contracts\Events\Dispatcher $events */
+        $events = $app->make('events');
+        $events->listen(SettingResolved::class, [$this, 'recordResolution']);
     }
 
     /**

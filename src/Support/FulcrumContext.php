@@ -14,6 +14,7 @@ class FulcrumContext
 
     protected static ?string $tenantId = null;
 
+    /** @var array<string, mixed> */
     protected static array $attributes = [];
 
     public static function force(bool $force = true): void
@@ -51,6 +52,9 @@ class FulcrumContext
         return self::$attributes[$key] ?? $default;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public static function all(): array
     {
         return self::$attributes;
@@ -77,8 +81,13 @@ class FulcrumContext
 
         // CLI flag
         if (App::runningInConsole()) {
-            $flag = '--'.(string) config('fulcrum.immutability.cli_flag', 'force');
+            $flagValue = config('fulcrum.immutability.cli_flag', 'force');
+            $flagValue = is_string($flagValue) ? $flagValue : 'force';
+            $flag = '--'.$flagValue;
             foreach ((array) ($_SERVER['argv'] ?? []) as $arg) {
+                if (! is_string($arg)) {
+                    continue;
+                }
                 if ($arg === $flag || str_starts_with($arg, $flag.'=')) {
                     return true;
                 }

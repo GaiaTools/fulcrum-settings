@@ -9,12 +9,28 @@ class FloatTypeHandler implements SettingTypeHandler
 {
     public function get(mixed $value): float
     {
-        return (float) $value;
+        if (is_float($value)) {
+            return $value;
+        }
+
+        if (is_int($value)) {
+            return (float) $value;
+        }
+
+        if (is_bool($value)) {
+            return $value ? 1.0 : 0.0;
+        }
+
+        if (is_string($value) && is_numeric($value)) {
+            return (float) $value;
+        }
+
+        return 0.0;
     }
 
     public function set(mixed $value): string
     {
-        return (string) (float) $value;
+        return (string) $this->get($value);
     }
 
     public function validate(mixed $value): bool

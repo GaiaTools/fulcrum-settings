@@ -9,6 +9,9 @@ use GaiaTools\FulcrumSettings\Models\SettingRule;
 
 class SettingResolved
 {
+    /**
+     * @param  array<string, mixed>|null  $scope
+     */
     public function __construct(
         public readonly string $key,
         public readonly mixed $value,

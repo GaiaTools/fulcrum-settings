@@ -45,28 +45,40 @@ class SqlFormatter implements Formatter
         return [['__raw_sql' => $content]];
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     protected function generateSettingSql(array $data): string
     {
-        $sql = "-- Setting: {$data['key']}\n";
+        $key = $data['key'] ?? '';
+        $key = is_scalar($key) ? (string) $key : '';
+        $sql = "-- Setting: {$key}\n";
+
+        $type = $data['type'] ?? 'string';
+        $type = is_scalar($type) ? (string) $type : 'string';
 
         $settingData = [
-            'key' => $data['key'],
+            'key' => $key,
             'tenant_id' => $data['tenant_id'] ?? null,
-            'type' => $data['type'],
+            'type' => $type,
             'description' => $data['description'] ?? null,
-            'masked' => (int) ($data['masked'] ?? 0),
-            'immutable' => (int) ($data['immutable'] ?? 0),
+            'masked' => (int) (bool) ($data['masked'] ?? false),
+            'immutable' => (int) (bool) ($data['immutable'] ?? false),
         ];
 
         $sql .= $this->insertStatement('settings', $settingData)."\n";
 
         if (isset($data['default_value'])) {
-            $sql .= $this->insertValueSql('GaiaTools\FulcrumSettings\Models\Setting', $data['key'], $data['tenant_id'] ?? null, $data['default_value']);
+            $sql .= $this->insertValueSql('GaiaTools\FulcrumSettings\Models\Setting', $key, $data['tenant_id'] ?? null, $data['default_value']);
         }
 
-        if (isset($data['rules'])) {
+        if (isset($data['rules']) && is_array($data['rules'])) {
             foreach ($data['rules'] as $rule) {
-                $sql .= $this->generateRuleSql($rule, $data['key'], $data['tenant_id'] ?? null);
+                if (! is_array($rule)) {
+                    continue;
+                }
+                /** @var array<string, mixed> $rule */
+                $sql .= $this->generateRuleSql($rule, $key, $data['tenant_id'] ?? null);
             }
         }
 
@@ -75,19 +87,34 @@ class SqlFormatter implements Formatter
         return $sql;
     }
 
+    /**
+     * @param  array<string, mixed>  $rule
+     */
     protected function generateRuleSql(array $rule, string $settingKey, mixed $tenantId): string
     {
-        $sql = '  -- Rule: '.($rule['name'] ?? 'Unnamed')."\n";
+        $ruleName = $rule['name'] ?? 'Unnamed';
+        $ruleName = is_scalar($ruleName) ? (string) $ruleName : 'Unnamed';
+        $sql = '  -- Rule: '.$ruleName."\n";
 
         // This is tricky because we need the setting_id.
         // In a raw SQL export, we might need to use subqueries or variables.
-        $settingIdSubquery = "(SELECT id FROM settings WHERE `key` = '{$settingKey}' AND ".($tenantId === null ? 'tenant_id IS NULL' : "tenant_id = '{$tenantId}'").' LIMIT 1)';
+        $tenantClause = 'tenant_id IS NULL';
+        if ($tenantId !== null) {
+            $tenantClause = "tenant_id = '".addslashes($this->stringifyValue($tenantId))."'";
+        }
+        $settingIdSubquery = "(SELECT id FROM settings WHERE `key` = '{$settingKey}' AND {$tenantClause} LIMIT 1)";
+
+        $priority = $rule['priority'] ?? 0;
+        $priority = is_numeric($priority) ? (int) $priority : 0;
+
+        $ruleNameValue = $rule['name'] ?? null;
+        $ruleNameValue = is_scalar($ruleNameValue) ? (string) $ruleNameValue : null;
 
         $ruleData = [
             'setting_id' => 'RAW:'.$settingIdSubquery,
             'tenant_id' => $rule['tenant_id'] ?? $tenantId,
-            'name' => $rule['name'] ?? null,
-            'priority' => $rule['priority'] ?? 0,
+            'name' => $ruleNameValue,
+            'priority' => $priority,
             'rollout_salt' => $rule['rollout_salt'] ?? null,
             'starts_at' => $rule['starts_at'] ?? null,
             'ends_at' => $rule['ends_at'] ?? null,
@@ -95,14 +122,17 @@ class SqlFormatter implements Formatter
 
         $sql .= '  '.$this->insertStatement('setting_rules', $ruleData)."\n";
 
-        $ruleIdSubquery = "(SELECT id FROM setting_rules WHERE setting_id = {$settingIdSubquery} AND priority = ".($rule['priority'] ?? 0).' ORDER BY id DESC LIMIT 1)';
+        $ruleIdSubquery = "(SELECT id FROM setting_rules WHERE setting_id = {$settingIdSubquery} AND priority = {$priority} ORDER BY id DESC LIMIT 1)";
 
         if (isset($rule['value'])) {
             $sql .= '  '.$this->insertValueSql('GaiaTools\FulcrumSettings\Models\SettingRule', 'RAW:'.$ruleIdSubquery, $rule['tenant_id'] ?? $tenantId, $rule['value']);
         }
 
-        if (isset($rule['conditions'])) {
+        if (isset($rule['conditions']) && is_array($rule['conditions'])) {
             foreach ($rule['conditions'] as $condition) {
+                if (! is_array($condition)) {
+                    continue;
+                }
                 $conditionData = [
                     'setting_rule_id' => 'RAW:'.$ruleIdSubquery,
                     'tenant_id' => $condition['tenant_id'] ?? $rule['tenant_id'] ?? $tenantId,
@@ -114,17 +144,21 @@ class SqlFormatter implements Formatter
             }
         }
 
-        if (isset($rule['rollout_variants'])) {
+        if (isset($rule['rollout_variants']) && is_array($rule['rollout_variants'])) {
             foreach ($rule['rollout_variants'] as $variant) {
+                if (! is_array($variant)) {
+                    continue;
+                }
                 $variantData = [
                     'setting_rule_id' => 'RAW:'.$ruleIdSubquery,
                     'tenant_id' => $variant['tenant_id'] ?? $rule['tenant_id'] ?? $tenantId,
-                    'name' => $variant['name'],
+                    'name' => $this->stringifyValue($variant['name'] ?? ''),
                     'weight' => $variant['weight'],
                 ];
                 $sql .= '  '.$this->insertStatement('setting_rule_rollout_variants', $variantData)."\n";
 
-                $variantIdSubquery = "(SELECT id FROM setting_rule_rollout_variants WHERE setting_rule_id = {$ruleIdSubquery} AND name = '".addslashes($variant['name'])."' ORDER BY id DESC LIMIT 1)";
+                $variantName = addslashes($this->stringifyValue($variant['name'] ?? ''));
+                $variantIdSubquery = "(SELECT id FROM setting_rule_rollout_variants WHERE setting_rule_id = {$ruleIdSubquery} AND name = '{$variantName}' ORDER BY id DESC LIMIT 1)";
 
                 if (isset($variant['value'])) {
                     $sql .= '  '.$this->insertValueSql('GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant', 'RAW:'.$variantIdSubquery, $variant['tenant_id'] ?? $rule['tenant_id'] ?? $tenantId, $variant['value']);
@@ -137,7 +171,8 @@ class SqlFormatter implements Formatter
 
     protected function insertValueSql(string $type, mixed $id, mixed $tenantId, mixed $value): string
     {
-        $idValue = str_starts_with((string) $id, 'RAW:') ? substr((string) $id, 4) : "'{$id}'";
+        $rawId = is_string($id) && str_starts_with($id, 'RAW:');
+        $idValue = $rawId ? substr($id, 4) : "'".$this->stringifyValue($id)."'";
 
         $data = [
             'valuable_type' => $type,
@@ -149,6 +184,9 @@ class SqlFormatter implements Formatter
         return $this->insertStatement('setting_values', $data)."\n";
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     protected function insertStatement(string $table, array $data): string
     {
         $columns = array_keys($data);
@@ -163,9 +201,30 @@ class SqlFormatter implements Formatter
                 return $value ? '1' : '0';
             }
 
-            return "'".addslashes(str_replace('\\', '\\\\', (string) $value))."'";
+            $stringValue = $this->stringifyValue($value);
+
+            return "'".addslashes(str_replace('\\', '\\\\', $stringValue))."'";
         }, array_values($data));
 
         return "INSERT INTO `{$table}` (`".implode('`, `', $columns).'`) VALUES ('.implode(', ', $values).');';
+    }
+
+    protected function stringifyValue(mixed $value): string
+    {
+        if (is_string($value)) {
+            return $value;
+        }
+
+        if (is_scalar($value)) {
+            return (string) $value;
+        }
+
+        if (is_object($value) && method_exists($value, '__toString')) {
+            return (string) $value;
+        }
+
+        $encoded = json_encode($value);
+
+        return $encoded === false ? '' : $encoded;
     }
 }

@@ -58,7 +58,7 @@ class SettingModifier
      */
     public function updateType(string|BackedEnum $type): self
     {
-        $typeString = $type instanceof BackedEnum ? $type->value : $type;
+        $typeString = $type instanceof BackedEnum ? (string) $type->value : $type;
         $typeRegistry = app(TypeRegistry::class);
 
         if (! $typeRegistry->has($typeString)) {
@@ -169,7 +169,9 @@ class SettingModifier
     public function clearRules(): self
     {
         foreach ($this->setting->rules as $rule) {
-            $this->rulesToRemove[] = $rule->name;
+            if (is_string($rule->name)) {
+                $this->rulesToRemove[] = $rule->name;
+            }
         }
 
         return $this;
@@ -227,7 +229,7 @@ class SettingModifier
             $ruleDefinition->createFor($this->setting);
         }
 
-        return $this->setting->fresh();
+        return $this->setting->fresh() ?? $this->setting;
     }
 
     /**
@@ -243,7 +245,16 @@ class SettingModifier
      */
     protected function applyDefaultValueUpdate(): void
     {
-        $type = $this->updates['type'] ?? $this->setting->type->value;
+        $typeValue = $this->updates['type'] ?? $this->setting->type->value;
+        if ($typeValue instanceof BackedEnum) {
+            $type = (string) $typeValue->value;
+        } elseif (is_string($typeValue)) {
+            $type = $typeValue;
+        } elseif (is_int($typeValue)) {
+            $type = (string) $typeValue;
+        } else {
+            $type = $this->setting->type->value;
+        }
         $typeRegistry = app(TypeRegistry::class);
         $handler = $typeRegistry->getHandler($type);
 

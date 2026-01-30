@@ -27,6 +27,9 @@ class DefaultGeoResolver implements GeoResolver
         ];
     }
 
+    /**
+     * @param  array<int|string, mixed>|Request|string|null  $input
+     */
     protected function resolveIp(Request|string|array|null $input): ?string
     {
         if (is_string($input)) {
@@ -34,7 +37,9 @@ class DefaultGeoResolver implements GeoResolver
         }
 
         if (is_array($input)) {
-            return $input['ip'] ?? null;
+            $ip = $input['ip'] ?? null;
+
+            return is_string($ip) ? $ip : null;
         }
 
         if ($input instanceof Request) {

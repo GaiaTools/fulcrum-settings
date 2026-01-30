@@ -10,6 +10,7 @@ use ReflectionClass;
 class SettingsPropertyDiscoverer
 {
     /**
+     * @param  class-string  $className
      * @return array<string, SettingProperty>
      */
     public function discover(string $className): array

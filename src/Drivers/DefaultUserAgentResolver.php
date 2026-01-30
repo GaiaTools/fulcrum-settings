@@ -14,6 +14,19 @@ class DefaultUserAgentResolver implements UserAgentResolver
         $this->request = $request ?: request();
     }
 
+    /**
+     * @return array{
+     *     device: string|null,
+     *     browser: string|null,
+     *     browser_version: string|null,
+     *     os: string|null,
+     *     os_version: string|null,
+     *     is_mobile: bool,
+     *     is_tablet: bool,
+     *     is_desktop: bool,
+     *     is_bot: bool
+     * }
+     */
     public function resolve(mixed $scope = null): array
     {
         $userAgent = $this->getUserAgent($scope);
@@ -38,11 +51,15 @@ class DefaultUserAgentResolver implements UserAgentResolver
     protected function getUserAgent(mixed $scope): ?string
     {
         if (is_array($scope) && isset($scope['user_agent'])) {
-            return (string) $scope['user_agent'];
+            $userAgent = $scope['user_agent'];
+
+            return is_string($userAgent) ? $userAgent : null;
         }
 
         if (is_object($scope) && isset($scope->user_agent)) {
-            return (string) $scope->user_agent;
+            $userAgent = $scope->user_agent;
+
+            return is_string($userAgent) ? $userAgent : null;
         }
 
         return $this->request?->userAgent();
@@ -169,6 +186,19 @@ class DefaultUserAgentResolver implements UserAgentResolver
         return (bool) preg_match('/bot|googlebot|crawler|spider|robot|crawling/i', $userAgent);
     }
 
+    /**
+     * @return array{
+     *     device: string|null,
+     *     browser: string|null,
+     *     browser_version: string|null,
+     *     os: string|null,
+     *     os_version: string|null,
+     *     is_mobile: bool,
+     *     is_tablet: bool,
+     *     is_desktop: bool,
+     *     is_bot: bool
+     * }
+     */
     protected function emptyResult(): array
     {
         return [

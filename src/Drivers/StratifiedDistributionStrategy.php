@@ -19,8 +19,9 @@ class StratifiedDistributionStrategy implements DistributionStrategy
      */
     public function findVariantForBucket(SettingRule $rule, int $bucket): ?SettingRuleRolloutVariant
     {
-        $precision = (int) config('fulcrum.rollout.bucket_precision', 100_000);
-        $variants = $rule->rolloutVariants->sortBy('id')->values();
+        $precisionConfig = config('fulcrum.rollout.bucket_precision', 100_000);
+        $precision = is_numeric($precisionConfig) ? (int) $precisionConfig : 100_000;
+        $variants = $rule->rolloutVariants()->orderBy('id')->get();
 
         if ($variants->isEmpty()) {
             return null;

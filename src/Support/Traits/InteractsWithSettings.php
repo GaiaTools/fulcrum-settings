@@ -6,6 +6,7 @@ namespace GaiaTools\FulcrumSettings\Support\Traits;
 
 use GaiaTools\FulcrumSettings\Support\Builders\SettingBuilder;
 
+/** @phpstan-ignore-next-line */
 trait InteractsWithSettings
 {
     /**

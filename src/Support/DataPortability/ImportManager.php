@@ -31,11 +31,15 @@ class ImportManager
     public function import(Formatter $formatter, string $path, array $options = []): bool
     {
         $connection = $options['connection'] ?? config('database.default');
+        if (! is_string($connection)) {
+            $connection = null;
+        }
         $mode = $options['mode'] ?? 'upsert';
         $truncate = $options['truncate'] ?? false;
         $conflictHandling = $options['conflict_handling'] ?? 'fail';
         $dryRun = $options['dry_run'] ?? false;
-        $chunkSize = $options['chunk_size'] ?? 1000;
+        $chunkSize = (int) ($options['chunk_size'] ?? 1000);
+        $chunkSize = max(1, $chunkSize);
 
         $content = $this->getContent($path);
         $data = $formatter->parse($content);
@@ -54,7 +58,10 @@ class ImportManager
                 foreach ($chunk as $settingData) {
                     try {
                         if (isset($settingData['__raw_sql'])) {
-                            DB::connection($connection)->unprepared($settingData['__raw_sql']);
+                            $rawSql = $settingData['__raw_sql'];
+                            if (is_string($rawSql)) {
+                                DB::connection($connection)->unprepared($rawSql);
+                            }
 
                             continue;
                         }
@@ -64,7 +71,9 @@ class ImportManager
                             throw $e;
                         }
                         if ($conflictHandling === 'log') {
-                            Log::error('Import failed for setting: '.($settingData['key'] ?? 'unknown').'. Error: '.$e->getMessage());
+                            $keyLabel = $settingData['key'] ?? 'unknown';
+                            $keyLabel = is_scalar($keyLabel) ? (string) $keyLabel : 'unknown';
+                            Log::error('Import failed for setting: '.$keyLabel.'. Error: '.$e->getMessage());
                         }
                         // if skip, just continue
                     }
@@ -84,7 +93,13 @@ class ImportManager
                 $content = Storage::disk('local')->get($path);
             }
 
-            return @gzdecode($content) ?: '';
+            if (! is_string($content)) {
+                return '';
+            }
+
+            $decoded = @gzdecode($content);
+
+            return is_string($decoded) ? $decoded : '';
         }
 
         $content = @file_get_contents($path);
@@ -109,9 +124,16 @@ class ImportManager
         }
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     protected function importSetting(array $data, string $mode, string $conflictHandling): void
     {
-        $key = $data['key'];
+        $keyValue = $data['key'] ?? null;
+        if (! is_scalar($keyValue)) {
+            return;
+        }
+        $key = (string) $keyValue;
         $tenantId = $data['tenant_id'] ?? null;
 
         $setting = Setting::where('key', $key)->where('tenant_id', $tenantId)->first();
@@ -150,12 +172,15 @@ class ImportManager
                 ]);
             }
 
-            if (isset($data['rules'])) {
+            if (isset($data['rules']) && is_array($data['rules'])) {
                 // For simplicity in upsert, we might want to clear existing rules or match them.
                 // Given the complexity of rules, clearing and re-creating might be safer if we want to match the export exactly.
                 $setting->rules()->each(fn ($rule) => $rule->delete());
                 foreach ($data['rules'] as $ruleData) {
-                    $this->importRule($setting, $ruleData);
+                    if (is_array($ruleData)) {
+                        /** @var array<string, mixed> $ruleData */
+                        $this->importRule($setting, $ruleData);
+                    }
                 }
             }
         } finally {
@@ -163,6 +188,9 @@ class ImportManager
         }
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     protected function importRule(Setting $setting, array $data): void
     {
         $rule = $setting->rules()->create([
@@ -184,8 +212,11 @@ class ImportManager
             ]);
         }
 
-        if (isset($data['conditions'])) {
+        if (isset($data['conditions']) && is_array($data['conditions'])) {
             foreach ($data['conditions'] as $conditionData) {
+                if (! is_array($conditionData)) {
+                    continue;
+                }
                 $rule->conditions()->create([
                     'tenant_id' => $conditionData['tenant_id'] ?? $rule->tenant_id,
                     'type' => $conditionData['type'] ?? ConditionType::default(),
@@ -196,8 +227,11 @@ class ImportManager
             }
         }
 
-        if (isset($data['rollout_variants'])) {
+        if (isset($data['rollout_variants']) && is_array($data['rollout_variants'])) {
             foreach ($data['rollout_variants'] as $variantData) {
+                if (! is_array($variantData)) {
+                    continue;
+                }
                 $variant = $rule->rolloutVariants()->create([
                     'tenant_id' => $variantData['tenant_id'] ?? $rule->tenant_id,
                     'name' => $variantData['name'],

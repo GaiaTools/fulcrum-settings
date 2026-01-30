@@ -8,21 +8,29 @@ use GaiaTools\FulcrumSettings\Contracts\DataPortability\ExportResponse as Contra
 
 class ExportResponse implements Contract
 {
+    /**
+     * @param  array<string, mixed>|null  $exportData
+     */
     public function __construct(protected mixed $exportData = null) {}
 
-    public function toResponse($request)
+    public function toResponse($request): \Symfony\Component\HttpFoundation\Response
     {
         if ($request->expectsJson() || $request->ajax()) {
+            $downloadUrl = is_array($this->exportData) ? ($this->exportData['file_path'] ?? null) : null;
+
             return response()->json([
                 'success' => true,
                 'data' => $this->exportData,
                 // In a real app, this might be a temporary download URL
-                'download_url' => $this->exportData['file_path'] ?? null,
+                'download_url' => $downloadUrl,
             ]);
         }
 
-        if (isset($this->exportData['file_path']) && is_string($this->exportData['file_path'])) {
-            return response()->download($this->exportData['file_path'])->deleteFileAfterSend(true);
+        if (is_array($this->exportData)) {
+            $filePath = $this->exportData['file_path'] ?? null;
+            if (is_string($filePath)) {
+                return response()->download($filePath)->deleteFileAfterSend(true);
+            }
         }
 
         return redirect()->back()->withErrors('Export failed');

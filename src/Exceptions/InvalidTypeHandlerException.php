@@ -20,7 +20,7 @@ class InvalidTypeHandlerException extends InvalidArgumentException
         );
     }
 
-    public static function notRegistered(string $type)
+    public static function notRegistered(string $type): self
     {
         return new self("Type handler for type [{$type}] is not registered.");
     }

@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Gate;
  * @property Carbon $updated_at
  * @property-read SettingRule $rule
  * @property-read SettingValue|null $value
+ * @property-read float $weight_percentage
  */
 class SettingRuleRolloutVariant extends Model
 {
@@ -55,7 +56,7 @@ class SettingRuleRolloutVariant extends Model
     }
 
     /**
-     * @return BelongsTo<SettingRule, SettingRuleRolloutVariant>
+     * @return BelongsTo<SettingRule, $this>
      */
     public function rule(): BelongsTo
     {
@@ -63,7 +64,7 @@ class SettingRuleRolloutVariant extends Model
     }
 
     /**
-     * @return MorphOne<SettingValue>
+     * @return MorphOne<SettingValue, $this>
      */
     public function value(): MorphOne
     {
@@ -89,17 +90,26 @@ class SettingRuleRolloutVariant extends Model
      */
     public function resolveSetting(): ?Setting
     {
-        return $this->rule?->setting;
+        /** @var SettingRule|null $rule */
+        $rule = $this->relationLoaded('rule') ? $this->getRelation('rule') : $this->rule;
+
+        return $rule ? $rule->setting : null;
     }
 
     /**
      * Get the weight as a percentage (0.000 - 100.000).
      */
+    /**
+     * @return Attribute<float, float>
+     */
     public function weightPercentage(): Attribute
     {
-        return new Attribute(
+        /** @var Attribute<float, float> $attribute */
+        $attribute = new Attribute(
             get: fn (): float => $this->weight / 1000
         );
+
+        return $attribute;
     }
 
     /**
@@ -128,8 +138,8 @@ class SettingRuleRolloutVariant extends Model
 
         // Immutability guards
         $guard = function (self $model) {
-            $setting = $model->rule?->setting;
-            if ($setting?->immutable && ! FulcrumContext::shouldForce()) {
+            $setting = $model->rule->setting;
+            if ($setting->immutable && ! FulcrumContext::shouldForce()) {
                 throw new ImmutableSettingException('Setting is immutable. Changes are not allowed.');
             }
         };
@@ -137,9 +147,10 @@ class SettingRuleRolloutVariant extends Model
         static::creating($guard);
         static::updating($guard);
         static::deleting(function (self $model) {
-            $setting = $model->rule?->setting;
-            if ($setting?->immutable && ! FulcrumContext::shouldForce()) {
-                $ability = (string) config('fulcrum.immutability.delete_ability', 'deleteImmutableSetting');
+            $setting = $model->rule->setting;
+            if ($setting->immutable && ! FulcrumContext::shouldForce()) {
+                $ability = config('fulcrum.immutability.delete_ability', 'deleteImmutableSetting');
+                $ability = is_string($ability) ? $ability : 'deleteImmutableSetting';
                 if (Gate::allows($ability, $setting)) {
                     return true;
                 }

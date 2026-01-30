@@ -28,6 +28,9 @@ class ExportManager
     public function export(Formatter $formatter, array $options = []): string|bool
     {
         $connection = $options['connection'] ?? config('database.default');
+        if (! is_string($connection)) {
+            $connection = null;
+        }
         $decrypt = $options['decrypt'] ?? false;
         $anonymize = $options['anonymize'] ?? false;
         $gzip = $options['gzip'] ?? false;
@@ -40,7 +43,7 @@ class ExportManager
             ->get();
 
         $data = $settings->map(fn (Setting $setting) => $this->transformSetting($setting, $decrypt, $anonymize))->toArray();
-
+        /** @var array<int, array<string, mixed>> $data */
         if ($dryRun) {
             return true;
         }
@@ -49,6 +52,9 @@ class ExportManager
 
         if ($gzip) {
             $content = gzencode($content);
+            if ($content === false) {
+                throw new \RuntimeException('Failed to gzip export content.');
+            }
             if (! str_ends_with($filename, '.gz')) {
                 $filename .= '.gz';
             }
@@ -71,6 +77,9 @@ class ExportManager
         return $path;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function transformSetting(Setting $setting, bool $decrypt, bool $anonymize): array
     {
         $data = $setting->toArray();
@@ -90,6 +99,9 @@ class ExportManager
         return $data;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function transformRule(SettingRule $rule, Setting $setting, bool $decrypt, bool $anonymize): array
     {
         $data = $rule->toArray();
@@ -109,6 +121,9 @@ class ExportManager
         return $data;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function transformCondition(SettingRuleCondition $condition, bool $anonymize): array
     {
         $data = $condition->toArray();
@@ -121,6 +136,9 @@ class ExportManager
         return $data;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function transformVariant(SettingRuleRolloutVariant $variant, Setting $setting, bool $decrypt, bool $anonymize): array
     {
         $data = $variant->toArray();
@@ -138,8 +156,11 @@ class ExportManager
     protected function transformValue(mixed $rawValue, Setting $setting, bool $decrypt, bool $anonymize): mixed
     {
         if ($setting->masked && $decrypt) {
+            if (! is_string($rawValue)) {
+                return $rawValue;
+            }
             try {
-                return Crypt::decryptString((string) $rawValue);
+                return Crypt::decryptString($rawValue);
             } catch (\Throwable) {
                 return $rawValue;
             }

@@ -181,6 +181,8 @@ class RuleDefinition
 
     /**
      * Shorthand: attribute contains any of the given strings.
+     *
+     * @param  array<int|string, string>  $values
      */
     public function whereContainsAny(string $attribute, array $values): self
     {
@@ -189,6 +191,8 @@ class RuleDefinition
 
     /**
      * Shorthand: attribute does not contain any of the given strings.
+     *
+     * @param  array<int|string, string>  $values
      */
     public function whereNotContainsAny(string $attribute, array $values): self
     {
@@ -197,6 +201,8 @@ class RuleDefinition
 
     /**
      * Shorthand: attribute starts with any of the given strings.
+     *
+     * @param  array<int|string, string>  $values
      */
     public function whereStartsWithAny(string $attribute, array $values): self
     {
@@ -205,6 +211,8 @@ class RuleDefinition
 
     /**
      * Shorthand: attribute ends with any of the given strings.
+     *
+     * @param  array<int|string, string>  $values
      */
     public function whereEndsWithAny(string $attribute, array $values): self
     {
@@ -345,6 +353,8 @@ class RuleDefinition
 
     /**
      * Shorthand: day of week is one of given days.
+     *
+     * @param  array<int|string, int|string>|string  $days
      */
     public function whereDayOfWeek(array|string $days, string $attribute = 'now'): self
     {

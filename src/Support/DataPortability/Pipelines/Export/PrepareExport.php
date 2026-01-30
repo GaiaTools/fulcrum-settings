@@ -16,9 +16,10 @@ class PrepareExport
 {
     public function __construct(protected ExportManager $manager) {}
 
-    public function handle(ExportRequest $request, \Closure $next)
+    public function handle(ExportRequest $request, \Closure $next): mixed
     {
-        $format = $request->input('format', 'csv');
+        $formatInput = $request->input('format', 'csv');
+        $format = is_string($formatInput) ? $formatInput : 'csv';
         $formatter = match ($format) {
             'json' => new JsonFormatter,
             'xml' => new XmlFormatter,
@@ -28,11 +29,12 @@ class PrepareExport
             default => new CsvFormatter,
         };
 
+        $connection = $request->input('connection');
         $options = [
             'decrypt' => $request->boolean('decrypt'),
             'anonymize' => $request->boolean('anonymize'),
             'gzip' => $request->boolean('gzip'),
-            'connection' => $request->input('connection'),
+            'connection' => is_string($connection) ? $connection : null,
         ];
 
         $filePath = $this->manager->export(

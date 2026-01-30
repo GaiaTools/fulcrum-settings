@@ -6,7 +6,6 @@ namespace GaiaTools\FulcrumSettings\Drivers;
 
 use GaiaTools\FulcrumSettings\Contracts\SegmentDriver;
 use Illuminate\Contracts\Auth\Authenticatable;
-use Spatie\Permission\Traits\HasRoles;
 
 class SpatiePermissionSegmentDriver implements SegmentDriver
 {
@@ -16,8 +15,16 @@ class SpatiePermissionSegmentDriver implements SegmentDriver
             return false;
         }
 
-        /** @var Authenticatable&HasRoles $user */
-        return $user->hasAnyRole($segment) || $user->hasAnyPermission($segment);
+        if (! is_callable([$user, 'hasAnyRole']) || ! is_callable([$user, 'hasAnyPermission'])) {
+            return false;
+        }
+
+        $hasRoleCallable = \Closure::fromCallable([$user, 'hasAnyRole']);
+        $hasPermissionCallable = \Closure::fromCallable([$user, 'hasAnyPermission']);
+        $hasRole = (bool) $hasRoleCallable($segment);
+        $hasPermission = (bool) $hasPermissionCallable($segment);
+
+        return $hasRole || $hasPermission;
     }
 
     /**
@@ -29,11 +36,21 @@ class SpatiePermissionSegmentDriver implements SegmentDriver
             return [];
         }
 
-        /** @var Authenticatable&HasRoles $user */
-        $roles = $user->getRoleNames()->toArray();
-        $permissions = $user->getAllPermissions()->pluck('name')->toArray();
+        if (! is_callable([$user, 'getRoleNames']) || ! is_callable([$user, 'getAllPermissions'])) {
+            return [];
+        }
 
-        return array_unique(array_merge($roles, $permissions));
+        $getRoleNames = \Closure::fromCallable([$user, 'getRoleNames']);
+        $getAllPermissions = \Closure::fromCallable([$user, 'getAllPermissions']);
+        $roles = $getRoleNames();
+        $permissions = $getAllPermissions();
+
+        $rolesList = is_object($roles) && method_exists($roles, 'toArray') ? $roles->toArray() : (array) $roles;
+        $permissionsList = is_object($permissions) && method_exists($permissions, 'pluck')
+            ? $permissions->pluck('name')->toArray()
+            : (array) $permissions;
+
+        return array_unique(array_merge($rolesList, $permissionsList));
     }
 
     private function hasSpatiePermissions(Authenticatable $user): bool

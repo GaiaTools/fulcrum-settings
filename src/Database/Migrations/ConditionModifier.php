@@ -105,7 +105,7 @@ class ConditionModifier
             $this->condition->update($this->updates);
         }
 
-        return $this->condition->fresh();
+        return $this->condition->fresh() ?? $this->condition;
     }
 
     /**

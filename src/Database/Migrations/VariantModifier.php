@@ -107,7 +107,7 @@ class VariantModifier
             }
         }
 
-        return $this->variant->fresh();
+        return $this->variant->fresh() ?? $this->variant;
     }
 
     /**

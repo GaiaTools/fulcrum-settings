@@ -20,7 +20,7 @@ class WeightDistributionStrategy implements DistributionStrategy
     {
         $cumulative = 0;
 
-        foreach ($rule->rolloutVariants->sortBy('id') as $variant) {
+        foreach ($rule->rolloutVariants()->orderBy('id')->get() as $variant) {
             $cumulative += $variant->weight;
 
             if ($bucket < $cumulative) {

@@ -24,14 +24,14 @@ trait FulcrumJob
 
     /**
      * Get the tags that should be assigned to the job.
+     *
+     * @return array<int, string>
      */
     public function tags(): array
     {
         $tags = ['fulcrum'];
 
-        if (property_exists($this, 'jobType')) {
-            $tags[] = 'type:'.$this->jobType;
-        }
+        $tags[] = 'type:'.$this->jobType;
 
         if ($this->tenantId) {
             $tags[] = 'tenant:'.$this->tenantId;
@@ -46,6 +46,8 @@ trait FulcrumJob
 
     /**
      * Get the job-specific tags.
+     *
+     * @return array<int, string>
      */
     protected function jobSpecificTags(): array
     {

@@ -9,7 +9,7 @@ use Illuminate\Validation\ValidationException;
 
 class ValidateFile
 {
-    public function handle(ImportRequest $request, \Closure $next)
+    public function handle(ImportRequest $request, \Closure $next): mixed
     {
         if (! $request->hasFile('file') || ! $request->file('file')->isValid()) {
             throw ValidationException::withMessages(['file' => 'Invalid file provided']);

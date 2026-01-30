@@ -8,11 +8,26 @@ class JsonFormatter implements Formatter
 {
     public function format(array $data): string
     {
-        return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        $encoded = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+        return $encoded === false ? '[]' : $encoded;
     }
 
     public function parse(string $content): array
     {
-        return json_decode($content, true) ?: [];
+        $decoded = json_decode($content, true);
+
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($decoded as $row) {
+            if (is_array($row)) {
+                $normalized[] = $row;
+            }
+        }
+
+        return $normalized;
     }
 }

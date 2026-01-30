@@ -242,17 +242,26 @@ class FulcrumSettingsServiceProvider extends ServiceProvider
     protected function getApplicationMigrationPaths(): array
     {
         $paths = config('fulcrum.migrations.paths', [database_path('migrations')]);
+        if (! is_array($paths)) {
+            $paths = [database_path('migrations')];
+        }
 
         $expandedPaths = [];
-        foreach ((array) $paths as $path) {
+        foreach ($paths as $path) {
+            if (! is_string($path)) {
+                continue;
+            }
             if (str_contains($path, '*')) {
-                $expandedPaths = array_merge($expandedPaths, glob($path, GLOB_ONLYDIR));
+                $matches = glob($path, GLOB_ONLYDIR);
+                if (is_array($matches)) {
+                    $expandedPaths = array_merge($expandedPaths, $matches);
+                }
             } else {
                 $expandedPaths[] = $path;
             }
         }
 
-        return array_filter($expandedPaths, fn ($path) => is_string($path) && ! empty($path));
+        return array_values(array_filter($expandedPaths, fn ($path) => ! empty($path)));
     }
 
     /**
@@ -272,6 +281,9 @@ class FulcrumSettingsServiceProvider extends ServiceProvider
     protected function getEnumsPublishPath(string $filename): string
     {
         $basePath = config('fulcrum.publish.enums_path', app_path('Enums'));
+        if (! is_string($basePath)) {
+            $basePath = app_path('Enums');
+        }
 
         return $basePath.'/'.$filename;
     }
@@ -282,9 +294,14 @@ class FulcrumSettingsServiceProvider extends ServiceProvider
             return;
         }
 
+        $prefix = config('fulcrum.portability.routes.prefix', 'fulcrum/portability');
+        $prefix = is_string($prefix) ? $prefix : 'fulcrum/portability';
+        $middleware = config('fulcrum.portability.routes.middleware', ['api', 'auth']);
+        $middleware = is_array($middleware) ? $middleware : ['api', 'auth'];
+
         Route::group([
-            'prefix' => config('fulcrum.portability.routes.prefix', 'fulcrum/portability'),
-            'middleware' => config('fulcrum.portability.routes.middleware', ['api', 'auth']),
+            'prefix' => $prefix,
+            'middleware' => $middleware,
         ], function () {
             Route::get('export/create', [DataPortabilityController::class, 'showExport'])
                 ->name('fulcrum.portability.export.create');
@@ -300,27 +317,41 @@ class FulcrumSettingsServiceProvider extends ServiceProvider
     protected function registerSettingsClasses(): void
     {
         $settingsClasses = config('fulcrum.settings.classes', []);
+        if (! is_array($settingsClasses)) {
+            $settingsClasses = [];
+        }
 
         if (config('fulcrum.settings.discovery.enabled', false)) {
             $settingsClasses = array_merge($settingsClasses, $this->discoverSettings());
         }
 
         foreach ($settingsClasses as $class) {
-            $this->app->singleton($class);
+            if (is_string($class)) {
+                $this->app->singleton($class);
+            }
         }
     }
 
+    /**
+     * @return array<int, class-string>
+     */
     protected function discoverSettings(): array
     {
         $paths = config('fulcrum.settings.discovery.paths', []);
+        if (! is_array($paths)) {
+            $paths = [];
+        }
         $settings = [];
 
         foreach ($paths as $path) {
+            if (! is_string($path)) {
+                continue;
+            }
             $expandedPaths = str_contains($path, '*')
                 ? glob($path, GLOB_ONLYDIR)
                 : [$path];
 
-            foreach ($expandedPaths as $expandedPath) {
+            foreach (is_array($expandedPaths) ? $expandedPaths : [] as $expandedPath) {
                 if (! is_dir($expandedPath)) {
                     continue;
                 }
@@ -341,6 +372,9 @@ class FulcrumSettingsServiceProvider extends ServiceProvider
     protected function getClassFromFile(string $path): ?string
     {
         $content = file_get_contents($path);
+        if ($content === false) {
+            return null;
+        }
         $namespace = '';
         $class = '';
 
@@ -426,6 +460,9 @@ class FulcrumSettingsServiceProvider extends ServiceProvider
     {
         $this->app->singleton(DistributionStrategyContract::class, function ($app) {
             $strategyClass = config('fulcrum.rollout.distribution_strategy', WeightDistributionStrategy::class);
+            if (! is_string($strategyClass)) {
+                $strategyClass = WeightDistributionStrategy::class;
+            }
 
             return $app->make($strategyClass);
         });
@@ -442,10 +479,10 @@ class FulcrumSettingsServiceProvider extends ServiceProvider
 
             return new CachedSettingResolver(
                 $baseResolver,
-                config('fulcrum.cache.enabled', false),
-                (string) config('fulcrum.cache.prefix', 'fulcrum'),
-                (int) config('fulcrum.cache.ttl', 3600),
-                config('fulcrum.cache.store')
+                (bool) config('fulcrum.cache.enabled', false),
+                is_string(config('fulcrum.cache.prefix')) ? (string) config('fulcrum.cache.prefix') : 'fulcrum',
+                is_numeric(config('fulcrum.cache.ttl')) ? (int) config('fulcrum.cache.ttl') : 3600,
+                is_string(config('fulcrum.cache.store')) ? config('fulcrum.cache.store') : null
             );
         });
     }

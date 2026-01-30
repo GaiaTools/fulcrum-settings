@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace GaiaTools\FulcrumSettings\Console\Commands;
 
+use GaiaTools\FulcrumSettings\Console\Commands\Concerns\InteractsWithCommandOptions;
 use GaiaTools\FulcrumSettings\Facades\Fulcrum;
 use GaiaTools\FulcrumSettings\Models\Scopes\TenantScope;
 use GaiaTools\FulcrumSettings\Models\Setting;
@@ -11,6 +12,8 @@ use Illuminate\Console\Command;
 
 class ListSettingsCommand extends Command
 {
+    use InteractsWithCommandOptions;
+
     protected $signature = 'fulcrum:list
                             {--tenant= : Filter settings by tenant ID}
                             {--no-tenants : List only settings that are not scoped to a tenant}';
@@ -19,8 +22,8 @@ class ListSettingsCommand extends Command
 
     public function handle(): int
     {
-        $tenantId = $this->option('tenant');
-        $noTenants = $this->option('no-tenants');
+        $tenantId = $this->getStringOption('tenant');
+        $noTenants = $this->getBoolOption('no-tenants');
 
         $query = Setting::withoutGlobalScope(TenantScope::class);
 

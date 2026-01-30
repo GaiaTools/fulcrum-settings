@@ -10,6 +10,9 @@ use GaiaTools\FulcrumSettings\Enums\ComparisonOperator;
 
 class RuleConditionBuilder
 {
+    /**
+     * @var array<int, array{type: string|null, attribute: string, operator: ComparisonOperator, value: mixed, boolean: string}>
+     */
     protected array $conditions = [];
 
     protected string $boolean = 'and'; // for future OR support
@@ -58,6 +61,9 @@ class RuleConditionBuilder
 
     /**
      * Get all conditions.
+     */
+    /**
+     * @return array<int, array{type: string|null, attribute: string, operator: ComparisonOperator, value: mixed, boolean: string}>
      */
     public function getConditions(): array
     {

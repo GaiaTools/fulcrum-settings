@@ -16,6 +16,9 @@ use GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant;
  */
 class VariantAssigned
 {
+    /**
+     * @param  array<string, mixed>  $context
+     */
     public function __construct(
         public readonly string $settingKey,
         public readonly string $ruleName,

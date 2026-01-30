@@ -8,24 +8,29 @@ use GaiaTools\FulcrumSettings\Contracts\DataPortability\ImportResponse as Contra
 
 class ImportResponse implements Contract
 {
+    /**
+     * @param  array<string, mixed>|null  $importResult
+     */
     public function __construct(protected mixed $importResult = null) {}
 
-    public function toResponse($request)
+    public function toResponse($request): \Symfony\Component\HttpFoundation\Response
     {
+        $result = is_array($this->importResult) ? $this->importResult : [];
+
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Settings imported successfully',
                 'data' => [
-                    'imported_count' => $this->importResult['count'] ?? 0,
-                    'errors' => $this->importResult['errors'] ?? [],
-                    'warnings' => $this->importResult['warnings'] ?? [],
+                    'imported_count' => $result['count'] ?? 0,
+                    'errors' => $result['errors'] ?? [],
+                    'warnings' => $result['warnings'] ?? [],
                 ],
             ]);
         }
 
         return redirect()->back()
             ->with('success', 'Settings imported successfully')
-            ->with('imported_count', $this->importResult['count'] ?? 0);
+            ->with('imported_count', $result['count'] ?? 0);
     }
 }

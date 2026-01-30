@@ -58,7 +58,7 @@ class SettingDefinition
      */
     public function type(string|BackedEnum $type): self
     {
-        $typeString = $type instanceof BackedEnum ? $type->value : $type;
+        $typeString = $type instanceof BackedEnum ? (string) $type->value : $type;
         $typeRegistry = app(TypeRegistry::class);
 
         if (! $typeRegistry->has($typeString)) {

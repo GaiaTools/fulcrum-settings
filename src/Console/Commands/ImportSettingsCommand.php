@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace GaiaTools\FulcrumSettings\Console\Commands;
 
+use GaiaTools\FulcrumSettings\Console\Commands\Concerns\InteractsWithCommandOptions;
 use GaiaTools\FulcrumSettings\Jobs\ImportSettingsJob;
 use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\CsvFormatter;
 use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\JsonFormatter;
@@ -16,6 +17,8 @@ use Illuminate\Support\Str;
 
 class ImportSettingsCommand extends Command
 {
+    use InteractsWithCommandOptions;
+
     protected $signature = 'fulcrum:import
                             {path : The path to the file to import}
                             {--format=csv : The file format (csv, json, xml, yaml, sql)}
@@ -33,8 +36,14 @@ class ImportSettingsCommand extends Command
 
     public function handle(ImportManager $manager): int
     {
-        $path = $this->argument('path');
-        $format = $this->option('format');
+        $path = $this->getStringArgument('path');
+        if ($path === null || $path === '') {
+            $this->error('A valid path is required.');
+
+            return 1;
+        }
+
+        $format = $this->getStringOption('format') ?? 'csv';
 
         // Auto-detect format from extension if not explicitly provided or if default csv is used but file is different
         if ($this->isDefaultOption('format')) {
@@ -62,25 +71,30 @@ class ImportSettingsCommand extends Command
             return 1;
         }
 
+        $mode = $this->getStringOption('mode') ?? 'upsert';
+        $conflictHandling = $this->getStringOption('conflict-handling') ?? 'fail';
+
         $options = [
-            'mode' => $this->option('mode'),
-            'truncate' => $this->option('truncate'),
-            'conflict_handling' => $this->option('conflict-handling'),
-            'dry_run' => $this->option('dry-run'),
-            'connection' => $this->option('connection'),
-            'chunk_size' => (int) $this->option('chunk-size'),
+            'mode' => in_array($mode, ['insert', 'upsert'], true) ? $mode : 'upsert',
+            'truncate' => $this->getBoolOption('truncate'),
+            'conflict_handling' => in_array($conflictHandling, ['fail', 'skip', 'log'], true) ? $conflictHandling : 'fail',
+            'dry_run' => $this->getBoolOption('dry-run'),
+            'connection' => $this->getStringOption('connection'),
+            'chunk_size' => $this->getIntOption('chunk-size', 1000),
         ];
 
-        if ($this->option('queue')) {
+        if ($this->getBoolOption('queue')) {
             $batchId = Str::uuid()->toString();
             $job = new ImportSettingsJob($path, $format, array_filter($options, fn ($value) => $value !== null), null, $batchId);
 
-            if ($this->option('queue-connection')) {
-                $job->onConnection($this->option('queue-connection'));
+            $queueConnection = $this->getStringOption('queue-connection');
+            if ($queueConnection !== null) {
+                $job->onConnection($queueConnection);
             }
 
-            if ($this->option('queue-name')) {
-                $job->onQueue($this->option('queue-name'));
+            $queueName = $this->getStringOption('queue-name');
+            if ($queueName !== null) {
+                $job->onQueue($queueName);
             }
 
             dispatch($job);
@@ -111,6 +125,13 @@ class ImportSettingsCommand extends Command
 
     protected function isDefaultOption(string $name): bool
     {
-        return ! $this->hasOption($name) || $this->option($name) === $this->getDefinition()->getOption($name)->getDefault();
+        if (! $this->hasOption($name)) {
+            return true;
+        }
+
+        $option = $this->option($name);
+        $default = $this->getDefinition()->getOption($name)->getDefault();
+
+        return $option === $default;
     }
 }

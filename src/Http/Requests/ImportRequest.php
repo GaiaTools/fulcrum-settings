@@ -13,7 +13,8 @@ class ImportRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $ability = (string) config('fulcrum.portability.import_ability', 'importFulcrumSettings');
+        $ability = config('fulcrum.portability.import_ability', 'importFulcrumSettings');
+        $ability = is_string($ability) ? $ability : 'importFulcrumSettings';
 
         return Gate::allows($ability);
     }
@@ -28,6 +29,9 @@ class ImportRequest extends FormRequest
         throw new HttpResponseException(redirect()->back()->withErrors('This action is unauthorized.'));
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
