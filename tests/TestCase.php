@@ -14,6 +14,13 @@ abstract class TestCase extends Orchestra
     {
         parent::setUp();
 
+        $token = getenv('TEST_TOKEN') ?: (string) getmypid();
+        $storagePath = sys_get_temp_dir().'/fulcrum-settings-tests/'.$token;
+        if (! is_dir($storagePath)) {
+            mkdir($storagePath, 0777, true);
+        }
+        $this->app->useStoragePath($storagePath);
+
         FulcrumContext::clear();
 
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
