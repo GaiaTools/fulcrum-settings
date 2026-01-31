@@ -55,93 +55,49 @@ class SettingValue extends Model
     public function value(): Attribute
     {
         return Attribute::make(
-            get: function ($value): mixed {
-                if ($value === null) {
-                    return null;
-                }
-
-                $setting = $this->resolveSetting();
-                if ($setting && $setting->masked && is_string($value)) {
-                    try {
-                        $value = Crypt::decryptString($value);
-                    } catch (\Throwable) {
-                        // If decryption fails, treat as raw
-                    }
-                }
-
-                if ($setting) {
-                    return app(TypeRegistry::class)->getHandler($setting->type)->get($value);
-                }
-
-                return $value;
-            },
-            set: function ($value, $attributes): mixed {
-                if ($value === null) {
-                    return null;
-                }
-
-                // Determine setting context. Handle various Laravel versions and population states.
-                $type = $attributes['valuable_type'] ?? $this->valuable_type ?? $this->attributes['valuable_type'] ?? null;
-                $id = $attributes['valuable_id'] ?? $this->valuable_id ?? $this->attributes['valuable_id'] ?? null;
-
-                $typeString = is_string($type) ? $type : null;
-                $idValue = is_scalar($id) ? $id : null;
-                $setting = $this->resolveSetting($typeString, $idValue);
-
-                if (! $setting) {
-                    // Try with raw valuable_id from attributes if it differs from cast/accessed id
-                    $id = $attributes['valuable_id'] ?? $id;
-                    $idValue = is_scalar($id) ? $id : null;
-                    $setting = $this->resolveSetting($typeString, $idValue);
-                }
-
-                if (! $setting && ! $this->exists) {
-                    // When creating, the relation might not be resolvable if the owner is not yet persisted
-                    // but in SettingDefinition::save(), we create Setting first, then defaultValue.
-                    // If we are here, it means resolveSetting(Setting::class, $id) failed.
-                    if ($type && in_array($type, [Setting::class, SettingRule::class, SettingRuleRolloutVariant::class]) && $id) {
-                        return $value;
-                    }
-
-                    // If we have no type/id yet, it might be a mass-assignment where value is set before other fields
-                    if ($type === null || $id === null) {
-                        return $value;
-                    }
-                }
-
-                if (! $setting) {
-                    // Fallback to manual resolution if we have the IDs in the model instance
-                    if ($this->valuable_type && $this->valuable_id) {
-                        $setting = $this->resolveSetting($this->valuable_type, $this->valuable_id);
-                    }
-                }
-
-                if (! $setting) {
-                    $typeLabel = is_scalar($type) ? (string) $type : 'unknown';
-                    $idLabel = is_scalar($id) ? (string) $id : 'unknown';
-                    throw new SettingNotFoundException("Setting record not found for value. (Type: {$typeLabel}, ID: {$idLabel})");
-                }
-
-                $handler = app(TypeRegistry::class)->getHandler($setting->type);
-                $serialized = $handler->set($value);
-
-                if ($setting->masked) {
-                    if (! is_string($serialized)) {
-                        if (is_scalar($serialized)) {
-                            $serialized = (string) $serialized;
-                        } elseif (is_object($serialized) && method_exists($serialized, '__toString')) {
-                            $serialized = (string) $serialized;
-                        } else {
-                            $serialized = json_encode($serialized) ?: '';
-                        }
-                    }
-
-                    return Crypt::encryptString($serialized);
-                }
-
-                return $serialized;
-            }
+            get: [$this, 'getValueAttribute'],
+            set: [$this, 'setValueAttribute']
         );
+    }
+
+    protected function getValueAttribute(mixed $value): mixed
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $setting = $this->resolveSetting();
+        $value = $this->maybeDecryptValue($setting, $value);
+
+        return $this->castValueFromSetting($setting, $value);
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    protected function setValueAttribute(mixed $value, array $attributes): mixed
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        [$setting, $type, $id] = $this->resolveSettingFromAttributes($attributes);
+
+        if (! $setting && $this->shouldReturnRawValue($type, $id)) {
+            return $value;
+        }
+
+        if (! $setting) {
+            $setting = $this->resolveSettingFromModel();
+        }
+
+        if (! $setting) {
+            $typeLabel = is_scalar($type) ? (string) $type : 'unknown';
+            $idLabel = is_scalar($id) ? (string) $id : 'unknown';
+            throw new SettingNotFoundException("Setting record not found for value. (Type: {$typeLabel}, ID: {$idLabel})");
+        }
+
+        return $this->serializeValueForStorage($setting, $value);
     }
 
     /**
@@ -176,19 +132,127 @@ class SettingValue extends Model
             }
         }
 
+        $setting = null;
+
         if ($owner instanceof Setting) {
-            return $owner;
-        }
-        if ($owner instanceof SettingRule) {
+            $setting = $owner;
+        } elseif ($owner instanceof SettingRule) {
             // Make sure we don't recurse if setting is already being resolved
-            return $owner->setting()->getResults();
+            $setting = $owner->setting()->getResults();
+        } elseif ($owner instanceof SettingRuleRolloutVariant) {
+            $setting = $owner->resolveSetting();
         }
 
-        if ($owner instanceof SettingRuleRolloutVariant) {
-            return $owner->resolveSetting();
+        return $setting;
+    }
+
+    protected function maybeDecryptValue(?Setting $setting, mixed $value): mixed
+    {
+        if (! $setting || ! $setting->masked || ! is_string($value)) {
+            return $value;
         }
 
-        return null;
+        $decrypted = $this->tryDecryptString($value);
+
+        return $decrypted ?? $value;
+    }
+
+    protected function tryDecryptString(string $value): ?string
+    {
+        $decrypted = null;
+
+        try {
+            $decrypted = Crypt::decryptString($value);
+        } catch (\Throwable) {
+            $decrypted = null;
+        }
+
+        return $decrypted;
+    }
+
+    protected function castValueFromSetting(?Setting $setting, mixed $value): mixed
+    {
+        if (! $setting) {
+            return $value;
+        }
+
+        return app(TypeRegistry::class)->getHandler($setting->type)->get($value);
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     * @return array{0: ?Setting, 1: mixed, 2: mixed}
+     */
+    protected function resolveSettingFromAttributes(array $attributes): array
+    {
+        // Determine setting context. Handle various Laravel versions and population states.
+        $type = $attributes['valuable_type'] ?? $this->valuable_type ?? $this->attributes['valuable_type'] ?? null;
+        $id = $attributes['valuable_id'] ?? $this->valuable_id ?? $this->attributes['valuable_id'] ?? null;
+
+        $typeString = is_string($type) ? $type : null;
+        $idValue = is_scalar($id) ? $id : null;
+        $setting = $this->resolveSetting($typeString, $idValue);
+
+        if (! $setting) {
+            // Try with raw valuable_id from attributes if it differs from cast/accessed id
+            $id = $attributes['valuable_id'] ?? $id;
+            $idValue = is_scalar($id) ? $id : null;
+            $setting = $this->resolveSetting($typeString, $idValue);
+        }
+
+        return [$setting, $type, $id];
+    }
+
+    protected function shouldReturnRawValue(mixed $type, mixed $id): bool
+    {
+        return match (true) {
+            $this->exists => false,
+            $type && in_array($type, [Setting::class, SettingRule::class, SettingRuleRolloutVariant::class]) && $id => true,
+            $type === null || $id === null => true,
+            default => false,
+        };
+    }
+
+    protected function resolveSettingFromModel(): ?Setting
+    {
+        $setting = null;
+
+        if ($this->valuable_type && $this->valuable_id) {
+            $setting = $this->resolveSetting($this->valuable_type, $this->valuable_id);
+        }
+
+        return $setting;
+    }
+
+    protected function serializeValueForStorage(Setting $setting, mixed $value): mixed
+    {
+        $handler = app(TypeRegistry::class)->getHandler($setting->type);
+        $serialized = $handler->set($value);
+
+        if ($setting->masked) {
+            $serialized = $this->ensureStringValue($serialized);
+
+            return Crypt::encryptString($serialized);
+        }
+
+        return $serialized;
+    }
+
+    protected function ensureStringValue(mixed $value): string
+    {
+        $result = '';
+
+        if (is_string($value)) {
+            $result = $value;
+        } elseif (is_scalar($value)) {
+            $result = (string) $value;
+        } elseif (is_object($value) && method_exists($value, '__toString')) {
+            $result = (string) $value;
+        } else {
+            $result = json_encode($value) ?: '';
+        }
+
+        return $result;
     }
 
     protected static function booted(): void
