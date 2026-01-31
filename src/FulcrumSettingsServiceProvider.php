@@ -28,6 +28,7 @@ use GaiaTools\FulcrumSettings\Services\RuleEvaluator;
 use GaiaTools\FulcrumSettings\Services\SettingResolver;
 use GaiaTools\FulcrumSettings\Support\ConditionTypeRegistry;
 use GaiaTools\FulcrumSettings\Support\Registrars\SettingsDiscovery;
+use GaiaTools\FulcrumSettings\Support\Settings\FulcrumSettings;
 use GaiaTools\FulcrumSettings\Support\TypeRegistry;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;

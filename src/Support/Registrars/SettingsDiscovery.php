@@ -12,7 +12,7 @@ class SettingsDiscovery
 {
     /**
      * @param  array<mixed>  $paths
-     * @return array<int, class-string>
+     * @return array<int, class-string<FulcrumSettings>>
      */
     public function discover(array $paths): array
     {
@@ -49,11 +49,11 @@ class SettingsDiscovery
             return [];
         }
 
-        return array_values(array_filter($expandedPaths, fn ($expandedPath) => is_string($expandedPath) && $expandedPath !== ''));
+        return array_values(array_filter($expandedPaths, fn ($expandedPath) => $expandedPath !== ''));
     }
 
     /**
-     * @return array<int, class-string>
+     * @return array<int, class-string<FulcrumSettings>>
      */
     protected function discoverSettingsInPath(string $expandedPath): array
     {
@@ -73,6 +73,9 @@ class SettingsDiscovery
         return $settings;
     }
 
+    /**
+     * @phpstan-assert-if-true class-string<FulcrumSettings> $class
+     */
     protected function isConcreteSettingsClass(?string $class): bool
     {
         if (! $class) {

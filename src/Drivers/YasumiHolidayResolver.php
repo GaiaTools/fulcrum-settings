@@ -7,6 +7,7 @@ namespace GaiaTools\FulcrumSettings\Drivers;
 use Carbon\Carbon;
 use GaiaTools\FulcrumSettings\Contracts\HolidayResolver;
 use Yasumi\Yasumi;
+use Yasumi\ProviderInterface;
 
 class YasumiHolidayResolver implements HolidayResolver
 {
@@ -76,7 +77,7 @@ class YasumiHolidayResolver implements HolidayResolver
         return is_string($defaultRegion) ? $defaultRegion : null;
     }
 
-    protected function createHolidayProvider(string $provider, Carbon $date, string $locale): ?object
+    protected function createHolidayProvider(string $provider, Carbon $date, string $locale): ?ProviderInterface
     {
         $instance = null;
 

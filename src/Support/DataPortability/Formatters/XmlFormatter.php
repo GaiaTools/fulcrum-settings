@@ -58,7 +58,7 @@ class XmlFormatter implements Formatter
     }
 
     /**
-     * @return array<int, mixed>|null
+     * @return array<int|string, mixed>|null
      */
     protected function decodeXmlToArray(\SimpleXMLElement $xml): ?array
     {
@@ -74,17 +74,41 @@ class XmlFormatter implements Formatter
     }
 
     /**
-     * @param  array<int, mixed>  $decoded
-     * @return array<int, mixed>
+     * @param  array<int|string, mixed>  $decoded
+     * @return array<int, array<string, mixed>>
      */
     protected function normalizeDecodedXml(array $decoded): array
     {
+        $rows = $decoded['setting'] ?? $decoded;
+
+        if (! is_array($rows)) {
+            return [];
+        }
+
+        if (! array_is_list($rows)) {
+            return [$this->normalizeDecodedRow($rows)];
+        }
+
+        $normalized = [];
+        foreach ($rows as $row) {
+            if (is_array($row)) {
+                $normalized[] = $this->normalizeDecodedRow($row);
+            }
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param  array<int|string, mixed>  $row
+     * @return array<string, mixed>
+     */
+    protected function normalizeDecodedRow(array $row): array
+    {
         $normalized = [];
 
-        foreach ($decoded as $row) {
-            if (is_array($row)) {
-                $normalized[] = $row;
-            }
+        foreach ($row as $key => $value) {
+            $normalized[(string) $key] = $value;
         }
 
         return $normalized;

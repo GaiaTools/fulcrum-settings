@@ -56,6 +56,9 @@ class GeocodingConditionTypeHandler implements ConditionTypeHandler
         };
     }
 
+    /**
+     * @return Request|string|array<mixed>|null
+     */
     protected function resolveGeoInput(mixed $scope): Request|string|array|null
     {
         $input = null;

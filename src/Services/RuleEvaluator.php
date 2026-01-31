@@ -6,6 +6,7 @@ namespace GaiaTools\FulcrumSettings\Services;
 
 use Carbon\Carbon;
 use Cron\CronExpression;
+use GaiaTools\FulcrumSettings\Contracts\ConditionTypeHandler;
 use GaiaTools\FulcrumSettings\Contracts\HolidayResolver;
 use GaiaTools\FulcrumSettings\Contracts\RuleEvaluator as RuleEvaluatorContract;
 use GaiaTools\FulcrumSettings\Contracts\SegmentDriver;
@@ -24,7 +25,7 @@ class RuleEvaluator implements RuleEvaluatorContract
 
     protected ConditionTypeRegistry $conditionTypeRegistry;
 
-    /** @var array<string, \GaiaTools\FulcrumSettings\Contracts\ConditionTypeHandler> */
+    /** @var array<string, ConditionTypeHandler> */
     protected array $conditionTypeHandlers = [];
 
     protected bool $evaluationPrepared = false;
@@ -341,9 +342,10 @@ class RuleEvaluator implements RuleEvaluatorContract
             return false;
         }
 
-        $currentTime = $date->format('H:i:s');
-        $startTime = $startDate->format('H:i:s');
-        $endTime = $endDate->format('H:i:s');
+        $format = 'H:i:s';
+        $currentTime = $date->format($format);
+        $startTime = $startDate->format($format);
+        $endTime = $endDate->format($format);
 
         return $this->isTimeWithinRange($currentTime, $startTime, $endTime);
     }
@@ -454,7 +456,7 @@ class RuleEvaluator implements RuleEvaluatorContract
         return $within;
     }
 
-    protected function parseCarbonValue(mixed $value): ?Carbon
+    protected function parseCarbonValue(string|int|float $value): ?Carbon
     {
         $parsed = null;
 
