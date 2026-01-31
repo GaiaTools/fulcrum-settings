@@ -345,12 +345,7 @@ class RuleEvaluator implements RuleEvaluatorContract
         $startTime = $startDate->format('H:i:s');
         $endTime = $endDate->format('H:i:s');
 
-        if ($startTime <= $endTime) {
-            return $currentTime >= $startTime && $currentTime <= $endTime;
-        }
-
-        // Handles overnight ranges like 22:00 to 06:00
-        return $currentTime >= $startTime || $currentTime <= $endTime;
+        return $this->isTimeWithinRange($currentTime, $startTime, $endTime);
     }
 
     protected function isDayOfWeek(Carbon $date, mixed $expected): bool
@@ -415,21 +410,12 @@ class RuleEvaluator implements RuleEvaluatorContract
 
     protected function stringifyValue(mixed $value): string
     {
-        if (is_string($value)) {
-            return $value;
-        }
-
-        if (is_scalar($value)) {
-            return (string) $value;
-        }
-
-        if (is_object($value) && method_exists($value, '__toString')) {
-            return (string) $value;
-        }
-
-        $encoded = json_encode($value);
-
-        return $encoded === false ? '' : $encoded;
+        return match (true) {
+            is_string($value) => $value,
+            is_scalar($value) => (string) $value,
+            is_object($value) && method_exists($value, '__toString') => (string) $value,
+            default => $this->encodeJsonValue($value),
+        };
     }
 
     protected function toFloat(mixed $value): ?float
@@ -447,19 +433,45 @@ class RuleEvaluator implements RuleEvaluatorContract
 
     protected function normalizeDateValue(mixed $value): ?Carbon
     {
-        if ($value instanceof \DateTimeInterface) {
-            return Carbon::instance($value);
+        return match (true) {
+            $value instanceof \DateTimeInterface => Carbon::instance($value),
+            is_string($value) || is_int($value) || is_float($value) => $this->parseCarbonValue($value),
+            default => null,
+        };
+    }
+
+    protected function isTimeWithinRange(string $current, string $start, string $end): bool
+    {
+        $within = false;
+
+        if ($start <= $end) {
+            $within = $current >= $start && $current <= $end;
+        } else {
+            // Handles overnight ranges like 22:00 to 06:00
+            $within = $current >= $start || $current <= $end;
         }
 
-        if (is_string($value) || is_int($value) || is_float($value)) {
-            try {
-                return Carbon::parse($value);
-            } catch (\Exception) {
-                return null;
-            }
+        return $within;
+    }
+
+    protected function parseCarbonValue(mixed $value): ?Carbon
+    {
+        $parsed = null;
+
+        try {
+            $parsed = Carbon::parse($value);
+        } catch (\Exception) {
+            $parsed = null;
         }
 
-        return null;
+        return $parsed;
+    }
+
+    protected function encodeJsonValue(mixed $value): string
+    {
+        $encoded = json_encode($value);
+
+        return $encoded === false ? '' : $encoded;
     }
 
     protected function compareDate(Carbon $actual, mixed $expected, string $operator): bool

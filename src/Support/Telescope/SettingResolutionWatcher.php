@@ -50,27 +50,12 @@ class SettingResolutionWatcher extends Watcher
      */
     protected function formatValue(mixed $value): mixed
     {
-        if ($value instanceof MaskedValue) {
-            return '[MASKED]';
-        }
-
-        if (is_array($value)) {
-            return $value;
-        }
-
-        if (is_object($value)) {
-            if (method_exists($value, 'toArray')) {
-                return $value->toArray();
-            }
-
-            if (method_exists($value, '__toString')) {
-                return (string) $value;
-            }
-
-            return '[Object: '.get_class($value).']';
-        }
-
-        return $value;
+        return match (true) {
+            $value instanceof MaskedValue => '[MASKED]',
+            is_array($value) => $value,
+            is_object($value) => $this->formatObjectValue($value),
+            default => $value,
+        };
     }
 
     /**
@@ -83,6 +68,19 @@ class SettingResolutionWatcher extends Watcher
         }
 
         return $event->source;
+    }
+
+    protected function formatObjectValue(object $value): mixed
+    {
+        $result = '[Object: '.get_class($value).']';
+
+        if (method_exists($value, 'toArray')) {
+            $result = $value->toArray();
+        } elseif (method_exists($value, '__toString')) {
+            $result = (string) $value;
+        }
+
+        return $result;
     }
 
     /**

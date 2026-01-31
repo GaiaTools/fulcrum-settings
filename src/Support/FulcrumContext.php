@@ -70,27 +70,27 @@ class FulcrumContext
 
     public static function shouldForce(): bool
     {
-        if (self::$forced) {
-            return true;
+        return match (true) {
+            self::$forced => true,
+            (bool) config('fulcrum.immutability.env_flag', false) => true,
+            self::shouldForceFromCli() => true,
+            default => false,
+        };
+    }
+
+    protected static function shouldForceFromCli(): bool
+    {
+        if (! App::runningInConsole()) {
+            return false;
         }
 
-        // ENV flag
-        if ((bool) config('fulcrum.immutability.env_flag', false)) {
-            return true;
-        }
+        $flagValue = config('fulcrum.immutability.cli_flag', 'force');
+        $flagValue = is_string($flagValue) ? $flagValue : 'force';
+        $flag = '--'.$flagValue;
 
-        // CLI flag
-        if (App::runningInConsole()) {
-            $flagValue = config('fulcrum.immutability.cli_flag', 'force');
-            $flagValue = is_string($flagValue) ? $flagValue : 'force';
-            $flag = '--'.$flagValue;
-            foreach ((array) ($_SERVER['argv'] ?? []) as $arg) {
-                if (! is_string($arg)) {
-                    continue;
-                }
-                if ($arg === $flag || str_starts_with($arg, $flag.'=')) {
-                    return true;
-                }
+        foreach ((array) ($_SERVER['argv'] ?? []) as $arg) {
+            if (is_string($arg) && ($arg === $flag || str_starts_with($arg, $flag.'='))) {
+                return true;
             }
         }
 

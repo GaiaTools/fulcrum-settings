@@ -298,19 +298,13 @@ class SettingResolver implements SettingResolverContract
         }
 
         $result = $resolver($scope, $this->user);
-        if ($result === null) {
-            return null;
-        }
 
-        if (is_scalar($result)) {
-            return (string) $result;
-        }
-
-        if (is_object($result) && method_exists($result, '__toString')) {
-            return (string) $result;
-        }
-
-        return null;
+        return match (true) {
+            $result === null => null,
+            is_scalar($result) => (string) $result,
+            is_object($result) && method_exists($result, '__toString') => (string) $result,
+            default => null,
+        };
     }
 
     /**
