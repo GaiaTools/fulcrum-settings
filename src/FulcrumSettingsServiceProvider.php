@@ -13,6 +13,7 @@ use GaiaTools\FulcrumSettings\Contracts\SegmentDriver as SegmentDriverContract;
 use GaiaTools\FulcrumSettings\Contracts\SettingResolver as SettingResolverContract;
 use GaiaTools\FulcrumSettings\Contracts\UserAgentResolver as UserAgentResolverContract;
 use GaiaTools\FulcrumSettings\Drivers\WeightDistributionStrategy;
+use GaiaTools\FulcrumSettings\Providers\FulcrumSettingsBootServiceProvider;
 use GaiaTools\FulcrumSettings\Services\CachedSettingResolver;
 use GaiaTools\FulcrumSettings\Services\Crc32BucketCalculator;
 use GaiaTools\FulcrumSettings\Services\RuleEvaluator;
@@ -21,7 +22,6 @@ use GaiaTools\FulcrumSettings\Support\ConditionTypeRegistry;
 use GaiaTools\FulcrumSettings\Support\Registrars\SettingsDiscovery;
 use GaiaTools\FulcrumSettings\Support\TypeRegistry;
 use Illuminate\Support\ServiceProvider;
-use GaiaTools\FulcrumSettings\Providers\FulcrumSettingsBootServiceProvider;
 
 class FulcrumSettingsServiceProvider extends ServiceProvider
 {

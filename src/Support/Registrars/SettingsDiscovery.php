@@ -11,7 +11,7 @@ use Symfony\Component\Finder\Finder;
 class SettingsDiscovery
 {
     /**
-     * @param array<mixed> $paths
+     * @param  array<mixed>  $paths
      * @return array<int, class-string>
      */
     public function discover(array $paths): array
@@ -28,7 +28,7 @@ class SettingsDiscovery
     }
 
     /**
-     * @param array<mixed> $paths
+     * @param  array<mixed>  $paths
      * @return array<int, string>
      */
     protected function normalizeDiscoveryPaths(array $paths): array
