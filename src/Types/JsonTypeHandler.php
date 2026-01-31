@@ -9,21 +9,11 @@ class JsonTypeHandler implements SettingTypeHandler
 {
     public function get(mixed $value): mixed
     {
-        if (is_array($value) || is_object($value)) {
-            return $value;
-        }
-
-        if (! is_string($value) || $value === '' || $value === 'null') {
-            return $value === 'null' ? null : $value;
-        }
-
-        $decoded = json_decode($value, true);
-
-        if (json_last_error() === JSON_ERROR_NONE) {
-            return $decoded;
-        }
-
-        return $value;
+        return match (true) {
+            is_array($value) || is_object($value) => $value,
+            ! is_string($value) || $value === '' || $value === 'null' => $value === 'null' ? null : $value,
+            default => $this->decodeJsonValue($value),
+        };
     }
 
     public function set(mixed $value): string
@@ -35,14 +25,22 @@ class JsonTypeHandler implements SettingTypeHandler
 
     public function validate(mixed $value): bool
     {
-        if (is_array($value) || is_object($value)) {
-            return true;
-        }
+        return match (true) {
+            is_array($value) || is_object($value) => true,
+            is_string($value) => $this->isValidJson($value),
+            default => false,
+        };
+    }
 
-        if (! is_string($value)) {
-            return false;
-        }
+    protected function decodeJsonValue(string $value): mixed
+    {
+        $decoded = json_decode($value, true);
 
+        return json_last_error() === JSON_ERROR_NONE ? $decoded : $value;
+    }
+
+    protected function isValidJson(string $value): bool
+    {
         json_decode($value);
 
         return json_last_error() === JSON_ERROR_NONE;

@@ -9,23 +9,13 @@ class FloatTypeHandler implements SettingTypeHandler
 {
     public function get(mixed $value): float
     {
-        if (is_float($value)) {
-            return $value;
-        }
-
-        if (is_int($value)) {
-            return (float) $value;
-        }
-
-        if (is_bool($value)) {
-            return $value ? 1.0 : 0.0;
-        }
-
-        if (is_string($value) && is_numeric($value)) {
-            return (float) $value;
-        }
-
-        return 0.0;
+        return match (true) {
+            is_float($value) => $value,
+            is_int($value) => (float) $value,
+            is_bool($value) => $value ? 1.0 : 0.0,
+            is_string($value) && is_numeric($value) => (float) $value,
+            default => 0.0,
+        };
     }
 
     public function set(mixed $value): string

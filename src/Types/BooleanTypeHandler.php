@@ -13,27 +13,14 @@ class BooleanTypeHandler implements SettingTypeHandler
      */
     public function get(mixed $value): bool
     {
-        if ($value === null) {
-            return false;
-        }
-
-        if (is_bool($value)) {
-            return $value;
-        }
-
-        if (is_int($value)) {
-            return $value === 1;
-        }
-
-        if (is_float($value)) {
-            return $value !== 0.0;
-        }
-
-        if (is_string($value)) {
-            return in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
-        }
-
-        return false;
+        return match (true) {
+            $value === null => false,
+            is_bool($value) => $value,
+            is_int($value) => $value === 1,
+            is_float($value) => $value !== 0.0,
+            is_string($value) => in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true),
+            default => false,
+        };
     }
 
     /**

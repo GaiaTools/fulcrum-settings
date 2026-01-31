@@ -9,23 +9,13 @@ class IntegerTypeHandler implements SettingTypeHandler
 {
     public function get(mixed $value): int
     {
-        if (is_int($value)) {
-            return $value;
-        }
-
-        if (is_bool($value)) {
-            return $value ? 1 : 0;
-        }
-
-        if (is_float($value)) {
-            return (int) $value;
-        }
-
-        if (is_string($value) && is_numeric($value)) {
-            return (int) $value;
-        }
-
-        return 0;
+        return match (true) {
+            is_int($value) => $value,
+            is_bool($value) => $value ? 1 : 0,
+            is_float($value) => (int) $value,
+            is_string($value) && is_numeric($value) => (int) $value,
+            default => 0,
+        };
     }
 
     public function set(mixed $value): string
@@ -35,15 +25,11 @@ class IntegerTypeHandler implements SettingTypeHandler
 
     public function validate(mixed $value): bool
     {
-        if (is_int($value)) {
-            return true;
-        }
-
-        if (is_string($value)) {
-            return preg_match('/^-?\d+$/', $value) === 1;
-        }
-
-        return false;
+        return match (true) {
+            is_int($value) => true,
+            is_string($value) => preg_match('/^-?\d+$/', $value) === 1,
+            default => false,
+        };
     }
 
     public function getDatabaseType(): string

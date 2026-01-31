@@ -9,19 +9,12 @@ class StringTypeHandler implements SettingTypeHandler
 {
     public function get(mixed $value): string
     {
-        if (is_string($value)) {
-            return $value;
-        }
-
-        if (is_scalar($value)) {
-            return (string) $value;
-        }
-
-        if (is_object($value) && method_exists($value, '__toString')) {
-            return (string) $value;
-        }
-
-        return '';
+        return match (true) {
+            is_string($value) => $value,
+            is_scalar($value) => (string) $value,
+            is_object($value) && method_exists($value, '__toString') => (string) $value,
+            default => '',
+        };
     }
 
     public function set(mixed $value): string

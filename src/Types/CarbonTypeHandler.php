@@ -12,24 +12,10 @@ class CarbonTypeHandler implements SettingTypeHandler
 {
     public function get(mixed $value): ?Carbon
     {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        if ($value instanceof \DateTimeInterface) {
-            $carbon = Carbon::instance($value);
-        } elseif (is_string($value) || is_int($value) || is_float($value)) {
-            $carbon = Carbon::parse($value);
-        } else {
-            return null;
-        }
-
+        $carbon = $this->resolveCarbon($value);
         $timezone = $this->getTimezone();
-        if ($timezone) {
-            $carbon->setTimezone($timezone);
-        }
 
-        return $carbon;
+        return $this->applyTimezone($carbon, $timezone);
     }
 
     protected function getTimezone(): ?string
@@ -48,52 +34,61 @@ class CarbonTypeHandler implements SettingTypeHandler
 
     public function set(mixed $value): ?string
     {
-        if ($value === null || $value === '') {
+        $carbon = $this->resolveCarbon($value);
+        if (! $carbon) {
             return null;
         }
 
-        if (! $value instanceof Carbon) {
-            if ($value instanceof \DateTimeInterface) {
-                $value = Carbon::instance($value);
-            } elseif (is_string($value) || is_int($value) || is_float($value)) {
-                $value = Carbon::parse($value);
-            } else {
-                return null;
-            }
-        }
+        $storeUtc = (bool) Config::get('fulcrum.carbon.store_utc', true);
 
-        if (Config::get('fulcrum.carbon.store_utc', true)) {
-            return $value->utc()->toIso8601String();
-        }
-
-        return $value->toIso8601String();
+        return $storeUtc ? $carbon->utc()->toIso8601String() : $carbon->toIso8601String();
     }
 
     public function validate(mixed $value): bool
     {
-        if ($value === null || $value === '') {
-            return true;
-        }
-
-        if ($value instanceof Carbon) {
-            return true;
-        }
-
-        if (! is_string($value)) {
-            return false;
-        }
-
-        try {
-            Carbon::parse($value);
-
-            return true;
-        } catch (\Exception) {
-            return false;
-        }
+        return match (true) {
+            $value === null || $value === '' => true,
+            $value instanceof Carbon => true,
+            is_string($value) => $this->canParseCarbon($value),
+            default => false,
+        };
     }
 
     public function getDatabaseType(): string
     {
         return 'carbon';
+    }
+
+    protected function resolveCarbon(mixed $value): ?Carbon
+    {
+        return match (true) {
+            $value === null || $value === '' => null,
+            $value instanceof \DateTimeInterface => Carbon::instance($value),
+            is_string($value) || is_int($value) || is_float($value) => Carbon::parse($value),
+            default => null,
+        };
+    }
+
+    protected function applyTimezone(?Carbon $carbon, ?string $timezone): ?Carbon
+    {
+        if (! $carbon) {
+            return null;
+        }
+
+        return $timezone ? $carbon->setTimezone($timezone) : $carbon;
+    }
+
+    protected function canParseCarbon(string $value): bool
+    {
+        $parsed = false;
+
+        try {
+            Carbon::parse($value);
+            $parsed = true;
+        } catch (\Exception) {
+            $parsed = false;
+        }
+
+        return $parsed;
     }
 }
