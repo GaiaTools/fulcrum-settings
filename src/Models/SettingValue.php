@@ -262,35 +262,68 @@ class SettingValue extends Model
 
     protected static function booted(): void
     {
-        $guard = function (self $model) {
-            $setting = $model->resolveSetting();
-            if ($setting && $setting->immutable && ! FulcrumContext::shouldForce()) {
-                throw new ImmutableSettingException('Setting is immutable. Changes are not allowed.');
-            }
-        };
+        static::creating(fn (self $model) => self::assignTenantId($model));
+        static::updating(fn (self $model) => self::assertMutable($model));
+        static::deleting(fn (self $model) => self::assertDeletable($model));
+    }
 
-        static::creating(function (self $model) {
-            if (Fulcrum::isMultiTenancyEnabled() && $model->tenant_id === null) {
-                $setting = $model->resolveSetting();
-                if ($setting) {
-                    $model->tenant_id = $setting->tenant_id;
-                }
-            }
-        });
+    protected static function assignTenantId(self $model): void
+    {
+        if (! Fulcrum::isMultiTenancyEnabled() || $model->tenant_id !== null) {
+            return;
+        }
 
-        static::updating($guard);
-        static::deleting(function (self $model) {
-            $setting = $model->resolveSetting();
-            if ($setting && $setting->immutable && ! FulcrumContext::shouldForce()) {
-                if ((bool) config('fulcrum.immutability.allow_delete_via_gate', true)) {
-                    $ability = config('fulcrum.immutability.delete_ability', 'deleteImmutableSetting');
-                    $ability = is_string($ability) ? $ability : 'deleteImmutableSetting';
-                    if (Gate::allows($ability, $setting)) {
-                        return true;
-                    }
-                }
-                throw new ImmutableSettingException('Setting is immutable. Deletion is not allowed.');
-            }
-        });
+        $setting = $model->resolveSetting();
+
+        if ($setting) {
+            $model->tenant_id = $setting->tenant_id;
+        }
+    }
+
+    protected static function assertMutable(self $model): void
+    {
+        $setting = self::resolveImmutableSetting($model);
+
+        if ($setting) {
+            throw new ImmutableSettingException('Setting is immutable. Changes are not allowed.');
+        }
+    }
+
+    protected static function assertDeletable(self $model): ?bool
+    {
+        $setting = self::resolveImmutableSetting($model);
+
+        if (! $setting) {
+            return null;
+        }
+
+        if (self::allowsImmutableDelete($setting)) {
+            return true;
+        }
+
+        throw new ImmutableSettingException('Setting is immutable. Deletion is not allowed.');
+    }
+
+    protected static function resolveImmutableSetting(self $model): ?Setting
+    {
+        $setting = $model->resolveSetting();
+
+        if (! $setting || ! $setting->immutable || FulcrumContext::shouldForce()) {
+            return null;
+        }
+
+        return $setting;
+    }
+
+    protected static function allowsImmutableDelete(Setting $setting): bool
+    {
+        if (! (bool) config('fulcrum.immutability.allow_delete_via_gate', true)) {
+            return false;
+        }
+
+        $ability = config('fulcrum.immutability.delete_ability', 'deleteImmutableSetting');
+        $ability = is_string($ability) ? $ability : 'deleteImmutableSetting';
+
+        return Gate::allows($ability, $setting);
     }
 }
