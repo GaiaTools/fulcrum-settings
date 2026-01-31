@@ -6,8 +6,8 @@ namespace GaiaTools\FulcrumSettings\Drivers;
 
 use Carbon\Carbon;
 use GaiaTools\FulcrumSettings\Contracts\HolidayResolver;
-use Yasumi\Yasumi;
 use Yasumi\ProviderInterface;
+use Yasumi\Yasumi;
 
 class YasumiHolidayResolver implements HolidayResolver
 {
