@@ -70,26 +70,13 @@ class GetSettingCommand extends Command
 
     protected function formatValue(mixed $value): string
     {
-        if ($value instanceof MaskedValue) {
-            return (string) $value;
-        }
-
-        if (is_array($value) || is_object($value)) {
-            return json_encode($value, JSON_PRETTY_PRINT) ?: '';
-        }
-
-        if (is_bool($value)) {
-            return $value ? 'true' : 'false';
-        }
-
-        if (is_scalar($value)) {
-            return (string) $value;
-        }
-
-        if (is_object($value) && method_exists($value, '__toString')) {
-            return (string) $value;
-        }
-
-        return '';
+        return match (true) {
+            $value instanceof MaskedValue => (string) $value,
+            is_array($value) || is_object($value) => json_encode($value, JSON_PRETTY_PRINT) ?: '',
+            is_bool($value) => $value ? 'true' : 'false',
+            is_scalar($value) => (string) $value,
+            is_object($value) && method_exists($value, '__toString') => (string) $value,
+            default => '',
+        };
     }
 }

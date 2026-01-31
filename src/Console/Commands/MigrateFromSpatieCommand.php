@@ -102,37 +102,40 @@ class MigrateFromSpatieCommand extends Command
 
     protected function inferType(mixed $value): SettingType
     {
-        if (is_bool($value)) {
-            return SettingType::BOOLEAN;
+        return match (true) {
+            is_bool($value) => SettingType::BOOLEAN,
+            is_int($value) => SettingType::INTEGER,
+            is_float($value) => SettingType::FLOAT,
+            is_string($value) => $this->inferStringType($value),
+            is_array($value) => SettingType::JSON,
+            default => SettingType::STRING,
+        };
+    }
+
+    protected function inferStringType(string $value): SettingType
+    {
+        $type = SettingType::STRING;
+        $parsed = $this->parseCarbonValue($value);
+        $isDateLike = $parsed !== null;
+        $hasDateTokens = str_contains($value, '-') && str_contains($value, ':');
+
+        if ($isDateLike && $hasDateTokens) {
+            $type = SettingType::CARBON;
         }
 
-        if (is_int($value)) {
-            return SettingType::INTEGER;
+        return $type;
+    }
+
+    protected function parseCarbonValue(string $value): ?Carbon
+    {
+        $parsed = null;
+
+        try {
+            $parsed = Carbon::parse($value);
+        } catch (\Throwable) {
+            $parsed = null;
         }
 
-        if (is_float($value)) {
-            return SettingType::FLOAT;
-        }
-
-        if (is_string($value)) {
-            // Check if it's a date
-            try {
-                Carbon::parse($value);
-                // Simple heuristic: if it contains - and : it's likely a date string
-                if (str_contains($value, '-') && str_contains($value, ':')) {
-                    return SettingType::CARBON;
-                }
-            } catch (\Throwable) {
-                // Not a date
-            }
-
-            return SettingType::STRING;
-        }
-
-        if (is_array($value)) {
-            return SettingType::JSON;
-        }
-
-        return SettingType::STRING;
+        return $parsed;
     }
 }
