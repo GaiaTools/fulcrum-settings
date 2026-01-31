@@ -20,7 +20,7 @@ use GaiaTools\FulcrumSettings\Services\Crc32BucketCalculator;
 use GaiaTools\FulcrumSettings\Services\RuleEvaluator;
 use GaiaTools\FulcrumSettings\Services\SettingResolver;
 use GaiaTools\FulcrumSettings\Support\ConditionTypeRegistry;
-use GaiaTools\FulcrumSettings\Support\Settings\FulcrumSettings;
+use GaiaTools\FulcrumSettings\Support\Registrars\SettingsDiscovery;
 use GaiaTools\FulcrumSettings\Support\TypeRegistry;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -322,7 +322,9 @@ class FulcrumSettingsServiceProvider extends ServiceProvider
         }
 
         if (config('fulcrum.settings.discovery.enabled', false)) {
-            $settingsClasses = array_merge($settingsClasses, $this->discoverSettings());
+            $paths = config('fulcrum.settings.discovery.paths', []);
+            $paths = is_array($paths) ? $paths : [];
+            $settingsClasses = array_merge($settingsClasses, (new SettingsDiscovery)->discover($paths));
         }
 
         foreach ($settingsClasses as $class) {
@@ -330,63 +332,6 @@ class FulcrumSettingsServiceProvider extends ServiceProvider
                 $this->app->singleton($class);
             }
         }
-    }
-
-    /**
-     * @return array<int, class-string>
-     */
-    protected function discoverSettings(): array
-    {
-        $paths = config('fulcrum.settings.discovery.paths', []);
-        if (! is_array($paths)) {
-            $paths = [];
-        }
-        $settings = [];
-
-        foreach ($paths as $path) {
-            if (! is_string($path)) {
-                continue;
-            }
-            $expandedPaths = str_contains($path, '*')
-                ? glob($path, GLOB_ONLYDIR)
-                : [$path];
-
-            foreach (is_array($expandedPaths) ? $expandedPaths : [] as $expandedPath) {
-                if (! is_dir($expandedPath)) {
-                    continue;
-                }
-
-                foreach ((new Finder)->in($expandedPath)->files()->name('*.php') as $file) {
-                    $class = $this->getClassFromFile($file->getPathname());
-
-                    if ($class && is_subclass_of($class, FulcrumSettings::class) && ! (new ReflectionClass($class))->isAbstract()) {
-                        $settings[] = $class;
-                    }
-                }
-            }
-        }
-
-        return array_unique($settings);
-    }
-
-    protected function getClassFromFile(string $path): ?string
-    {
-        $content = file_get_contents($path);
-        if ($content === false) {
-            return null;
-        }
-        $namespace = '';
-        $class = '';
-
-        if (preg_match('/namespace\s+(.+?);/', $content, $matches)) {
-            $namespace = $matches[1];
-        }
-
-        if (preg_match('/class\s+(\w+)/', $content, $matches)) {
-            $class = $matches[1];
-        }
-
-        return $namespace ? $namespace.'\\'.$class : $class;
     }
 
     protected function registerGeoResolver(): void
