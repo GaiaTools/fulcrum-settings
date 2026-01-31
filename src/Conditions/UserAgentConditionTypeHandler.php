@@ -45,22 +45,12 @@ class UserAgentConditionTypeHandler implements ConditionTypeHandler
 
     protected function scopeKey(mixed $scope): string
     {
-        if ($scope === null) {
-            return 'null';
-        }
-
-        if (is_scalar($scope)) {
-            return 'scalar:'.(string) $scope;
-        }
-
-        if (is_array($scope)) {
-            return 'array:'.hash('sha256', serialize($scope));
-        }
-
-        if (is_object($scope)) {
-            return 'object:'.spl_object_hash($scope);
-        }
-
-        return 'unknown';
+        return match (true) {
+            $scope === null => 'null',
+            is_scalar($scope) => 'scalar:'.(string) $scope,
+            is_array($scope) => 'array:'.hash('sha256', serialize($scope)),
+            is_object($scope) => 'object:'.spl_object_hash($scope),
+            default => 'unknown',
+        };
     }
 }
