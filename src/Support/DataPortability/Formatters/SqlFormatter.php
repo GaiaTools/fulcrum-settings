@@ -190,39 +190,43 @@ class SqlFormatter implements Formatter
     protected function insertStatement(string $table, array $data): string
     {
         $columns = array_keys($data);
-        $values = array_map(function ($value) {
-            if ($value === null) {
-                return 'NULL';
-            }
-            if (is_string($value) && str_starts_with($value, 'RAW:')) {
-                return substr($value, 4);
-            }
-            if (is_bool($value)) {
-                return $value ? '1' : '0';
-            }
-
-            $stringValue = $this->stringifyValue($value);
-
-            return "'".addslashes(str_replace('\\', '\\\\', $stringValue))."'";
-        }, array_values($data));
+        $values = array_map(
+            fn ($value): string => $this->formatSqlValue($value),
+            array_values($data)
+        );
 
         return "INSERT INTO `{$table}` (`".implode('`, `', $columns).'`) VALUES ('.implode(', ', $values).');';
     }
 
     protected function stringifyValue(mixed $value): string
     {
-        if (is_string($value)) {
-            return $value;
-        }
+        return match (true) {
+            is_string($value) => $value,
+            is_scalar($value) => (string) $value,
+            is_object($value) && method_exists($value, '__toString') => (string) $value,
+            default => $this->encodeJsonValue($value),
+        };
+    }
 
-        if (is_scalar($value)) {
-            return (string) $value;
-        }
+    protected function formatSqlValue(mixed $value): string
+    {
+        return match (true) {
+            $value === null => 'NULL',
+            is_string($value) && str_starts_with($value, 'RAW:') => substr($value, 4),
+            is_bool($value) => $value ? '1' : '0',
+            default => $this->quoteSqlValue($value),
+        };
+    }
 
-        if (is_object($value) && method_exists($value, '__toString')) {
-            return (string) $value;
-        }
+    protected function quoteSqlValue(mixed $value): string
+    {
+        $stringValue = $this->stringifyValue($value);
 
+        return "'".addslashes(str_replace('\\', '\\\\', $stringValue))."'";
+    }
+
+    protected function encodeJsonValue(mixed $value): string
+    {
         $encoded = json_encode($value);
 
         return $encoded === false ? '' : $encoded;

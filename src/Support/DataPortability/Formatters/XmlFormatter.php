@@ -21,25 +21,12 @@ class XmlFormatter implements Formatter
             return [];
         }
 
-        $encoded = json_encode($xml);
-        if ($encoded === false) {
+        $decoded = $this->decodeXmlToArray($xml);
+        if ($decoded === null) {
             return [];
         }
 
-        $decoded = json_decode($encoded, true);
-
-        if (! is_array($decoded)) {
-            return [];
-        }
-
-        $normalized = [];
-        foreach ($decoded as $row) {
-            if (is_array($row)) {
-                $normalized[] = $row;
-            }
-        }
-
-        return $normalized;
+        return $this->normalizeDecodedXml($decoded);
     }
 
     /**
@@ -62,18 +49,49 @@ class XmlFormatter implements Formatter
 
     protected function stringifyValue(mixed $value): string
     {
-        if (is_string($value)) {
-            return $value;
+        return match (true) {
+            is_string($value) => $value,
+            is_scalar($value) => (string) $value,
+            is_object($value) && method_exists($value, '__toString') => (string) $value,
+            default => $this->encodeJsonValue($value),
+        };
+    }
+
+    /**
+     * @return array<int, mixed>|null
+     */
+    protected function decodeXmlToArray(\SimpleXMLElement $xml): ?array
+    {
+        $decoded = null;
+        $encoded = json_encode($xml);
+
+        if ($encoded !== false) {
+            $value = json_decode($encoded, true);
+            $decoded = is_array($value) ? $value : null;
         }
 
-        if (is_scalar($value)) {
-            return (string) $value;
+        return $decoded;
+    }
+
+    /**
+     * @param  array<int, mixed>  $decoded
+     * @return array<int, mixed>
+     */
+    protected function normalizeDecodedXml(array $decoded): array
+    {
+        $normalized = [];
+
+        foreach ($decoded as $row) {
+            if (is_array($row)) {
+                $normalized[] = $row;
+            }
         }
 
-        if (is_object($value) && method_exists($value, '__toString')) {
-            return (string) $value;
-        }
+        return $normalized;
+    }
 
+    protected function encodeJsonValue(mixed $value): string
+    {
         $encoded = json_encode($value);
 
         return $encoded === false ? '' : $encoded;

@@ -86,28 +86,38 @@ class ImportManager
 
     protected function getContent(string $path): string
     {
-        if (str_ends_with($path, '.gz')) {
-            $content = @file_get_contents($path);
-            if ($content === false) {
-                // Try Storage
-                $content = Storage::disk('local')->get($path);
-            }
+        return match (true) {
+            str_ends_with($path, '.gz') => $this->readGzipContent($path),
+            default => $this->readPlainContent($path),
+        };
+    }
 
-            if (! is_string($content)) {
-                return '';
-            }
-
-            $decoded = @gzdecode($content);
-
-            return is_string($decoded) ? $decoded : '';
-        }
-
+    protected function readGzipContent(string $path): string
+    {
         $content = @file_get_contents($path);
+
         if ($content === false) {
-            return Storage::disk('local')->get($path) ?: '';
+            $content = Storage::disk('local')->get($path);
         }
 
-        return $content;
+        if (! is_string($content)) {
+            return '';
+        }
+
+        $decoded = @gzdecode($content);
+
+        return is_string($decoded) ? $decoded : '';
+    }
+
+    protected function readPlainContent(string $path): string
+    {
+        $content = @file_get_contents($path);
+
+        if ($content === false) {
+            $content = Storage::disk('local')->get($path);
+        }
+
+        return is_string($content) ? $content : '';
     }
 
     protected function truncateTables(): void

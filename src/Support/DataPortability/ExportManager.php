@@ -155,18 +155,28 @@ class ExportManager
 
     protected function transformValue(mixed $rawValue, Setting $setting, bool $decrypt, bool $anonymize): mixed
     {
-        if ($setting->masked && $decrypt) {
-            if (! is_string($rawValue)) {
-                return $rawValue;
-            }
-            try {
-                return Crypt::decryptString($rawValue);
-            } catch (\Throwable) {
-                return $rawValue;
-            }
+        if (! $setting->masked || ! $decrypt) {
+            return $rawValue;
         }
 
-        return $rawValue;
+        if (! is_string($rawValue)) {
+            return $rawValue;
+        }
+
+        return $this->tryDecryptString($rawValue) ?? $rawValue;
+    }
+
+    protected function tryDecryptString(string $value): ?string
+    {
+        $decrypted = null;
+
+        try {
+            $decrypted = Crypt::decryptString($value);
+        } catch (\Throwable) {
+            $decrypted = null;
+        }
+
+        return $decrypted;
     }
 
     protected function getExtension(Formatter $formatter): string
