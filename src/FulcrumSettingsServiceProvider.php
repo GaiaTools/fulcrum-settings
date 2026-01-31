@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 namespace GaiaTools\FulcrumSettings;
 
+use GaiaTools\FulcrumSettings\Console\Commands\ExportSettingsCommand;
+use GaiaTools\FulcrumSettings\Console\Commands\GetSettingCommand;
+use GaiaTools\FulcrumSettings\Console\Commands\ImportSettingsCommand;
+use GaiaTools\FulcrumSettings\Console\Commands\ListSettingsCommand;
+use GaiaTools\FulcrumSettings\Console\Commands\MakeSettingMigrationCommand;
+use GaiaTools\FulcrumSettings\Console\Commands\MigrateFromSpatieCommand;
+use GaiaTools\FulcrumSettings\Console\Commands\SetSettingCommand;
 use GaiaTools\FulcrumSettings\Contracts\BucketCalculator as BucketCalculatorContract;
 use GaiaTools\FulcrumSettings\Contracts\DistributionStrategy as DistributionStrategyContract;
 use GaiaTools\FulcrumSettings\Contracts\GeoResolver as GeoResolverContract;
@@ -22,17 +29,10 @@ use GaiaTools\FulcrumSettings\Services\SettingResolver;
 use GaiaTools\FulcrumSettings\Support\ConditionTypeRegistry;
 use GaiaTools\FulcrumSettings\Support\Registrars\SettingsDiscovery;
 use GaiaTools\FulcrumSettings\Support\TypeRegistry;
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\ServiceProvider;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
-use GaiaTools\FulcrumSettings\Console\Commands\ExportSettingsCommand;
-use GaiaTools\FulcrumSettings\Console\Commands\GetSettingCommand;
-use GaiaTools\FulcrumSettings\Console\Commands\ImportSettingsCommand;
-use GaiaTools\FulcrumSettings\Console\Commands\ListSettingsCommand;
-use GaiaTools\FulcrumSettings\Console\Commands\MakeSettingMigrationCommand;
-use GaiaTools\FulcrumSettings\Console\Commands\MigrateFromSpatieCommand;
-use GaiaTools\FulcrumSettings\Console\Commands\SetSettingCommand;
 
 class FulcrumSettingsServiceProvider extends ServiceProvider
 {
