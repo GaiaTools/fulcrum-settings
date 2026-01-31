@@ -32,20 +32,21 @@ class DefaultGeoResolver implements GeoResolver
      */
     protected function resolveIp(Request|string|array|null $input): ?string
     {
-        if (is_string($input)) {
-            return $input;
-        }
+        return match (true) {
+            is_string($input) => $input,
+            is_array($input) => $this->resolveIpFromArray($input),
+            $input instanceof Request => $input->ip(),
+            default => RequestFacade::ip(),
+        };
+    }
 
-        if (is_array($input)) {
-            $ip = $input['ip'] ?? null;
+    /**
+     * @param  array<int|string, mixed>  $input
+     */
+    protected function resolveIpFromArray(array $input): ?string
+    {
+        $candidate = $input['ip'] ?? null;
 
-            return is_string($ip) ? $ip : null;
-        }
-
-        if ($input instanceof Request) {
-            return $input->ip();
-        }
-
-        return RequestFacade::ip();
+        return is_string($candidate) ? $candidate : null;
     }
 }

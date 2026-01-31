@@ -38,10 +38,7 @@ class GeocodingConditionTypeHandler implements ConditionTypeHandler
 
         if ($this->geoData === null || $this->geoScopeKey !== $scopeKey) {
             $this->geoScopeKey = $scopeKey;
-            $input = null;
-            if (is_string($scope) || is_array($scope) || $scope instanceof Request) {
-                $input = $scope;
-            }
+            $input = $this->resolveGeoInput($scope);
             $this->geoData = $this->geoResolver->resolve($input);
         }
 
@@ -50,22 +47,23 @@ class GeocodingConditionTypeHandler implements ConditionTypeHandler
 
     protected function scopeKey(mixed $scope): string
     {
-        if ($scope === null) {
-            return 'null';
+        return match (true) {
+            $scope === null => 'null',
+            is_scalar($scope) => 'scalar:'.(string) $scope,
+            is_array($scope) => 'array:'.hash('sha256', serialize($scope)),
+            is_object($scope) => 'object:'.spl_object_hash($scope),
+            default => 'unknown',
+        };
+    }
+
+    protected function resolveGeoInput(mixed $scope): Request|string|array|null
+    {
+        $input = null;
+
+        if (is_string($scope) || is_array($scope) || $scope instanceof Request) {
+            $input = $scope;
         }
 
-        if (is_scalar($scope)) {
-            return 'scalar:'.(string) $scope;
-        }
-
-        if (is_array($scope)) {
-            return 'array:'.hash('sha256', serialize($scope));
-        }
-
-        if (is_object($scope)) {
-            return 'object:'.spl_object_hash($scope);
-        }
-
-        return 'unknown';
+        return $input;
     }
 }

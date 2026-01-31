@@ -68,27 +68,18 @@ class DefaultUserAgentResolver implements UserAgentResolver
     protected function detectBrowser(string $userAgent): ?string
     {
         $userAgent = strtolower($userAgent);
+        $rules = [
+            ['edg', 'Edge'],
+            ['opr', 'Opera'],
+            ['opera', 'Opera'],
+            ['chrome', 'Chrome'],
+            ['firefox', 'Firefox'],
+            ['safari', 'Safari'],
+            ['msie', 'IE'],
+            ['trident', 'IE'],
+        ];
 
-        if (str_contains($userAgent, 'edg')) {
-            return 'Edge';
-        }
-        if (str_contains($userAgent, 'opr') || str_contains($userAgent, 'opera')) {
-            return 'Opera';
-        }
-        if (str_contains($userAgent, 'chrome')) {
-            return 'Chrome';
-        }
-        if (str_contains($userAgent, 'firefox')) {
-            return 'Firefox';
-        }
-        if (str_contains($userAgent, 'safari')) {
-            return 'Safari';
-        }
-        if (str_contains($userAgent, 'msie') || str_contains($userAgent, 'trident')) {
-            return 'IE';
-        }
-
-        return 'Unknown';
+        return $this->matchFirstContains($userAgent, $rules, 'Unknown');
     }
 
     protected function detectBrowserVersion(string $userAgent): ?string
@@ -99,12 +90,12 @@ class DefaultUserAgentResolver implements UserAgentResolver
         }
 
         $patterns = [
-            'Chrome' => '/Chrome\/([0-9\.]+)/i',
-            'Firefox' => '/Firefox\/([0-9\.]+)/i',
-            'Safari' => '/Version\/([0-9\.]+)/i',
-            'Edge' => '/Edg\/([0-9\.]+)/i',
-            'Opera' => '/(Opera|OPR)\/([0-9\.]+)/i',
-            'IE' => '/(MSIE |rv:)([0-9\.]+)/i',
+            'Chrome' => '/Chrome\/([0-9.]+)/i',
+            'Firefox' => '/Firefox\/([0-9.]+)/i',
+            'Safari' => '/Version\/([0-9.]+)/i',
+            'Edge' => '/Edg\/([0-9.]+)/i',
+            'Opera' => '/(Opera|OPR)\/([0-9.]+)/i',
+            'IE' => '/(MSIE |rv:)([0-9.]+)/i',
         ];
 
         if (isset($patterns[$browser]) && preg_match($patterns[$browser], $userAgent, $matches)) {
@@ -117,62 +108,45 @@ class DefaultUserAgentResolver implements UserAgentResolver
     protected function detectOS(string $userAgent): ?string
     {
         $userAgent = strtolower($userAgent);
+        $rules = [
+            ['windows', 'Windows'],
+            ['android', 'Android'],
+            ['iphone', 'iOS'],
+            ['ipad', 'iOS'],
+            ['ipod', 'iOS'],
+            ['mac os', 'macOS'],
+            ['macintosh', 'macOS'],
+            ['linux', 'Linux'],
+        ];
 
-        if (str_contains($userAgent, 'windows')) {
-            return 'Windows';
-        }
-        if (str_contains($userAgent, 'android')) {
-            return 'Android';
-        }
-        if (str_contains($userAgent, 'iphone') || str_contains($userAgent, 'ipad') || str_contains($userAgent, 'ipod')) {
-            return 'iOS';
-        }
-        if (str_contains($userAgent, 'mac os') || str_contains($userAgent, 'macintosh')) {
-            return 'macOS';
-        }
-        if (str_contains($userAgent, 'linux')) {
-            return 'Linux';
-        }
-
-        return 'Unknown';
+        return $this->matchFirstContains($userAgent, $rules, 'Unknown');
     }
 
     protected function detectOSVersion(string $userAgent): ?string
     {
-        if (preg_match('/Windows NT ([0-9\.]+)/i', $userAgent, $matches)) {
-            return $matches[1];
-        }
-        if (preg_match('/Android ([0-9\.]+)/i', $userAgent, $matches)) {
-            return $matches[1];
-        }
-        if (preg_match('/OS ([0-9_]+)/i', $userAgent, $matches)) {
-            return str_replace('_', '.', $matches[1]);
-        }
-        if (preg_match('/Mac OS X ([0-9_]+)/i', $userAgent, $matches)) {
-            return str_replace('_', '.', $matches[1]);
-        }
+        $rules = [
+            ['/Windows NT ([0-9\.]+)/i', static fn (array $matches): string => $matches[1]],
+            ['/Android ([0-9\.]+)/i', static fn (array $matches): string => $matches[1]],
+            ['/OS ([0-9_]+)/i', static fn (array $matches): string => str_replace('_', '.', $matches[1])],
+            ['/Mac OS X ([0-9_]+)/i', static fn (array $matches): string => str_replace('_', '.', $matches[1])],
+        ];
 
-        return null;
+        return $this->matchFirstPattern($userAgent, $rules);
     }
 
     protected function detectDevice(string $userAgent): ?string
     {
-        if ($this->isTablet($userAgent)) {
-            return 'Tablet';
-        }
-        if ($this->isMobile($userAgent)) {
-            return 'Mobile';
-        }
-        if ($this->isBot($userAgent)) {
-            return 'Bot';
-        }
-
-        return 'Desktop';
+        return match (true) {
+            $this->isTablet($userAgent) => 'Tablet',
+            $this->isMobile($userAgent) => 'Mobile',
+            $this->isBot($userAgent) => 'Bot',
+            default => 'Desktop',
+        };
     }
 
     protected function isMobile(string $userAgent): bool
     {
-        return (bool) preg_match('/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i', $userAgent);
+        return (bool) preg_match('/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series([46])0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i', $userAgent);
     }
 
     protected function isTablet(string $userAgent): bool
@@ -188,6 +162,41 @@ class DefaultUserAgentResolver implements UserAgentResolver
     protected function isBot(string $userAgent): bool
     {
         return (bool) preg_match('/bot|googlebot|crawler|spider|robot|crawling/i', $userAgent);
+    }
+
+    /**
+     * @param  array<int, array{0: string, 1: string}>  $rules
+     */
+    protected function matchFirstContains(string $userAgent, array $rules, string $default): string
+    {
+        $result = $default;
+
+        foreach ($rules as [$needle, $label]) {
+            if (str_contains($userAgent, $needle)) {
+                $result = $label;
+                break;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param  array<int, array{0: string, 1: callable}>  $rules
+     */
+    protected function matchFirstPattern(string $userAgent, array $rules): ?string
+    {
+        $result = null;
+
+        foreach ($rules as [$pattern, $formatter]) {
+            $matches = [];
+            if (preg_match($pattern, $userAgent, $matches)) {
+                $result = $formatter($matches);
+                break;
+            }
+        }
+
+        return $result;
     }
 
     /**

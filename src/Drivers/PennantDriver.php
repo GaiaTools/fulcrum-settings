@@ -38,16 +38,7 @@ class PennantDriver implements DefinesFeaturesExternally, Driver
     public function defined(): array
     {
         return Setting::pluck('key')
-            ->map(static function ($key): string {
-                if (is_scalar($key)) {
-                    return (string) $key;
-                }
-                if (is_object($key) && method_exists($key, '__toString')) {
-                    return (string) $key;
-                }
-
-                return '';
-            })
+            ->map(fn ($key): string => $this->stringifyKey($key))
             ->values()
             ->all();
     }
@@ -150,44 +141,12 @@ class PennantDriver implements DefinesFeaturesExternally, Driver
      */
     protected function buildContext(mixed $scope): ?array
     {
-        if ($scope === null) {
-            return null;
-        }
-
-        if (is_array($scope)) {
-            return $scope;
-        }
-
-        if (is_object($scope)) {
-            // Convert object to array for rule evaluation
-            $context = [];
-
-            // If it's a user, add common user properties
-            if ($scope instanceof Authenticatable) {
-                $context['id'] = $scope->getAuthIdentifier();
-                if ($scope instanceof \Illuminate\Contracts\Auth\CanResetPassword) {
-                    $context['email'] = $scope->getEmailForPasswordReset();
-                } elseif (isset($scope->email)) {
-                    $context['email'] = $scope->email;
-                } elseif (isset($scope->attributes['email'])) {
-                    $context['email'] = $scope->attributes['email'];
-                }
-            }
-
-            // If it's an Eloquent model, use its attributes
-            if (method_exists($scope, 'getAttributes')) {
-                $context = array_merge($scope->getAttributes(), $context);
-            } elseif (method_exists($scope, 'toArray')) {
-                $context = array_merge($scope->toArray(), $context);
-            } else {
-                $context = array_merge((array) $scope, $context);
-            }
-
-            return $context;
-        }
-
-        // Scalar scope - wrap in array
-        return ['scope' => $scope];
+        return match (true) {
+            $scope === null => null,
+            is_array($scope) => $scope,
+            is_object($scope) => $this->buildContextFromObject($scope),
+            default => ['scope' => $scope],
+        };
     }
 
     /**
@@ -209,6 +168,76 @@ class PennantDriver implements DefinesFeaturesExternally, Driver
         }
 
         return null;
+    }
+
+    protected function stringifyKey(mixed $key): string
+    {
+        return match (true) {
+            is_scalar($key) => (string) $key,
+            is_object($key) && method_exists($key, '__toString') => (string) $key,
+            default => '',
+        };
+    }
+
+    /**
+     * @return array<int|string, mixed>
+     */
+    protected function buildContextFromObject(object $scope): array
+    {
+        $context = [];
+        $context = array_merge($this->extractUserContext($scope), $context);
+        $context = array_merge($this->extractObjectAttributes($scope), $context);
+
+        return $context;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function extractUserContext(object $scope): array
+    {
+        if (! $scope instanceof Authenticatable) {
+            return [];
+        }
+
+        $context = ['id' => $scope->getAuthIdentifier()];
+        $email = $this->resolveUserEmail($scope);
+
+        if ($email !== null) {
+            $context['email'] = $email;
+        }
+
+        return $context;
+    }
+
+    protected function resolveUserEmail(object $scope): ?string
+    {
+        $email = match (true) {
+            $scope instanceof \Illuminate\Contracts\Auth\CanResetPassword => $scope->getEmailForPasswordReset(),
+            isset($scope->email) => $scope->email,
+            isset($scope->attributes['email']) => $scope->attributes['email'],
+            default => null,
+        };
+
+        return is_string($email) ? $email : null;
+    }
+
+    /**
+     * @return array<int|string, mixed>
+     */
+    protected function extractObjectAttributes(object $scope): array
+    {
+        $attributes = [];
+
+        if (method_exists($scope, 'getAttributes')) {
+            $attributes = $scope->getAttributes();
+        } elseif (method_exists($scope, 'toArray')) {
+            $attributes = $scope->toArray();
+        } else {
+            $attributes = (array) $scope;
+        }
+
+        return $attributes;
     }
 
     public function definedFeaturesForScope(mixed $scope): array

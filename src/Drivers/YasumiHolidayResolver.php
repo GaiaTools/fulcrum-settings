@@ -18,20 +18,14 @@ class YasumiHolidayResolver implements HolidayResolver
 
         $regionCode = $this->resolveRegion($region);
         $provider = $this->resolveProvider($regionCode);
-        $localeConfig = config('fulcrum.holidays.locale', 'en_US');
-        $locale = is_string($localeConfig) ? $localeConfig : 'en_US';
-
         if ($provider === null) {
             return false;
         }
 
-        try {
-            $holidayProvider = Yasumi::create($provider, (int) $date->format('Y'), $locale);
-        } catch (\Throwable) {
-            return false;
-        }
+        $locale = $this->resolveLocale();
+        $holidayProvider = $this->createHolidayProvider($provider, $date, $locale);
 
-        return $holidayProvider->isHoliday($date);
+        return $holidayProvider ? $holidayProvider->isHoliday($date) : false;
     }
 
     /**
@@ -39,19 +33,11 @@ class YasumiHolidayResolver implements HolidayResolver
      */
     protected function resolveRegion(string|array|null $region): ?string
     {
-        if (is_array($region)) {
-            $first = $region[0] ?? null;
-
-            return is_string($first) ? $first : null;
-        }
-
-        if (is_string($region)) {
-            return $region;
-        }
-
-        $defaultRegion = config('fulcrum.holidays.default_region');
-
-        return is_string($defaultRegion) ? $defaultRegion : null;
+        return match (true) {
+            is_array($region) => $this->resolveRegionFromArray($region),
+            is_string($region) => $region,
+            default => $this->resolveDefaultRegion(),
+        };
     }
 
     protected function resolveProvider(?string $region): ?string
@@ -63,10 +49,43 @@ class YasumiHolidayResolver implements HolidayResolver
         $regionKey = strtoupper($region);
         $mapped = config("fulcrum.holidays.providers.{$regionKey}");
 
-        if (is_string($mapped) && $mapped !== '') {
-            return $mapped;
+        return is_string($mapped) && $mapped !== '' ? $mapped : $region;
+    }
+
+    protected function resolveLocale(): string
+    {
+        $localeConfig = config('fulcrum.holidays.locale', 'en_US');
+
+        return is_string($localeConfig) ? $localeConfig : 'en_US';
+    }
+
+    /**
+     * @param  array<int|string, string>  $region
+     */
+    protected function resolveRegionFromArray(array $region): ?string
+    {
+        $first = $region[0] ?? null;
+
+        return is_string($first) ? $first : null;
+    }
+
+    protected function resolveDefaultRegion(): ?string
+    {
+        $defaultRegion = config('fulcrum.holidays.default_region');
+
+        return is_string($defaultRegion) ? $defaultRegion : null;
+    }
+
+    protected function createHolidayProvider(string $provider, Carbon $date, string $locale): ?object
+    {
+        $instance = null;
+
+        try {
+            $instance = Yasumi::create($provider, (int) $date->format('Y'), $locale);
+        } catch (\Throwable) {
+            $instance = null;
         }
 
-        return $region;
+        return $instance;
     }
 }
