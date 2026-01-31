@@ -79,7 +79,11 @@ class XmlFormatter implements Formatter
      */
     protected function normalizeDecodedXml(array $decoded): array
     {
-        $rows = $decoded['setting'] ?? $decoded;
+        if (isset($decoded['settings']) && is_array($decoded['settings'])) {
+            $decoded = $decoded['settings'];
+        }
+
+        $rows = $decoded['setting'] ?? $decoded['item'] ?? $decoded;
 
         if (! is_array($rows)) {
             return [];
