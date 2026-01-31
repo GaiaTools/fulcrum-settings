@@ -55,12 +55,17 @@ class SettingValue extends Model
     public function value(): Attribute
     {
         return Attribute::make(
-            get: [$this, 'getValueAttribute'],
-            set: [$this, 'setValueAttribute']
+            get: fn (mixed $value) => $this->getValueFromAttribute($value),
+            set: fn (mixed $value, array $attributes) => $this->setValueFromAttribute($value, $attributes)
         );
     }
 
-    protected function getValueAttribute(mixed $value): mixed
+    protected function setValueAttribute(mixed $value): void
+    {
+        $this->attributes['value'] = $this->setValueFromAttribute($value, $this->attributes);
+    }
+
+    protected function getValueFromAttribute(mixed $value): mixed
     {
         if ($value === null) {
             return null;
@@ -75,7 +80,7 @@ class SettingValue extends Model
     /**
      * @param  array<string, mixed>  $attributes
      */
-    protected function setValueAttribute(mixed $value, array $attributes): mixed
+    protected function setValueFromAttribute(mixed $value, array $attributes): mixed
     {
         if ($value === null) {
             return null;
