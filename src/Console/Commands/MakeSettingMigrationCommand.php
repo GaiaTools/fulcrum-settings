@@ -79,6 +79,12 @@ class MakeSettingMigrationCommand extends Command
     {
         $path = $this->getStringOption('path');
         if ($path !== null && $path !== '') {
+            if ($path === 'storage' || str_starts_with($path, 'storage/')) {
+                $relative = $path === 'storage' ? '' : substr($path, strlen('storage/'));
+
+                return $this->laravel->storagePath($relative);
+            }
+
             return $this->laravel->basePath($path);
         }
 
