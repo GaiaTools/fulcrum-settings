@@ -8,6 +8,7 @@ use GaiaTools\FulcrumSettings\Contracts\RuleEvaluator;
 use GaiaTools\FulcrumSettings\Contracts\SegmentDriver;
 use GaiaTools\FulcrumSettings\Contracts\SettingResolver;
 use GaiaTools\FulcrumSettings\FulcrumSettingsServiceProvider;
+use GaiaTools\FulcrumSettings\Providers\FulcrumSettingsBootServiceProvider;
 use GaiaTools\FulcrumSettings\Support\ConditionTypeRegistry;
 use GaiaTools\FulcrumSettings\Support\Settings\FulcrumSettings;
 use GaiaTools\FulcrumSettings\Support\TypeRegistry;
@@ -189,21 +190,21 @@ class NoNamespaceSettings {}
 
     public function test_boot_publishes_config_enums_and_migrations()
     {
-        $provider = new FulcrumSettingsServiceProvider($this->app);
+        $provider = new FulcrumSettingsBootServiceProvider($this->app);
         $provider->boot();
 
-        $publishes = FulcrumSettingsServiceProvider::$publishes[FulcrumSettingsServiceProvider::class] ?? [];
+        $publishes = FulcrumSettingsBootServiceProvider::$publishes[FulcrumSettingsBootServiceProvider::class] ?? [];
 
         $this->assertNotEmpty($publishes);
 
-        $tags = FulcrumSettingsServiceProvider::$publishGroups;
+        $tags = FulcrumSettingsBootServiceProvider::$publishGroups;
         $this->assertArrayHasKey('config', $tags);
         $this->assertArrayHasKey('migrations', $tags);
     }
 
     public function test_it_detects_published_migrations()
     {
-        $provider = new FulcrumSettingsServiceProvider($this->app);
+        $provider = new FulcrumSettingsBootServiceProvider($this->app);
         $reflection = new ReflectionClass($provider);
         $method = $reflection->getMethod('areMigrationsPublished');
         $method->setAccessible(true);
@@ -234,7 +235,7 @@ class NoNamespaceSettings {}
         $app = $this->createMock(\Illuminate\Contracts\Foundation\Application::class);
         $app->method('runningInConsole')->willReturn(false);
 
-        $provider = new FulcrumSettingsServiceProvider($app);
+        $provider = new FulcrumSettingsBootServiceProvider($app);
         $provider->boot();
 
         $this->assertTrue(true);
@@ -244,7 +245,7 @@ class NoNamespaceSettings {}
     {
         Config::set('fulcrum.multi_tenancy.enabled', false);
 
-        $provider = new FulcrumSettingsServiceProvider($this->app);
+        $provider = new FulcrumSettingsBootServiceProvider($this->app);
         $reflection = new ReflectionClass($provider);
         $method = $reflection->getMethod('getPackageMigrationFiles');
         $method->setAccessible(true);
@@ -260,7 +261,7 @@ class NoNamespaceSettings {}
     {
         Config::set('fulcrum.multi_tenancy.enabled', true);
 
-        $provider = new FulcrumSettingsServiceProvider($this->app);
+        $provider = new FulcrumSettingsBootServiceProvider($this->app);
         $reflection = new ReflectionClass($provider);
         $method = $reflection->getMethod('getPackageMigrationFiles');
         $method->setAccessible(true);
@@ -280,16 +281,14 @@ class NoNamespaceSettings {}
 
     public function test_get_application_migration_paths_with_wildcards()
     {
-        $tempPath = storage_path('framework/testing/modules');
-        if (! is_dir($tempPath)) {
-            mkdir($tempPath, 0777, true);
-        }
+        $tempPath = storage_path('framework/testing/modules_'.uniqid());
+        mkdir($tempPath, 0777, true);
         $moduleAPath = $tempPath.'/ModuleA/Database/Migrations';
         mkdir($moduleAPath, 0777, true);
 
         Config::set('fulcrum.migrations.paths', [$tempPath.'/*/Database/Migrations']);
 
-        $provider = new FulcrumSettingsServiceProvider($this->app);
+        $provider = new FulcrumSettingsBootServiceProvider($this->app);
         $reflection = new ReflectionClass($provider);
         $method = $reflection->getMethod('getApplicationMigrationPaths');
         $method->setAccessible(true);
@@ -306,7 +305,7 @@ class NoNamespaceSettings {}
 
     public function test_migration_exists_in_path_returns_false_if_not_directory()
     {
-        $provider = new FulcrumSettingsServiceProvider($this->app);
+        $provider = new FulcrumSettingsBootServiceProvider($this->app);
         $reflection = new ReflectionClass($provider);
         $method = $reflection->getMethod('migrationExistsInPath');
         $method->setAccessible(true);
@@ -346,7 +345,7 @@ class NoNamespaceSettings {}
     public function test_are_migrations_published_returns_false_if_no_package_migrations()
     {
         // To test this we need to mock getPackageMigrationsPath to return a non-existent directory
-        $provider = $this->getMockBuilder(FulcrumSettingsServiceProvider::class)
+        $provider = $this->getMockBuilder(FulcrumSettingsBootServiceProvider::class)
             ->setConstructorArgs([$this->app])
             ->onlyMethods(['getPackageMigrationsPath'])
             ->getMock();
@@ -364,7 +363,7 @@ class NoNamespaceSettings {}
     {
         // Mock areMigrationsPublished to return false
         // Mock getPackageMigrationFiles to return a list of migrations
-        $provider = $this->getMockBuilder(FulcrumSettingsServiceProvider::class)
+        $provider = $this->getMockBuilder(FulcrumSettingsBootServiceProvider::class)
             ->setConstructorArgs([$this->app])
             ->onlyMethods(['areMigrationsPublished', 'getPackageMigrationFiles', 'loadMigrationsFrom'])
             ->getMock();
