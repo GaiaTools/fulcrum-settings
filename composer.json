@@ -1,5 +1,5 @@
 {
-    "name": "gaiatools/laravel-fulcrum-settings",
+    "name": "gaiatools/fulcrum-settings",
     "description": "Advanced feature flags and configuration management system for Laravel with rule-based targeting",
     "keywords": [
         "laravel",
@@ -17,34 +17,38 @@
       }
     ],
     "require": {
-        "php": "^8.2|^8.3|^8.4",
+        "php": "^8.3|^8.4",
+        "azuyalabs/yasumi": "^2.10",
+        "dragonmantank/cron-expression": "^3.6",
         "illuminate/contracts": "^11.0|^12.0",
         "illuminate/database": "^11.0|^12.0",
         "illuminate/support": "^11.0|^12.0"
     },
     "require-dev": {
-      "larastan/larastan": "^3.8",
-      "laravel/pennant": "^1.18",
-      "laravel/pint": "^1.26",
-      "orchestra/testbench": "^10.8",
-      "pestphp/pest": "^4.1",
-      "pestphp/pest-plugin-laravel": "^4.0",
-      "phpstan/phpstan": "^2.1"
+        "larastan/larastan": "^3.8",
+        "laravel/pennant": "^1.18",
+        "laravel/pint": "^1.26",
+        "laravel/telescope": "^5.16",
+        "orchestra/testbench": "^10.8",
+        "pestphp/pest": "^4.1",
+        "pestphp/pest-plugin-laravel": "^4.0",
+        "phpstan/phpstan": "^2.1",
+        "spatie/laravel-permission": "^6.24"
     },
     "autoload": {
         "psr-4": {
-            "GaiaTools\\LaravelFulcrum\\": "src/"
+            "GaiaTools\\FulcrumSettings\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "GaiaTools\\LaravelFulcrum\\Tests\\": "tests/"
+            "GaiaTools\\FulcrumSettings\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "GaiaTools\\LaravelFulcrum\\LaravelFulcrumServiceProvider"
+                "GaiaTools\\FulcrumSettings\\FulcrumSettingsServiceProvider"
             ]
         }
     },
@@ -59,8 +63,10 @@
     "prefer-stable": true,
     "scripts": {
         "test": "vendor/bin/pest",
-        "test-coverage": "vendor/bin/pest --coverage --min=100",
-        "analyse": "vendor/bin/phpstan analyse",
+        "test-coverage": "XDEBUG_MODE=coverage vendor/bin/pest --parallel --coverage-html coverage --coverage-text --min=100",
+        "analyze": "vendor/bin/phpstan analyse",
+        "phpstan": "php -d memory_limit=1G vendor/bin/phpstan analyse",
+        "lint": "vendor/bin/pint --parallel --test",
         "format": "vendor/bin/pint",
         "format-test": "vendor/bin/pint --test"
     }

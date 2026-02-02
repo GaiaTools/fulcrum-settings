@@ -17,12 +17,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        php: ['8.2', '8.3', '8.4']
+        php: ['8.3', '8.4', '8.5']
         stability: ["--prefer-lowest", "--prefer-stable"]
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -38,7 +38,7 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-${{ matrix.php }}-${{ matrix.stability }}-composer-${{ hashFiles('**/composer.json') }}
@@ -79,7 +79,7 @@ jobs:
     name: SonarQube Analysis
     runs-on: ubuntu-latest
     needs: tests
-    if: github.actor != 'dependabot[bot]'
+    if: github.actor != 'dependabot[bot]' && vars.SONARQUBE_ENABLED != 'false'
 
     steps:
       - name: Checkout
