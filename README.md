@@ -2,7 +2,24 @@
 
 A powerful feature flag and configuration management system for Laravel with rule-based targeting and conditional evaluation.
 
-[![Laravel Horizon Compatible](https://img.shields.io/badge/Laravel%20Horizon-Compatible-brightgreen.svg)](docs/integrations/horizon)
+[![Release][release-shield]][release-url]
+[![Quality Gate][quality-gate-shield]][sonar-url]
+[![License][license-shield]][license-url]
+[![Downloads][downloads-shield]][packagist-url]
+![Coverage][coverage-shield]
+
+<!-- Badge URLs -->
+[release-shield]: https://img.shields.io/github/v/release/GaiaTools/fulcrum-settings?sort=semver&color=blue
+[quality-gate-shield]: https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fsonar.r2websolutions.com%2Fapi%2Fmeasures%2Fcomponent%3Fcomponent%3DGaiaTools_fulcrum-settings_62fe7b2a-26b4-4595-a6eb-d3ae8932b6d1%26metricKeys%3Dalert_status&query=$.component.measures[0].value&label=Quality%20Gate&labelColor=black&color=%23009900
+[license-shield]: https://img.shields.io/packagist/l/GaiaTools/fulcrum-settings?label=License&labelColor=black&color=%23009900
+[downloads-shield]: https://img.shields.io/packagist/dt/GaiaTools/fulcrum-settings.svg?label=Downloads&labelColor=black&color=%23009900
+[coverage-shield]: https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fsonar.r2websolutions.com%2Fapi%2Fmeasures%2Fcomponent%3Fcomponent%3DGaiaTools_fulcrum-settings_62fe7b2a-26b4-4595-a6eb-d3ae8932b6d1%26metricKeys%3Dcoverage&query=$.component.measures[0].value&suffix=%25&label=Coverage&labelColor=black
+
+<!-- Link URLs -->
+[release-url]: https://github.com/GaiaTools/fulcrum-settings/releases
+[sonar-url]: https://sonar.r2websolutions.com/dashboard?id=GaiaTools_fulcrum-settings_62fe7b2a-26b4-4595-a6eb-d3ae8932b6d1
+[license-url]: https://github.com/GaiaTools/fulcrum-settings/blob/main/LICENSE
+[packagist-url]: https://packagist.org/packages/GaiaTools/fulcrum-settings
 
 ## Documentation
 
