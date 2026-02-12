@@ -100,6 +100,20 @@ $settings
     ->map(fn ($value) => $value);
 ```
 
+## Loading and Reloading
+
+Use `load()` to hydrate lazy settings (or specific keys) and `reload()` to force re-hydration from the resolver. `onlyLoaded()` returns the settings already hydrated without triggering lazy loads.
+
+```php
+$settings->load(); // hydrate all lazy settings
+$settings->load(['general.site_name']); // hydrate specific lazy keys
+
+$settings->reload(); // re-hydrate all settings
+$settings->reload(['general.site_name']); // re-hydrate specific keys
+
+$settings->onlyLoaded(); // only already-hydrated settings
+```
+
 ## Lazy, Read-Only, Tenant-Scoped
 
 Use attribute flags for lazy loading, read-only properties, and tenant-specific resolution.
