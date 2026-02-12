@@ -146,7 +146,7 @@ class SettingResolver implements SettingResolverContract
         $tenantId = $this->resolveTenantId();
 
         $query = Setting::withoutGlobalScope(TenantScope::class)
-            ->where('key', 'like', $normalized.'.%');
+            ->where('group', $normalized);
 
         if ($this->isMultiTenancyEnabled()) {
             if ($tenantId !== null) {

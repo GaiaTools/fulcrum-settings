@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Gate;
 /**
  * @property int $id
  * @property string $key
+ * @property string|null $group
  * @property SettingType $type
  * @property string|null $description
  * @property bool $masked
@@ -32,6 +33,7 @@ class Setting extends Model
 
     protected $fillable = [
         'key',
+        'group',
         'tenant_id',
         'type',
         'description',
@@ -87,6 +89,14 @@ class Setting extends Model
     {
         static::addGlobalScope(new TenantScope);
 
+        static::saving(function (self $model) {
+            if (! $model->isDirty('key') && $model->group !== null) {
+                return;
+            }
+
+            $model->group = self::deriveGroup($model->key);
+        });
+
         // Prevent updates if immutable (unless forced)
         static::updating(function (self $model) {
             if ($model->immutable && ! FulcrumContext::shouldForce()) {
@@ -108,5 +118,18 @@ class Setting extends Model
 
             throw new ImmutableSettingException('Setting is immutable. Deletion is not allowed.');
         });
+    }
+
+    private static function deriveGroup(string $key): ?string
+    {
+        $position = strrpos($key, '.');
+
+        if ($position === false) {
+            return null;
+        }
+
+        $group = substr($key, 0, $position);
+
+        return $group !== '' ? $group : null;
     }
 }

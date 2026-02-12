@@ -16,6 +16,7 @@ describe('Setting Model', function () {
         ]);
 
         expect($setting->key)->toBe('test-setting');
+        expect($setting->group)->toBeNull();
         expect($setting->type)->toBe(SettingType::BOOLEAN);
         expect($setting->description)->toBe('A test setting');
     });
@@ -28,6 +29,15 @@ describe('Setting Model', function () {
 
         expect($setting->type)->toBeInstanceOf(SettingType::class);
         expect($setting->type)->toBe(SettingType::STRING);
+    });
+
+    it('derives group from key', function () {
+        $setting = Setting::create([
+            'key' => 'services.someService.access_token',
+            'type' => SettingType::STRING,
+        ]);
+
+        expect($setting->group)->toBe('services.someService');
     });
 
     it('has many rules', function () {
