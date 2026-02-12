@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace GaiaTools\FulcrumSettings\Support\Settings;
 
+use BadMethodCallException;
 use GaiaTools\FulcrumSettings\Attributes\SettingProperty;
 use GaiaTools\FulcrumSettings\Contracts\SettingResolver;
 use GaiaTools\FulcrumSettings\Events\LoadingSettings;
@@ -15,8 +16,10 @@ use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Collection;
 use JsonSerializable;
-use BadMethodCallException;
 
+/**
+ * @implements Arrayable<string, mixed>
+ */
 abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
 {
     /** @var array<string, SettingProperty> */
@@ -174,6 +177,9 @@ abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
         return $values;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function jsonSerialize(): array
     {
         return $this->toArray();
@@ -184,6 +190,9 @@ abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
         return json_encode($this->jsonSerialize(), $options | JSON_THROW_ON_ERROR);
     }
 
+    /**
+     * @return Collection<string, mixed>
+     */
     public function toCollection(): Collection
     {
         return collect($this->toArray());
@@ -274,6 +283,9 @@ abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
         return $this->{$name} ?? null;
     }
 
+    /**
+     * @param  array<int, mixed>  $arguments
+     */
     public function __call(string $name, array $arguments): mixed
     {
         $collection = $this->toCollection();
@@ -372,7 +384,9 @@ abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
 
         $properties = [];
         foreach ($keys as $key) {
-            $property = $this->propertyConfigs[$key] ?? $byKey[$key] ?? null;
+            $property = array_key_exists($key, $this->propertyConfigs)
+                ? $key
+                : ($byKey[$key] ?? null);
 
             if (! $property) {
                 continue;
