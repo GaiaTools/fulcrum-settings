@@ -186,3 +186,46 @@ test('it sets timezone in container during lazy loading', function () {
     expect($settings->lazyProp)->toBe('LazyWithTimezone');
     expect(app()->bound('fulcrum.context.timezone'))->toBeFalse();
 });
+
+test('toArray and toJson serialize settings using setting keys and hydrate lazy properties', function () {
+    $this->hydrator->shouldReceive('hydrate')
+        ->with(Mockery::any(), 'name', $this->configs['name'], Mockery::any(), Mockery::any())
+        ->andReturn('Fulcrum');
+    $this->hydrator->shouldReceive('hydrate')
+        ->with(Mockery::any(), 'tenantProp', $this->configs['tenantProp'], Mockery::any(), Mockery::any())
+        ->andReturn('TenantValue');
+    $this->hydrator->shouldReceive('hydrate')
+        ->with(Mockery::any(), 'readOnlyProp', $this->configs['readOnlyProp'], Mockery::any(), Mockery::any())
+        ->andReturn('InitialValue');
+
+    $settings = new TestSettings($this->resolver, $this->discoverer, $this->hydrator, $this->persister);
+
+    $this->hydrator->shouldReceive('hydrate')
+        ->with($settings, 'lazyProp', $this->configs['lazyProp'], Mockery::any(), Mockery::any())
+        ->once()
+        ->andReturn('LazyValue');
+
+    $expected = [
+        'test.name' => 'Fulcrum',
+        'test.lazy' => 'LazyValue',
+        'test.readonly' => 'InitialValue',
+        'test.tenant' => 'TenantValue',
+    ];
+
+    expect($settings->toArray())->toBe($expected);
+    expect(json_decode($settings->toJson(), true))->toBe($expected);
+});
+
+test('collection methods are proxied through settings instances', function () {
+    $this->hydrator->shouldReceive('hydrate')->byDefault()->andReturn('value');
+    $settings = new TestSettings($this->resolver, $this->discoverer, $this->hydrator, $this->persister);
+
+    $keys = $settings
+        ->filter(fn ($value) => $value !== null)
+        ->keys()
+        ->all();
+
+    expect($keys)->toContain('test.name');
+    expect($keys)->toContain('test.readonly');
+    expect($keys)->toContain('test.tenant');
+});
