@@ -229,3 +229,77 @@ test('collection methods are proxied through settings instances', function () {
     expect($keys)->toContain('test.readonly');
     expect($keys)->toContain('test.tenant');
 });
+
+test('load hydrates lazy properties without rehydrating non-lazy values', function () {
+    $this->hydrator->shouldReceive('hydrate')
+        ->with(Mockery::any(), 'name', $this->configs['name'], Mockery::any(), Mockery::any())
+        ->andReturn('Fulcrum');
+    $this->hydrator->shouldReceive('hydrate')
+        ->with(Mockery::any(), 'tenantProp', $this->configs['tenantProp'], Mockery::any(), Mockery::any())
+        ->andReturn('TenantValue');
+    $this->hydrator->shouldReceive('hydrate')
+        ->with(Mockery::any(), 'readOnlyProp', $this->configs['readOnlyProp'], Mockery::any(), Mockery::any())
+        ->andReturn('InitialValue');
+
+    $settings = new TestSettings($this->resolver, $this->discoverer, $this->hydrator, $this->persister);
+
+    $this->hydrator->shouldReceive('hydrate')
+        ->with($settings, 'lazyProp', $this->configs['lazyProp'], Mockery::any(), Mockery::any())
+        ->once()
+        ->andReturn('LazyValue');
+
+    $settings->load();
+
+    expect($settings->lazyProp)->toBe('LazyValue');
+});
+
+test('reload rehydrates selected settings and clears dirty state', function () {
+    $this->hydrator->shouldReceive('hydrate')->byDefault()->andReturn('value');
+    $settings = new TestSettings($this->resolver, $this->discoverer, $this->hydrator, $this->persister);
+
+    $settings->name = 'Dirty Name';
+    expect($settings->isDirty('name'))->toBeTrue();
+
+    $this->hydrator->shouldReceive('hydrate')
+        ->with($settings, 'name', $this->configs['name'], Mockery::any(), Mockery::any())
+        ->once()
+        ->andReturn('Reloaded Name');
+
+    $settings->reload(['test.name']);
+
+    expect($settings->name)->toBe('Reloaded Name');
+    expect($settings->isDirty('name'))->toBeFalse();
+});
+
+test('onlyLoaded returns hydrated settings without loading lazy properties', function () {
+    $this->hydrator->shouldReceive('hydrate')
+        ->with(Mockery::any(), 'name', $this->configs['name'], Mockery::any(), Mockery::any())
+        ->andReturn('Fulcrum');
+    $this->hydrator->shouldReceive('hydrate')
+        ->with(Mockery::any(), 'tenantProp', $this->configs['tenantProp'], Mockery::any(), Mockery::any())
+        ->andReturn('TenantValue');
+    $this->hydrator->shouldReceive('hydrate')
+        ->with(Mockery::any(), 'readOnlyProp', $this->configs['readOnlyProp'], Mockery::any(), Mockery::any())
+        ->andReturn('InitialValue');
+    $this->hydrator->shouldNotReceive('hydrate')
+        ->with(Mockery::any(), 'lazyProp', Mockery::any(), Mockery::any(), Mockery::any());
+
+    $settings = new TestSettings($this->resolver, $this->discoverer, $this->hydrator, $this->persister);
+
+    $loaded = $settings->onlyLoaded();
+
+    expect($loaded)->toHaveKey('test.name');
+    expect($loaded)->toHaveKey('test.readonly');
+    expect($loaded)->toHaveKey('test.tenant');
+    expect($loaded)->not->toHaveKey('test.lazy');
+
+    $this->hydrator->shouldReceive('hydrate')
+        ->with($settings, 'lazyProp', $this->configs['lazyProp'], Mockery::any(), Mockery::any())
+        ->once()
+        ->andReturn('LazyValue');
+
+    expect($settings->lazyProp)->toBe('LazyValue');
+
+    $loaded = $settings->onlyLoaded();
+    expect($loaded)->toHaveKey('test.lazy');
+});
