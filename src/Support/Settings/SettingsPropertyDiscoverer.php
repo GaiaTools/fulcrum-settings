@@ -35,6 +35,9 @@ class SettingsPropertyDiscoverer
         return $configs;
     }
 
+    /**
+     * @param  ReflectionClass<object>  $reflection
+     */
     private function resolveGroup(ReflectionClass $reflection): ?string
     {
         $attributes = $reflection->getAttributes(SettingGroup::class);
