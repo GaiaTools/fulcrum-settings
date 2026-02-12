@@ -43,10 +43,10 @@ abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
         protected SettingsPersister $persister
     ) {
         $this->propertyConfigs = $this->discoverer->discover(static::class);
-        $this->load();
+        $this->bootLoad();
     }
 
-    protected function load(): void
+    protected function bootLoad(): void
     {
         event(new LoadingSettings);
 
@@ -123,7 +123,7 @@ abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
         $this->dirty = [];
         event(new SettingsSaved($data));
 
-        $this->load();
+        $this->bootLoad();
     }
 
     /**
@@ -187,6 +187,78 @@ abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
     public function toCollection(): Collection
     {
         return collect($this->toArray());
+    }
+
+    /**
+     * Hydrate lazy settings by key.
+     *
+     * @param  array<int, string>|null  $keys
+     */
+    public function load(?array $keys = null): static
+    {
+        $properties = $this->resolvePropertiesForKeys($keys, true);
+
+        if (empty($properties)) {
+            return $this;
+        }
+
+        $this->runWithTimezone(function () use ($properties) {
+            foreach ($properties as $property => $config) {
+                $this->hydrateProperty($property, $config);
+                if (! in_array($property, $this->lazyLoaded, true)) {
+                    $this->lazyLoaded[] = $property;
+                }
+            }
+        });
+
+        return $this;
+    }
+
+    /**
+     * Force re-hydration of settings by key.
+     *
+     * @param  array<int, string>|null  $keys
+     */
+    public function reload(?array $keys = null): static
+    {
+        $properties = $this->resolvePropertiesForKeys($keys, false);
+
+        if (empty($properties)) {
+            return $this;
+        }
+
+        $this->runWithTimezone(function () use ($properties) {
+            foreach ($properties as $property => $config) {
+                $this->hydrateProperty($property, $config);
+                if ($config->lazy && ! in_array($property, $this->lazyLoaded, true)) {
+                    $this->lazyLoaded[] = $property;
+                }
+            }
+        });
+
+        $this->clearDirtyFor(array_keys($properties));
+
+        return $this;
+    }
+
+    /**
+     * Return only settings already hydrated without triggering lazy loads.
+     *
+     * @return array<string, mixed>
+     */
+    public function onlyLoaded(): array
+    {
+        $values = [];
+
+        foreach ($this->propertyConfigs as $property => $config) {
+            if ($config->lazy && ! in_array($property, $this->lazyLoaded, true)) {
+                continue;
+            }
+
+            $values[$config->key] = $this->{$property};
+        }
+
+        return $values;
     }
 
     public function __get(string $name): mixed
@@ -261,7 +333,7 @@ abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
         $clone->timezone = $timezone ?? $this->timezone;
         $clone->dirty = [];
         $clone->lazyLoaded = [];
-        $clone->load();
+        $clone->bootLoad();
 
         return $clone;
     }
@@ -270,7 +342,7 @@ abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
     {
         $this->dirty = [];
         $this->lazyLoaded = [];
-        $this->load();
+        $this->bootLoad();
     }
 
     public function isDirty(?string $property = null): bool
@@ -280,23 +352,82 @@ abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
             : in_array($property, $this->dirty, true);
     }
 
+    /**
+     * @param  array<int, string>|null  $keys
+     * @return array<string, SettingProperty>
+     */
+    protected function resolvePropertiesForKeys(?array $keys, bool $onlyLazy): array
+    {
+        if ($keys === null) {
+            return array_filter(
+                $this->propertyConfigs,
+                fn (SettingProperty $config) => ! $onlyLazy || $config->lazy
+            );
+        }
+
+        $byKey = [];
+        foreach ($this->propertyConfigs as $property => $config) {
+            $byKey[$config->key] = $property;
+        }
+
+        $properties = [];
+        foreach ($keys as $key) {
+            $property = $this->propertyConfigs[$key] ?? $byKey[$key] ?? null;
+
+            if (! $property) {
+                continue;
+            }
+
+            $config = $this->propertyConfigs[$property] ?? null;
+            if (! $config || ($onlyLazy && ! $config->lazy)) {
+                continue;
+            }
+
+            $properties[$property] = $config;
+        }
+
+        return $properties;
+    }
+
+    /**
+     * @param  array<int, string>  $properties
+     */
+    protected function clearDirtyFor(array $properties): void
+    {
+        if (empty($this->dirty)) {
+            return;
+        }
+
+        $this->dirty = array_values(array_filter(
+            $this->dirty,
+            fn (string $property) => ! in_array($property, $properties, true)
+        ));
+    }
+
     protected function ensurePropertyLoaded(string $property, SettingProperty $config): void
     {
         if (! $config->lazy || in_array($property, $this->lazyLoaded, true)) {
             return;
         }
 
-        if ($this->timezone) {
-            app()->instance('fulcrum.context.timezone', $this->timezone);
-        }
-
-        try {
+        $this->runWithTimezone(function () use ($property, $config) {
             $this->hydrateProperty($property, $config);
             $this->lazyLoaded[] = $property;
+        });
+    }
+
+    protected function runWithTimezone(callable $callback): mixed
+    {
+        if (! $this->timezone) {
+            return $callback();
+        }
+
+        app()->instance('fulcrum.context.timezone', $this->timezone);
+
+        try {
+            return $callback();
         } finally {
-            if ($this->timezone) {
-                app()->forgetInstance('fulcrum.context.timezone');
-            }
+            app()->forgetInstance('fulcrum.context.timezone');
         }
     }
 }
