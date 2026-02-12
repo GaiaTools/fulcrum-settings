@@ -6,6 +6,7 @@ namespace GaiaTools\FulcrumSettings\Services;
 
 use GaiaTools\FulcrumSettings\Contracts\BucketCalculator;
 use GaiaTools\FulcrumSettings\Contracts\DistributionStrategy;
+use GaiaTools\FulcrumSettings\Contracts\GroupedSettingResolver;
 use GaiaTools\FulcrumSettings\Contracts\RuleEvaluator;
 use GaiaTools\FulcrumSettings\Contracts\SettingResolver as SettingResolverContract;
 use GaiaTools\FulcrumSettings\Events\SettingResolved;
@@ -17,7 +18,6 @@ use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Models\SettingRule;
 use GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
-use GaiaTools\FulcrumSettings\Contracts\GroupedSettingResolver;
 use GaiaTools\FulcrumSettings\Support\GroupedSettingResolver as GroupedSettingResolverImpl;
 use GaiaTools\FulcrumSettings\Support\ResolutionContext;
 use GaiaTools\FulcrumSettings\Support\TypeRegistry;

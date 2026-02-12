@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace GaiaTools\FulcrumSettings\Services;
 
-use GaiaTools\FulcrumSettings\Contracts\SettingResolver;
 use GaiaTools\FulcrumSettings\Contracts\GroupedSettingResolver;
+use GaiaTools\FulcrumSettings\Contracts\SettingResolver;
 use GaiaTools\FulcrumSettings\Support\GroupedSettingResolver as GroupedSettingResolverImpl;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Cache;

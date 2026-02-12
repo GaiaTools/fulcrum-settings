@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace GaiaTools\FulcrumSettings\Contracts;
 
 use Illuminate\Contracts\Auth\Authenticatable;
-use GaiaTools\FulcrumSettings\Contracts\GroupedSettingResolver;
 
 interface SettingResolver
 {
