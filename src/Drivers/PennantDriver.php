@@ -10,7 +10,6 @@ use GaiaTools\FulcrumSettings\Models\Setting;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Laravel\Pennant\Contracts\DefinesFeaturesExternally;
 use Laravel\Pennant\Contracts\Driver;
-use Laravel\Pennant\Feature;
 
 class PennantDriver implements DefinesFeaturesExternally, Driver
 {
@@ -55,28 +54,32 @@ class PennantDriver implements DefinesFeaturesExternally, Driver
 
         foreach ($features as $feature => $scopes) {
             if (is_int($feature) && is_string($scopes)) {
-                $feature = $scopes;
-                $scopes = [null];
+                $featureName = $scopes;
+                $scopesList = [null];
                 $isConvenienceCall = true;
             } else {
+                $featureName = (string) $feature;
+                $scopesList = $scopes;
                 $isConvenienceCall = false;
             }
 
-            if (! is_array($scopes)) {
+            if (! is_array($scopesList)) {
                 continue;
             }
 
-            $results[$feature] = [];
+            if ($isConvenienceCall) {
+                $results[$featureName] = $this->get($featureName, $scopesList[0] ?? null);
 
-            foreach ($scopes as $scope) {
-                $value = $this->get((string) $feature, $scope);
-
-                if ($isConvenienceCall) {
-                    $results[$feature] = $value;
-                } else {
-                    $results[$feature][] = $value;
-                }
+                continue;
             }
+
+            $values = [];
+
+            foreach ($scopesList as $scope) {
+                $values[] = $this->get($featureName, $scope);
+            }
+
+            $results[$featureName] = $values;
         }
 
         return $results;

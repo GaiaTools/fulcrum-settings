@@ -85,6 +85,35 @@ $settings->maintenanceMode = true;
 $settings->save();
 ```
 
+## Serialization and Collections
+
+Settings classes can be serialized and treated like a collection. `toArray()` and `toJson()` return key/value pairs using the `SettingProperty` keys. Collection methods are available via a proxy, so you can call `filter()`, `map()`, `pluck()`, and more directly on the settings instance.
+
+```php
+$settings->toArray();
+// ['general.site_name' => 'My Awesome App', 'general.maintenance_mode' => false, ...]
+
+$settings->toJson();
+
+$settings
+    ->filter(fn ($value) => $value !== null)
+    ->map(fn ($value) => $value);
+```
+
+## Loading and Reloading
+
+Use `load()` to hydrate lazy settings (or specific keys) and `reload()` to force re-hydration from the resolver. `onlyLoaded()` returns the settings already hydrated without triggering lazy loads.
+
+```php
+$settings->load(); // hydrate all lazy settings
+$settings->load(['general.site_name']); // hydrate specific lazy keys
+
+$settings->reload(); // re-hydrate all settings
+$settings->reload(['general.site_name']); // re-hydrate specific keys
+
+$settings->onlyLoaded(); // only already-hydrated settings
+```
+
 ## Lazy, Read-Only, Tenant-Scoped
 
 Use attribute flags for lazy loading, read-only properties, and tenant-specific resolution.

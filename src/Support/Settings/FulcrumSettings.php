@@ -4,32 +4,28 @@ declare(strict_types=1);
 
 namespace GaiaTools\FulcrumSettings\Support\Settings;
 
-use GaiaTools\FulcrumSettings\Attributes\SettingProperty;
+use BadMethodCallException;
 use GaiaTools\FulcrumSettings\Contracts\SettingResolver;
-use GaiaTools\FulcrumSettings\Events\LoadingSettings;
-use GaiaTools\FulcrumSettings\Events\SavingSettings;
-use GaiaTools\FulcrumSettings\Events\SettingsLoaded;
-use GaiaTools\FulcrumSettings\Events\SettingsSaved;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Contracts\Support\Jsonable;
+use Illuminate\Support\Collection;
+use JsonSerializable;
 
-abstract class FulcrumSettings
+/**
+ * @implements Arrayable<string, mixed>
+ */
+abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
 {
-    /** @var array<string, SettingProperty> */
-    protected array $propertyConfigs = [];
+    protected SettingsState $state;
 
-    /** @var array<string> */
-    protected array $dirty = [];
+    protected SettingsContextState $contextState;
 
-    /** @var array<string> */
-    protected array $lazyLoaded = [];
+    protected SettingsLoader $loader;
 
-    protected ?Authenticatable $contextUser = null;
+    protected SettingsSaver $saver;
 
-    protected ?string $tenantId = null;
-
-    protected mixed $customContext = null;
-
-    protected ?string $timezone = null;
+    protected SettingsSerializer $serializer;
 
     public function __construct(
         protected SettingResolver $resolver,
@@ -37,152 +33,116 @@ abstract class FulcrumSettings
         protected SettingsHydrator $hydrator,
         protected SettingsPersister $persister
     ) {
-        $this->propertyConfigs = $this->discoverer->discover(static::class);
-        $this->load();
-    }
+        $this->state = new SettingsState;
+        $this->contextState = new SettingsContextState($this->resolver);
+        $this->loader = new SettingsLoader($this->state, $this->contextState, $this->discoverer, $this->hydrator);
+        $this->saver = new SettingsSaver($this->state, $this->persister);
+        $this->serializer = new SettingsSerializer($this->state, $this->loader);
 
-    protected function load(): void
-    {
-        event(new LoadingSettings);
-
-        if ($this->timezone) {
-            app()->instance('fulcrum.context.timezone', $this->timezone);
-        }
-
-        try {
-            $resolved = [];
-
-            foreach ($this->propertyConfigs as $property => $config) {
-                if ($config->lazy) {
-                    continue;
-                }
-
-                $value = $this->hydrateProperty($property, $config);
-                $resolved[$config->key] = $value;
-            }
-
-            event(new SettingsLoaded($resolved));
-        } finally {
-            if ($this->timezone) {
-                app()->forgetInstance('fulcrum.context.timezone');
-            }
-        }
-    }
-
-    protected function hydrateProperty(string $property, SettingProperty $config): mixed
-    {
-        $resolver = $this->configuredResolver($config);
-        $value = $this->hydrator->hydrate($this, $property, $config, $resolver, $this->context());
-        $this->{$property} = $value;
-
-        return $value;
-    }
-
-    protected function configuredResolver(SettingProperty $config): SettingResolver
-    {
-        $resolver = $this->resolver;
-
-        if ($this->contextUser) {
-            $resolver = $resolver->forUser($this->contextUser);
-        }
-
-        if ($config->tenantScoped && $this->tenantId) {
-            $resolver = $resolver->forTenant($this->tenantId);
-        }
-
-        return $resolver;
-    }
-
-    protected function context(): mixed
-    {
-        return $this->customContext ?? $this->contextUser ?? auth()->user();
+        $this->loader->discover(static::class);
+        $this->loader->bootLoad($this);
     }
 
     public function save(): void
     {
-        $toSave = $this->collectSavableProperties();
-
-        if (empty($toSave)) {
-            return;
+        if ($this->saver->save($this)) {
+            $this->loader->bootLoad($this);
         }
-
-        $data = $this->collectPropertyValues($toSave);
-        $this->persister->validateWithRules($data, $toSave);
-
-        event(new SavingSettings($data));
-
-        foreach ($toSave as $property => $config) {
-            $this->persister->persist($config->key, $this->{$property});
-        }
-
-        $this->dirty = [];
-        event(new SettingsSaved($data));
-
-        $this->load();
     }
 
     /**
-     * @return array<string, SettingProperty>
-     */
-    protected function collectSavableProperties(): array
-    {
-        $toSave = [];
-
-        foreach ($this->dirty as $property) {
-            $config = $this->propertyConfigs[$property] ?? null;
-
-            if ($config && ! $config->readOnly) {
-                $toSave[$property] = $config;
-            }
-        }
-
-        return $toSave;
-    }
-
-    /**
-     * @param  array<string, SettingProperty>  $properties
      * @return array<string, mixed>
      */
-    protected function collectPropertyValues(array $properties): array
+    public function toArray(): array
     {
-        $values = [];
+        return $this->serializer->toArray($this);
+    }
 
-        foreach ($properties as $property => $config) {
-            $values[$config->key] = $this->{$property};
-        }
+    /**
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(): array
+    {
+        return $this->toArray();
+    }
 
-        return $values;
+    public function toJson($options = 0): string
+    {
+        return json_encode($this->jsonSerialize(), $options | JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * @return Collection<string, mixed>
+     */
+    public function toCollection(): Collection
+    {
+        return $this->serializer->toCollection($this);
+    }
+
+    /**
+     * Hydrate lazy settings by key.
+     *
+     * @param  array<int, string>|null  $keys
+     */
+    public function load(?array $keys = null): static
+    {
+        $this->loader->load($this, $keys);
+
+        return $this;
+    }
+
+    /**
+     * Force re-hydration of settings by key.
+     *
+     * @param  array<int, string>|null  $keys
+     */
+    public function reload(?array $keys = null): static
+    {
+        $this->loader->reload($this, $keys);
+
+        return $this;
+    }
+
+    /**
+     * Return only settings already hydrated without triggering lazy loads.
+     *
+     * @return array<string, mixed>
+     */
+    public function onlyLoaded(): array
+    {
+        return $this->serializer->onlyLoaded($this);
     }
 
     public function __get(string $name): mixed
     {
-        $config = $this->propertyConfigs[$name] ?? null;
+        $config = $this->state->propertyConfigs()[$name] ?? null;
 
         if (! $config) {
             return null;
         }
 
-        if ($config->lazy && ! in_array($name, $this->lazyLoaded, true)) {
-            if ($this->timezone) {
-                app()->instance('fulcrum.context.timezone', $this->timezone);
-            }
-
-            try {
-                $this->hydrateProperty($name, $config);
-                $this->lazyLoaded[] = $name;
-            } finally {
-                if ($this->timezone) {
-                    app()->forgetInstance('fulcrum.context.timezone');
-                }
-            }
-        }
+        $this->loader->ensurePropertyLoaded($this, $name, $config);
 
         return $this->{$name} ?? null;
     }
 
+    /**
+     * @param  array<int, mixed>  $arguments
+     */
+    public function __call(string $name, array $arguments): mixed
+    {
+        $collection = $this->toCollection();
+
+        if (method_exists($collection, $name)) {
+            return $collection->{$name}(...$arguments);
+        }
+
+        throw new BadMethodCallException(sprintf('Method %s::%s does not exist.', static::class, $name));
+    }
+
     public function __set(string $name, mixed $value): void
     {
-        $config = $this->propertyConfigs[$name] ?? null;
+        $config = $this->state->propertyConfigs()[$name] ?? null;
 
         if ($config?->readOnly || ! property_exists($this, $name)) {
             return;
@@ -190,8 +150,8 @@ abstract class FulcrumSettings
 
         $this->{$name} = $value;
 
-        if ($config && ! in_array($name, $this->dirty, true)) {
-            $this->dirty[] = $name;
+        if ($config) {
+            $this->state->markDirty($name);
         }
     }
 
@@ -215,35 +175,42 @@ abstract class FulcrumSettings
         return $this->cloneWith(timezone: $timezone);
     }
 
-    protected function cloneWith(
+    private function cloneWith(
         ?Authenticatable $contextUser = null,
         ?string $tenantId = null,
         mixed $customContext = null,
         ?string $timezone = null
     ): static {
         $clone = clone $this;
-        $clone->contextUser = $contextUser ?? $this->contextUser;
-        $clone->tenantId = $tenantId ?? $this->tenantId;
-        $clone->customContext = $customContext ?? $this->customContext;
-        $clone->timezone = $timezone ?? $this->timezone;
-        $clone->dirty = [];
-        $clone->lazyLoaded = [];
-        $clone->load();
+
+        $clone->state = new SettingsState;
+        $clone->state->setPropertyConfigs($this->state->propertyConfigs());
+
+        $clone->contextState = $this->contextState->cloneWith(
+            $contextUser,
+            $tenantId,
+            $customContext,
+            $timezone
+        );
+
+        $clone->loader = new SettingsLoader($clone->state, $clone->contextState, $clone->discoverer, $clone->hydrator);
+        $clone->saver = new SettingsSaver($clone->state, $clone->persister);
+        $clone->serializer = new SettingsSerializer($clone->state, $clone->loader);
+
+        $clone->loader->bootLoad($clone);
 
         return $clone;
     }
 
     public function refresh(): void
     {
-        $this->dirty = [];
-        $this->lazyLoaded = [];
-        $this->load();
+        $this->state->clearDirty();
+        $this->state->clearLazyLoaded();
+        $this->loader->bootLoad($this);
     }
 
     public function isDirty(?string $property = null): bool
     {
-        return $property === null
-            ? ! empty($this->dirty)
-            : in_array($property, $this->dirty, true);
+        return $this->state->isDirty($property);
     }
 }
