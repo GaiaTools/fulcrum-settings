@@ -10,7 +10,6 @@ use GaiaTools\FulcrumSettings\Models\Setting;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Laravel\Pennant\Contracts\DefinesFeaturesExternally;
 use Laravel\Pennant\Contracts\Driver;
-use Laravel\Pennant\Feature;
 
 class PennantDriver implements DefinesFeaturesExternally, Driver
 {
@@ -70,6 +69,7 @@ class PennantDriver implements DefinesFeaturesExternally, Driver
 
             if ($isConvenienceCall) {
                 $results[$featureName] = $this->get($featureName, $scopesList[0] ?? null);
+
                 continue;
             }
 
