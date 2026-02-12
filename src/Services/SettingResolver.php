@@ -17,6 +17,8 @@ use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Models\SettingRule;
 use GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
+use GaiaTools\FulcrumSettings\Contracts\GroupedSettingResolver;
+use GaiaTools\FulcrumSettings\Support\GroupedSettingResolver as GroupedSettingResolverImpl;
 use GaiaTools\FulcrumSettings\Support\ResolutionContext;
 use GaiaTools\FulcrumSettings\Support\TypeRegistry;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -27,6 +29,8 @@ class SettingResolver implements SettingResolverContract
     protected ?Authenticatable $user = null;
 
     protected ?string $tenantId = null;
+
+    protected ?string $group = null;
 
     protected ?int $lastCalculatedBucket = null;
 
@@ -45,8 +49,9 @@ class SettingResolver implements SettingResolverContract
         $startTime = microtime(true);
         $tenantId = $this->resolveTenantId();
         $effectiveUser = $this->resolveEffectiveUser($scope);
+        $resolvedKey = $this->resolveKey($key);
 
-        $setting = $this->findSettingByKey($key, $tenantId, [
+        $setting = $this->findSettingByKey($resolvedKey, $tenantId, [
             'rules.conditions',
             'rules.value',
             'rules.rolloutVariants.value',
@@ -54,7 +59,7 @@ class SettingResolver implements SettingResolverContract
         ]);
 
         if (! $setting) {
-            $context = ResolutionContext::notFound($key, $tenantId, $scope, $startTime);
+            $context = ResolutionContext::notFound($resolvedKey, $tenantId, $scope, $startTime);
             $this->recordResolution($context);
 
             return null;
@@ -64,7 +69,7 @@ class SettingResolver implements SettingResolverContract
         [$value, $source] = $this->resolveValueAndSource($setting, $rule, $variant, $scope, $tenantId);
 
         $context = ResolutionContext::fromResolution(
-            $key, $value, $setting, $rule, $count, $source, $tenantId, $scope, $startTime, $variant
+            $resolvedKey, $value, $setting, $rule, $count, $source, $tenantId, $scope, $startTime, $variant
         );
         $this->recordResolution($context, $effectiveUser);
 
@@ -86,10 +91,11 @@ class SettingResolver implements SettingResolverContract
     public function set(string $key, mixed $value): void
     {
         $tenantId = $this->resolveTenantId();
-        $setting = $this->findSettingByKey($key, $tenantId);
+        $resolvedKey = $this->resolveKey($key);
+        $setting = $this->findSettingByKey($resolvedKey, $tenantId);
 
         if (! $setting) {
-            throw new SettingNotFoundException($key, $tenantId);
+            throw new SettingNotFoundException($resolvedKey, $tenantId);
         }
 
         $this->validateAndStoreSetting($setting, $value);
@@ -114,6 +120,54 @@ class SettingResolver implements SettingResolverContract
         $clone->tenantId = $tenantId;
 
         return $clone;
+    }
+
+    public function forGroup(?string $group): static
+    {
+        $clone = clone $this;
+        $clone->group = $group;
+
+        return $clone;
+    }
+
+    public function group(string $group): GroupedSettingResolver
+    {
+        $normalized = $this->normalizeGroup($group);
+
+        return new GroupedSettingResolverImpl($this->forGroup($normalized), $normalized);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getGroupKeys(string $group): array
+    {
+        $normalized = $this->normalizeGroup($group);
+        $tenantId = $this->resolveTenantId();
+
+        $query = Setting::withoutGlobalScope(TenantScope::class)
+            ->where('key', 'like', $normalized.'.%');
+
+        if ($this->isMultiTenancyEnabled()) {
+            if ($tenantId !== null) {
+                $query->where(function (Builder $builder) use ($tenantId) {
+                    $builder->where('tenant_id', $tenantId)->orWhereNull('tenant_id');
+                })->orderByRaw('tenant_id IS NOT NULL DESC');
+            } else {
+                $query->whereNull('tenant_id');
+            }
+        }
+
+        $settings = $query->get(['key', 'tenant_id']);
+        $keys = [];
+
+        foreach ($settings as $setting) {
+            if (! array_key_exists($setting->key, $keys)) {
+                $keys[$setting->key] = true;
+            }
+        }
+
+        return array_keys($keys);
     }
 
     public function getLastCalculatedBucket(): ?int
@@ -471,5 +525,36 @@ class SettingResolver implements SettingResolverContract
     public function isMultiTenancyEnabled(): bool
     {
         return config()->boolean('fulcrum.multi_tenancy.enabled', false);
+    }
+
+    protected function resolveGroup(): ?string
+    {
+        if ($this->group !== null) {
+            return $this->group;
+        }
+
+        return FulcrumContext::getGroup();
+    }
+
+    protected function resolveKey(string $key): string
+    {
+        $group = $this->resolveGroup();
+
+        if ($group && ! str_contains($key, '.')) {
+            return $group.'.'.$key;
+        }
+
+        return $key;
+    }
+
+    protected function normalizeGroup(string $group): string
+    {
+        $normalized = trim($group, " .\t\n\r\0\x0B");
+
+        if ($normalized === '') {
+            throw new \InvalidArgumentException('Group name cannot be empty.');
+        }
+
+        return $normalized;
     }
 }

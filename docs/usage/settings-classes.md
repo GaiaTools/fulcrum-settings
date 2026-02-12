@@ -61,6 +61,35 @@ class GeneralSettings extends FulcrumSettings
 
 The `default` attribute value is a local fallback if the setting is missing or resolves to `null`. Your real defaults should still be defined in the database. If the PHP type is not registered as a handler, set `cast` in the attribute to pick the correct type.
 
+## Grouped Settings Classes
+
+If your settings share a group prefix, define it once on the class and use short keys on properties. Fulcrum will expand them to the full `group.key` format. You can also pass multiple segments for nested groups.
+
+```php
+use GaiaTools\FulcrumSettings\Attributes\SettingGroup;
+
+#[SettingGroup('general')]
+class GeneralSettings extends FulcrumSettings
+{
+    #[SettingProperty(key: 'site_name')]
+    protected string $siteName;
+
+    #[SettingProperty(key: 'maintenance_mode')]
+    protected bool $maintenanceMode;
+}
+```
+
+Nested group example:
+
+```php
+#[SettingGroup('services', 'someService')]
+class ServiceSettings extends FulcrumSettings
+{
+    #[SettingProperty(key: 'access_token')]
+    protected string $accessToken;
+}
+```
+
 ## Using Settings Classes
 
 Resolve your settings class from the Laravel service container.

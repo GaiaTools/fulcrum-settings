@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace GaiaTools\FulcrumSettings\Support\Settings;
 
 use BadMethodCallException;
+use GaiaTools\FulcrumSettings\Attributes\SettingGroup;
 use GaiaTools\FulcrumSettings\Contracts\SettingResolver;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Support\Arrayable;
@@ -34,7 +35,7 @@ abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
         protected SettingsPersister $persister
     ) {
         $this->state = new SettingsState;
-        $this->contextState = new SettingsContextState($this->resolver);
+        $this->contextState = new SettingsContextState($this->resolver, group: $this->resolveGroup());
         $this->loader = new SettingsLoader($this->state, $this->contextState, $this->discoverer, $this->hydrator);
         $this->saver = new SettingsSaver($this->state, $this->persister);
         $this->serializer = new SettingsSerializer($this->state, $this->loader);
@@ -165,6 +166,11 @@ abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
         return $this->cloneWith(tenantId: $tenantId);
     }
 
+    public function forGroup(?string $group): static
+    {
+        return $this->cloneWith(group: $group);
+    }
+
     public function withContext(mixed $context): static
     {
         return $this->cloneWith(customContext: $context);
@@ -179,7 +185,8 @@ abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
         ?Authenticatable $contextUser = null,
         ?string $tenantId = null,
         mixed $customContext = null,
-        ?string $timezone = null
+        ?string $timezone = null,
+        ?string $group = null
     ): static {
         $clone = clone $this;
 
@@ -190,7 +197,8 @@ abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
             $contextUser,
             $tenantId,
             $customContext,
-            $timezone
+            $timezone,
+            $group
         );
 
         $clone->loader = new SettingsLoader($clone->state, $clone->contextState, $clone->discoverer, $clone->hydrator);
@@ -212,5 +220,17 @@ abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
     public function isDirty(?string $property = null): bool
     {
         return $this->state->isDirty($property);
+    }
+
+    private function resolveGroup(): ?string
+    {
+        $attributes = (new \ReflectionClass($this))->getAttributes(SettingGroup::class);
+        if (empty($attributes)) {
+            return null;
+        }
+
+        $group = trim($attributes[0]->newInstance()->group);
+
+        return $group !== '' ? $group : null;
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace GaiaTools\FulcrumSettings\Contracts;
 
 use Illuminate\Contracts\Auth\Authenticatable;
+use GaiaTools\FulcrumSettings\Contracts\GroupedSettingResolver;
 
 interface SettingResolver
 {
@@ -28,6 +29,23 @@ interface SettingResolver
      * Set the tenant ID for tenant-scoped resolution.
      */
     public function forTenant(?string $tenantId): static;
+
+    /**
+     * Set the group for grouped resolution.
+     */
+    public function forGroup(?string $group): static;
+
+    /**
+     * Create a grouped resolver for the given group.
+     */
+    public function group(string $group): GroupedSettingResolver;
+
+    /**
+     * Get all setting keys for a group.
+     *
+     * @return array<int, string>
+     */
+    public function getGroupKeys(string $group): array;
 
     /**
      * Get a setting value.

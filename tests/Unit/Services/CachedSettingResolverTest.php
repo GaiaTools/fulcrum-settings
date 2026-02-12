@@ -91,3 +91,27 @@ test('it clones with forTenant', function () {
     expect($cloned)->not->toBe($this->cachedResolver);
     expect($cloned)->toBeInstanceOf(CachedSettingResolver::class);
 });
+
+test('it clones with forGroup', function () {
+    $group = 'billing';
+    $newInner = Mockery::mock(SettingResolver::class);
+    $this->innerResolver->shouldReceive('forGroup')->with($group)->andReturn($newInner);
+
+    $cloned = $this->cachedResolver->forGroup($group);
+
+    expect($cloned)->not->toBe($this->cachedResolver);
+    expect($cloned)->toBeInstanceOf(CachedSettingResolver::class);
+});
+
+test('it builds grouped resolver', function () {
+    $group = 'my_links';
+    $newInner = Mockery::mock(SettingResolver::class);
+    $newInner->shouldReceive('forGroup')->with($group)->andReturn($newInner);
+    $newInner->shouldReceive('getGroupKeys')->with($group)->andReturn([]);
+    $this->innerResolver->shouldReceive('forGroup')->with($group)->andReturn($newInner);
+    $this->innerResolver->shouldReceive('getGroupKeys')->with($group)->andReturn([]);
+
+    $grouped = $this->cachedResolver->group($group);
+
+    expect($grouped->all())->toBe([]);
+});

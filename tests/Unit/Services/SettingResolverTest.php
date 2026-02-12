@@ -32,6 +32,7 @@ uses(MockeryPHPUnitIntegration::class);
 beforeEach(function () {
     config(['fulcrum.multi_tenancy.enabled' => true]);
     FulcrumContext::setTenantId(null);
+    FulcrumContext::setGroup(null);
     unset($GLOBALS['mock_telescope_missing']);
     $this->segmentDriver = Mockery::mock(SegmentDriver::class);
     $this->geoResolver = Mockery::mock(GeoResolver::class);
@@ -61,6 +62,70 @@ test('setting resolver resolves default value when no rules match', function () 
     ]);
 
     expect($this->resolver->resolve('test.setting'))->toBe('default-value');
+});
+
+test('it prefixes group for ungrouped keys', function () {
+    $setting = Setting::create([
+        'key' => 'general.site_name',
+        'type' => SettingType::STRING,
+    ]);
+
+    SettingValue::create([
+        'valuable_type' => Setting::class,
+        'valuable_id' => $setting->id,
+        'value' => 'My App',
+    ]);
+
+    FulcrumContext::setGroup('general');
+
+    expect($this->resolver->resolve('site_name'))->toBe('My App');
+    expect($this->resolver->resolve('general.site_name'))->toBe('My App');
+});
+
+test('it supports forGroup scoping', function () {
+    $setting = Setting::create([
+        'key' => 'billing.tax_rate',
+        'type' => SettingType::FLOAT,
+    ]);
+
+    SettingValue::create([
+        'valuable_type' => Setting::class,
+        'valuable_id' => $setting->id,
+        'value' => 0.07,
+    ]);
+
+    $grouped = $this->resolver->forGroup('billing');
+
+    expect($grouped->resolve('tax_rate'))->toBe(0.07);
+});
+
+test('it resolves group values', function () {
+    $twitter = Setting::create([
+        'key' => 'my_links.twitter',
+        'type' => SettingType::STRING,
+    ]);
+    SettingValue::create([
+        'valuable_type' => Setting::class,
+        'valuable_id' => $twitter->id,
+        'value' => 'https://twitter.com/example',
+    ]);
+
+    $facebook = Setting::create([
+        'key' => 'my_links.facebook',
+        'type' => SettingType::STRING,
+    ]);
+    SettingValue::create([
+        'valuable_type' => Setting::class,
+        'valuable_id' => $facebook->id,
+        'value' => 'https://facebook.com/example',
+    ]);
+
+    $links = $this->resolver->group('my_links')->all();
+
+    expect($links)->toBe([
+        'twitter' => 'https://twitter.com/example',
+        'facebook' => 'https://facebook.com/example',
+    ]);
 });
 
 test('setting resolver returns null for non-existent setting', function () {

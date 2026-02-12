@@ -31,12 +31,14 @@ test('it can get all attributes', function () {
 test('it can clear the context', function () {
     FulcrumContext::force(true);
     FulcrumContext::setTenantId('tenant-1');
+    FulcrumContext::setGroup('general');
     FulcrumContext::set('key1', 'value1');
 
     FulcrumContext::clear();
 
     expect(FulcrumContext::shouldForce())->toBeFalse();
     expect(FulcrumContext::getTenantId())->toBeNull();
+    expect(FulcrumContext::getGroup())->toBeNull();
     expect(FulcrumContext::all())->toBeEmpty();
 });
 
@@ -58,6 +60,16 @@ test('it can set and get tenant id', function () {
 
     FulcrumContext::setTenantId(null);
     expect(FulcrumContext::getTenantId())->toBeNull();
+});
+
+test('it can set and get group', function () {
+    expect(FulcrumContext::getGroup())->toBeNull();
+
+    FulcrumContext::setGroup('billing');
+    expect(FulcrumContext::getGroup())->toBe('billing');
+
+    FulcrumContext::setGroup(null);
+    expect(FulcrumContext::getGroup())->toBeNull();
 });
 
 test('it should force when env flag is set', function () {

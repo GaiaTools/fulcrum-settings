@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Facade;
  * @method static bool isActive(string $key, mixed $scope = null)
  * @method static SettingResolver forUser(?Authenticatable $user)
  * @method static SettingResolver forTenant(?string $tenantId)
+ * @method static SettingResolver forGroup(?string $group)
+ * @method static \GaiaTools\FulcrumSettings\Contracts\GroupedSettingResolver group(string $group)
  * @method static mixed get(string $key, mixed $default = null, mixed $scope = null)
  * @method static void set(string $key, mixed $value)
  * @method static bool isMultiTenancyEnabled()
