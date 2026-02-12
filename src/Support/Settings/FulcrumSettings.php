@@ -11,8 +11,13 @@ use GaiaTools\FulcrumSettings\Events\SavingSettings;
 use GaiaTools\FulcrumSettings\Events\SettingsLoaded;
 use GaiaTools\FulcrumSettings\Events\SettingsSaved;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Contracts\Support\Jsonable;
+use Illuminate\Support\Collection;
+use JsonSerializable;
+use BadMethodCallException;
 
-abstract class FulcrumSettings
+abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
 {
     /** @var array<string, SettingProperty> */
     protected array $propertyConfigs = [];
@@ -154,6 +159,36 @@ abstract class FulcrumSettings
         return $values;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        $values = [];
+
+        foreach ($this->propertyConfigs as $property => $config) {
+            $this->ensurePropertyLoaded($property, $config);
+            $values[$config->key] = $this->{$property};
+        }
+
+        return $values;
+    }
+
+    public function jsonSerialize(): array
+    {
+        return $this->toArray();
+    }
+
+    public function toJson($options = 0): string
+    {
+        return json_encode($this->jsonSerialize(), $options | JSON_THROW_ON_ERROR);
+    }
+
+    public function toCollection(): Collection
+    {
+        return collect($this->toArray());
+    }
+
     public function __get(string $name): mixed
     {
         $config = $this->propertyConfigs[$name] ?? null;
@@ -162,22 +197,20 @@ abstract class FulcrumSettings
             return null;
         }
 
-        if ($config->lazy && ! in_array($name, $this->lazyLoaded, true)) {
-            if ($this->timezone) {
-                app()->instance('fulcrum.context.timezone', $this->timezone);
-            }
-
-            try {
-                $this->hydrateProperty($name, $config);
-                $this->lazyLoaded[] = $name;
-            } finally {
-                if ($this->timezone) {
-                    app()->forgetInstance('fulcrum.context.timezone');
-                }
-            }
-        }
+        $this->ensurePropertyLoaded($name, $config);
 
         return $this->{$name} ?? null;
+    }
+
+    public function __call(string $name, array $arguments): mixed
+    {
+        $collection = $this->toCollection();
+
+        if (method_exists($collection, $name)) {
+            return $collection->{$name}(...$arguments);
+        }
+
+        throw new BadMethodCallException(sprintf('Method %s::%s does not exist.', static::class, $name));
     }
 
     public function __set(string $name, mixed $value): void
@@ -245,5 +278,25 @@ abstract class FulcrumSettings
         return $property === null
             ? ! empty($this->dirty)
             : in_array($property, $this->dirty, true);
+    }
+
+    protected function ensurePropertyLoaded(string $property, SettingProperty $config): void
+    {
+        if (! $config->lazy || in_array($property, $this->lazyLoaded, true)) {
+            return;
+        }
+
+        if ($this->timezone) {
+            app()->instance('fulcrum.context.timezone', $this->timezone);
+        }
+
+        try {
+            $this->hydrateProperty($property, $config);
+            $this->lazyLoaded[] = $property;
+        } finally {
+            if ($this->timezone) {
+                app()->forgetInstance('fulcrum.context.timezone');
+            }
+        }
     }
 }
