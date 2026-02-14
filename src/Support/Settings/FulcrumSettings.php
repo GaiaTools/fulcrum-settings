@@ -15,8 +15,8 @@ use JsonSerializable;
  */
 abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
 {
-    use ManagesSettingsLifecycle;
     use AccessesSettingsByKey;
+    use ManagesSettingsLifecycle;
     use SerializesSettings;
     use SwitchesContext;
 
