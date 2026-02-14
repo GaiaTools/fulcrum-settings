@@ -14,6 +14,8 @@ class FulcrumContext
 
     protected static ?string $tenantId = null;
 
+    protected static ?string $group = null;
+
     /** @var array<string, mixed> */
     protected static array $attributes = [];
 
@@ -42,6 +44,16 @@ class FulcrumContext
         return self::$tenantId;
     }
 
+    public static function setGroup(?string $group): void
+    {
+        self::$group = $group;
+    }
+
+    public static function getGroup(): ?string
+    {
+        return self::$group;
+    }
+
     public static function set(string $key, mixed $value): void
     {
         self::$attributes[$key] = $value;
@@ -66,6 +78,7 @@ class FulcrumContext
         self::$forced = false;
         self::$revealMasked = false;
         self::$tenantId = null;
+        self::$group = null;
     }
 
     public static function shouldForce(): bool

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace GaiaTools\FulcrumSettings\Services;
 
+use GaiaTools\FulcrumSettings\Contracts\GroupedSettingResolver;
 use GaiaTools\FulcrumSettings\Contracts\SettingResolver;
+use GaiaTools\FulcrumSettings\Support\GroupedSettingResolver as GroupedSettingResolverImpl;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Cache;
 
@@ -16,19 +18,22 @@ class CachedSettingResolver implements SettingResolver
         protected string $prefix = 'fulcrum',
         protected int $ttl = 3600,
         protected ?string $store = null,
-        protected ?string $userIdentifier = null
+        protected ?string $userIdentifier = null,
+        protected ?string $group = null
     ) {}
 
     public function resolve(string $key, mixed $scope = null): mixed
     {
+        $resolvedKey = $this->resolveKey($key);
+
         if (! $this->enabled) {
-            return $this->resolver->resolve($key, $scope);
+            return $this->resolver->resolve($resolvedKey, $scope);
         }
 
-        $cacheKey = $this->getCacheKey($key, $scope);
+        $cacheKey = $this->getCacheKey($resolvedKey, $scope);
 
-        return Cache::store($this->store)->remember($cacheKey, $this->ttl, function () use ($key, $scope) {
-            return $this->resolver->resolve($key, $scope);
+        return Cache::store($this->store)->remember($cacheKey, $this->ttl, function () use ($resolvedKey, $scope) {
+            return $this->resolver->resolve($resolvedKey, $scope);
         });
     }
 
@@ -55,6 +60,30 @@ class CachedSettingResolver implements SettingResolver
         return $clone;
     }
 
+    public function forGroup(?string $group): static
+    {
+        $clone = clone $this;
+        $clone->group = $group;
+        $clone->resolver = $this->resolver->forGroup($group);
+
+        return $clone;
+    }
+
+    public function group(string $group): GroupedSettingResolver
+    {
+        $normalized = $this->normalizeGroup($group);
+
+        return new GroupedSettingResolverImpl($this->forGroup($normalized), $normalized);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getGroupKeys(string $group): array
+    {
+        return $this->resolver->getGroupKeys($group);
+    }
+
     public function get(string $key, mixed $default = null, mixed $scope = null): mixed
     {
         return $this->resolve($key, $scope) ?? $default;
@@ -69,7 +98,7 @@ class CachedSettingResolver implements SettingResolver
 
     public function set(string $key, mixed $value): void
     {
-        $this->resolver->set($key, $value);
+        $this->resolver->set($this->resolveKey($key), $value);
 
         // We might want to clear cache here, but it's hard to clear specific scopes.
         // For simplicity, we can't easily clear scoped cache.
@@ -107,5 +136,27 @@ class CachedSettingResolver implements SettingResolver
         }
 
         return 'global';
+    }
+
+    protected function resolveKey(string $key): string
+    {
+        $group = $this->group ?? \GaiaTools\FulcrumSettings\Support\FulcrumContext::getGroup();
+
+        if ($group && ! str_contains($key, '.')) {
+            return $group.'.'.$key;
+        }
+
+        return $key;
+    }
+
+    protected function normalizeGroup(string $group): string
+    {
+        $normalized = trim($group, " .\t\n\r\0\x0B");
+
+        if ($normalized === '') {
+            throw new \InvalidArgumentException('Group name cannot be empty.');
+        }
+
+        return $normalized;
     }
 }

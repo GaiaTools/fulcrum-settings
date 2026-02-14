@@ -126,6 +126,44 @@ Resolve settings within a specific tenant scope.
 $value = Fulcrum::forTenant('tenant-123')->get('billing.tax_rate');
 ```
 
+### `forGroup(?string $group): self`
+
+Resolve settings within a specific group. When a group is set, keys without a dot are prefixed with the group (for example `site_name` becomes `general.site_name`).
+
+**Parameters**
+- `group`: Group name (or `null` to clear).
+
+**Returns**
+- The resolver instance scoped to the group.
+
+**Example**
+```php
+$value = Fulcrum::forGroup('general')->get('site_name');
+```
+
+### `group(string $group): GroupedSettingResolver`
+
+Create a grouped resolver for the given group. Use `all()` to fetch every setting in that group.
+
+**Parameters**
+- `group`: Group name (dot-separated for nested groups).
+
+**Returns**
+- A grouped resolver instance.
+
+**Example**
+```php
+$links = Fulcrum::group('my_links')->all();
+// ['twitter' => '...', 'facebook' => '...', 'reddit' => '...']
+```
+
+Chaining still works with scoping:
+
+```php
+$links = Fulcrum::forUser($user)->group('my_links')->all();
+$links = Fulcrum::group('my_links')->forUser($user)->all();
+```
+
 ### `isMultiTenancyEnabled(): bool`
 
 Check if multi-tenancy is enabled.

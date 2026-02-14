@@ -9,7 +9,7 @@ A powerful feature flag and configuration management system for Laravel with rul
 ![Coverage][coverage-shield]
 
 <!-- Badge URLs -->
-[release-shield]: https://img.shields.io/github/v/release/GaiaTools/fulcrum-settings?sort=semver&color=blue
+[release-shield]: https://img.shields.io/packagist/v/GaiaTools/fulcrum-settings?sort=semver&color=blue
 [quality-gate-shield]: https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fsonar.r2websolutions.com%2Fapi%2Fmeasures%2Fcomponent%3Fcomponent%3DGaiaTools_fulcrum-settings_62fe7b2a-26b4-4595-a6eb-d3ae8932b6d1%26metricKeys%3Dalert_status&query=$.component.measures[0].value&label=Quality%20Gate&labelColor=black&color=%23009900
 [license-shield]: https://img.shields.io/packagist/l/GaiaTools/fulcrum-settings?label=License&labelColor=black&color=%23009900
 [downloads-shield]: https://img.shields.io/packagist/dt/GaiaTools/fulcrum-settings.svg?label=Downloads&labelColor=black&color=%23009900

@@ -30,6 +30,23 @@ interface SettingResolver
     public function forTenant(?string $tenantId): static;
 
     /**
+     * Set the group for grouped resolution.
+     */
+    public function forGroup(?string $group): static;
+
+    /**
+     * Create a grouped resolver for the given group.
+     */
+    public function group(string $group): GroupedSettingResolver;
+
+    /**
+     * Get all setting keys for a group.
+     *
+     * @return array<int, string>
+     */
+    public function getGroupKeys(string $group): array;
+
+    /**
      * Get a setting value.
      */
     public function get(string $key, mixed $default = null, mixed $scope = null): mixed;

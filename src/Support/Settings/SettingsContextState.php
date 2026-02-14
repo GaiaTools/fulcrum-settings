@@ -15,7 +15,8 @@ final class SettingsContextState
         private ?Authenticatable $contextUser = null,
         private ?string $tenantId = null,
         private mixed $customContext = null,
-        private ?string $timezone = null
+        private ?string $timezone = null,
+        private ?string $group = null
     ) {}
 
     public function configuredResolver(SettingProperty $config): SettingResolver
@@ -28,6 +29,10 @@ final class SettingsContextState
 
         if ($config->tenantScoped && $this->tenantId) {
             $resolver = $resolver->forTenant($this->tenantId);
+        }
+
+        if ($this->group) {
+            $resolver = $resolver->forGroup($this->group);
         }
 
         return $resolver;
@@ -57,14 +62,16 @@ final class SettingsContextState
         ?Authenticatable $contextUser = null,
         ?string $tenantId = null,
         mixed $customContext = null,
-        ?string $timezone = null
+        ?string $timezone = null,
+        ?string $group = null
     ): self {
         return new self(
             $this->resolver,
             $contextUser ?? $this->contextUser,
             $tenantId ?? $this->tenantId,
             $customContext ?? $this->customContext,
-            $timezone ?? $this->timezone
+            $timezone ?? $this->timezone,
+            $group ?? $this->group
         );
     }
 }

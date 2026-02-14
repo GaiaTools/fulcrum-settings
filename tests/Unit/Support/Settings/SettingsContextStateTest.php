@@ -13,8 +13,9 @@ test('context state configures resolver based on user and tenant', function () {
 
     $resolver->shouldReceive('forUser')->once()->with($user)->andReturn($resolver);
     $resolver->shouldReceive('forTenant')->once()->with('tenant-1')->andReturn($resolver);
+    $resolver->shouldReceive('forGroup')->once()->with('general')->andReturn($resolver);
 
-    $state = new SettingsContextState($resolver, $user, 'tenant-1');
+    $state = new SettingsContextState($resolver, $user, 'tenant-1', null, null, 'general');
     $config = new SettingProperty(key: 'test.tenant', tenantScoped: true);
 
     expect($state->configuredResolver($config))->toBe($resolver);
@@ -59,7 +60,7 @@ test('context state clones with new context values', function () {
     $state = new SettingsContextState($resolver, null, null, null, 'UTC');
 
     $user = Mockery::mock(Authenticatable::class);
-    $clone = $state->cloneWith($user, 'tenant-2', ['a' => 1], 'America/New_York');
+    $clone = $state->cloneWith($user, 'tenant-2', ['a' => 1], 'America/New_York', 'billing');
 
     expect($clone->context())->toBe(['a' => 1]);
 

@@ -38,7 +38,11 @@ class MigrateFromSpatieCommand extends Command
             $connection = is_string($defaultConnection) ? $defaultConnection : null;
         }
 
-        if ($spatieTable === 'settings' && ! Schema::connection($connection)->hasColumn('settings', 'group') && Schema::connection($connection)->hasTable('spatie_settings')) {
+        if (
+            $spatieTable === 'settings'
+            && ! Schema::connection($connection)->hasColumn('settings', 'payload')
+            && Schema::connection($connection)->hasTable('spatie_settings')
+        ) {
             $spatieTable = 'spatie_settings';
             $this->info('Defaulting to [spatie_settings] table as [settings] table was not found or already migrated.');
         }
