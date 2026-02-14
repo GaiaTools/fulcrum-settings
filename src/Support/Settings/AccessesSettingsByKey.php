@@ -97,6 +97,7 @@ trait AccessesSettingsByKey
     }
 
     /**
+     * @param  array<int, string>|string  $keys
      * @return array<int, string>
      */
     private function normalizeKeys(array|string $keys): array
