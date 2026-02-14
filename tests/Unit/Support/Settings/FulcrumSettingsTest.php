@@ -216,18 +216,40 @@ test('toArray and toJson serialize settings using setting keys and hydrate lazy 
     expect(json_decode($settings->toJson(), true))->toBe($expected);
 });
 
-test('collection methods are proxied through settings instances', function () {
-    $this->hydrator->shouldReceive('hydrate')->byDefault()->andReturn('value');
+test('explicit settings accessors work with resolved keys', function () {
+    $this->hydrator->shouldReceive('hydrate')
+        ->with(Mockery::any(), 'name', $this->configs['name'], Mockery::any(), Mockery::any())
+        ->andReturn('Fulcrum');
+    $this->hydrator->shouldReceive('hydrate')
+        ->with(Mockery::any(), 'tenantProp', $this->configs['tenantProp'], Mockery::any(), Mockery::any())
+        ->andReturn('TenantValue');
+    $this->hydrator->shouldReceive('hydrate')
+        ->with(Mockery::any(), 'readOnlyProp', $this->configs['readOnlyProp'], Mockery::any(), Mockery::any())
+        ->andReturn('InitialValue');
+    $this->hydrator->shouldReceive('hydrate')
+        ->with(Mockery::any(), 'lazyProp', $this->configs['lazyProp'], Mockery::any(), Mockery::any())
+        ->once()
+        ->andReturn('LazyValue');
+
     $settings = new TestSettings($this->resolver, $this->discoverer, $this->hydrator, $this->persister);
 
-    $keys = $settings
-        ->filter(fn ($value) => $value !== null)
-        ->keys()
-        ->all();
+    expect($settings->get('test.name'))->toBe('Fulcrum');
+    expect($settings->get('missing.key', 'default'))->toBe('default');
+    expect($settings->has('test.lazy'))->toBeTrue();
+    expect($settings->has('missing.key'))->toBeFalse();
+    expect($settings->keys())->toContain('test.name', 'test.lazy', 'test.readonly', 'test.tenant');
 
-    expect($keys)->toContain('test.name');
-    expect($keys)->toContain('test.readonly');
-    expect($keys)->toContain('test.tenant');
+    $only = $settings->only(['test.name', 'test.lazy']);
+    expect($only)->toBe([
+        'test.name' => 'Fulcrum',
+        'test.lazy' => 'LazyValue',
+    ]);
+
+    $except = $settings->except('test.lazy');
+    expect($except)->toHaveKey('test.name')
+        ->and($except)->toHaveKey('test.readonly')
+        ->and($except)->toHaveKey('test.tenant')
+        ->and($except)->not->toHaveKey('test.lazy');
 });
 
 test('load hydrates lazy properties without rehydrating non-lazy values', function () {
