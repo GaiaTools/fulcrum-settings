@@ -15,7 +15,8 @@ use JsonSerializable;
  */
 abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
 {
-    use InterceptsAccess;
+    use AccessesSettingsByKey;
+    use ManagesSettingsLifecycle;
     use SerializesSettings;
     use SwitchesContext;
 
@@ -45,47 +46,32 @@ abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
         $this->loader->bootLoad($this);
     }
 
-    public function save(): void
+    public function __get(string $name): mixed
     {
-        if ($this->saver->save($this)) {
-            $this->loader->bootLoad($this);
+        $config = $this->state->propertyConfigs()[$name] ?? null;
+
+        if (! $config) {
+            return null;
         }
+
+        $this->loader->ensurePropertyLoaded($this, $name, $config);
+
+        return $this->{$name} ?? null;
     }
 
-    /**
-     * Hydrate lazy settings by key.
-     *
-     * @param  array<int, string>|null  $keys
-     */
-    public function load(?array $keys = null): static
+    public function __set(string $name, mixed $value): void
     {
-        $this->loader->load($this, $keys);
+        $config = $this->state->propertyConfigs()[$name] ?? null;
 
-        return $this;
-    }
+        if ($config?->readOnly || ! property_exists($this, $name)) {
+            return;
+        }
 
-    /**
-     * Force re-hydration of settings by key.
-     *
-     * @param  array<int, string>|null  $keys
-     */
-    public function reload(?array $keys = null): static
-    {
-        $this->loader->reload($this, $keys);
+        $this->{$name} = $value;
 
-        return $this;
-    }
-
-    public function refresh(): void
-    {
-        $this->state->clearDirty();
-        $this->state->clearLazyLoaded();
-        $this->loader->bootLoad($this);
-    }
-
-    public function isDirty(?string $property = null): bool
-    {
-        return $this->state->isDirty($property);
+        if ($config) {
+            $this->state->markDirty($name);
+        }
     }
 
     private function resolveGroup(): ?string
