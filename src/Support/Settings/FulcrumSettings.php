@@ -15,9 +15,9 @@ use JsonSerializable;
  */
 abstract class FulcrumSettings implements Arrayable, Jsonable, JsonSerializable
 {
+    use InterceptsAccess;
     use SerializesSettings;
     use SwitchesContext;
-    use InterceptsAccess;
 
     protected SettingsState $state;
 
