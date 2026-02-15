@@ -23,7 +23,8 @@ return new class extends Migration
 
             // Re-create the unique index to include tenant_id
             $table->dropUnique($settingsTable.'_key_unique');
-            $table->unique(['key', 'tenant_id']);
+            $table->unique(['group', 'key', 'tenant_id']);
+            $table->index(['group', 'key', 'tenant_id']);
         });
 
         Schema::table($rulesTable, function (Blueprint $table) {
@@ -58,6 +59,7 @@ return new class extends Migration
         $conditionsTable = $tables['setting_rule_conditions'] ?? 'setting_rule_conditions';
         $valuesTable = $tables['setting_values'] ?? 'setting_values';
         $variantsTable = $tables['setting_rule_rollout_variants'] ?? 'setting_rule_rollout_variants';
+        $hasGroup = Schema::hasColumn($settingsTable, 'group');
 
         Schema::table($valuesTable, function (Blueprint $table) {
             $table->dropColumn('tenant_id');
@@ -71,7 +73,10 @@ return new class extends Migration
             $table->dropColumn('tenant_id');
         });
 
-        Schema::table($settingsTable, function (Blueprint $table) {
+        Schema::table($settingsTable, function (Blueprint $table) use ($hasGroup) {
+            if ($hasGroup) {
+                $table->dropIndex(['group', 'tenant_id']);
+            }
             $table->dropUnique(['key', 'tenant_id']);
             $table->unique('key');
             $table->dropColumn('tenant_id');
