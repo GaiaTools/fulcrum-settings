@@ -17,13 +17,14 @@ return new class extends Migration
         // Check if settings table already exists and might be from Spatie
         if (Schema::hasTable($settingsTable)) {
             if (Schema::hasColumn($settingsTable, 'group') && Schema::hasColumn($settingsTable, 'payload')) {
-                Schema::rename($settingsTable, 'spatie_settings');
+                Schema::rename($settingsTable, 'old_settings');
             }
         }
 
         Schema::create($settingsTable, function (Blueprint $table) {
             $table->id();
             $table->string('key')->unique();
+            $table->string('group')->nullable()->after('key')->index();
             $table->string('type');
             $table->text('description')->nullable();
             $table->boolean('masked')->default(false);

@@ -10,3 +10,4 @@ Pick your starting point and follow the focused steps.
 - [Spatie](spatie)
 - [Pennant](pennant)
 - [LaunchDarkly/ConfigCat](launchdarkly-configcat)
+- [Version Migrations](migrations)

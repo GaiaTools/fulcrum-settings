@@ -274,6 +274,10 @@
                     "link": "migrate/overview"
                 },
                 {
+                    "text": "Version Migrations",
+                    "link": "migrate/migrations"
+                },
+                {
                     "text": "Spatie",
                     "link": "migrate/spatie"
                 },
