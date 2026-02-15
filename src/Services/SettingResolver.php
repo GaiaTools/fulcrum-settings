@@ -158,7 +158,7 @@ class SettingResolver implements SettingResolverContract
             }
         }
 
-        $settings = $query->get(['key', 'tenant_id']);
+        $settings = $query->orderBy('id')->get(['key', 'tenant_id']);
         $keys = [];
 
         foreach ($settings as $setting) {
