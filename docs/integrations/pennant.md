@@ -30,6 +30,23 @@ Set the store in `.env`:
 PENNANT_STORE=fulcrum
 ```
 
+## Register the Driver
+
+Fulcrum ships with a Pennant driver class, but you must register it with Pennant.
+Add this to your `AppServiceProvider::boot()` (or a dedicated service provider):
+
+```php
+use GaiaTools\FulcrumSettings\Drivers\PennantDriver;
+use Laravel\Pennant\Feature;
+
+public function boot(): void
+{
+    Feature::extend('fulcrum', function ($app) {
+        return $app->make(PennantDriver::class);
+    });
+}
+```
+
 ## Enable Fulcrum Integration
 
 ```php
@@ -59,6 +76,16 @@ if (Feature::active('new-api')) {
     // ...
 }
 ```
+
+## Limitations
+
+Fulcrum manages features in the database, so Pennant write operations are not supported.
+The following methods will throw exceptions:
+
+- `Feature::set(...)`
+- `Feature::setForAllScopes(...)`
+- `Feature::delete(...)`
+- `Feature::purge(...)`
 
 ## Related Reading
 
