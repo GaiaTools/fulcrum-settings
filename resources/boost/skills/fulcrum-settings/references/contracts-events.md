@@ -251,5 +251,7 @@ All exceptions are in the `GaiaTools\FulcrumSettings\Exceptions` namespace.
 | `InvalidSettingValueException` | Value fails type validation |
 | `InvalidTypeHandlerException` | Registered type handler is invalid or misconfigured |
 | `MissingTypeHandlerException` | Setting type has no registered handler |
+| `MissingConditionTypeHandlerException` | Condition type has no registered handler |
+| `InvalidConditionTypeHandlerException` | Condition type handler is invalid or misconfigured |
 | `ImmutableSettingException` | Attempting to modify/delete an immutable setting without `--force` |
 | `PennantException` | Pennant integration is misconfigured or disabled |

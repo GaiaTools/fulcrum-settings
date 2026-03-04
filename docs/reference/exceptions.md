@@ -32,3 +32,11 @@ Thrown when attempting to modify or delete an immutable setting without force ov
 ## `PennantException`
 
 Thrown when Pennant integration is misconfigured or disabled.
+
+## `MissingConditionTypeHandlerException`
+
+Thrown when a setting condition type cannot be resolved to a handler.
+
+## `InvalidConditionTypeHandlerException`
+
+Thrown when a registered condition type handler is invalid or misconfigured.

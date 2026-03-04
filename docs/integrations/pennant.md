@@ -49,12 +49,22 @@ public function boot(): void
 
 ## Enable Fulcrum Integration
 
+Fulcrum integration is disabled by default. You must enable it **and** register the driver (see Step 3) for the integration to work.
+
 ```php
 // config/fulcrum.php
 'pennant' => [
     'enabled' => true,
 ],
 ```
+
+::: warning Important
+Both of these steps are required:
+1. Enable the integration in `config/fulcrum.php` (shown above)
+2. Register the driver with Pennant in your service provider (Step 3 below)
+
+The integration will not work without both steps.
+:::
 
 ## Define Features in Fulcrum
 

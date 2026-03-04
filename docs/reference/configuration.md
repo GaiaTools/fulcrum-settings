@@ -45,12 +45,12 @@ This is a complete reference for `config/fulcrum.php`.
 ## Holiday Resolver
 
 ```php
-'holiday_resolver' => null,
+'holiday_resolver' => \GaiaTools\FulcrumSettings\Drivers\YasumiHolidayResolver::class,
 ```
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `holiday_resolver` | `class-string|null` | `null` | Resolver for holiday checks. Set to a resolver class to enable holiday targeting. |
+| `holiday_resolver` | `class-string|null` | `YasumiHolidayResolver::class` | Resolver for holiday checks. Set to a resolver class to enable holiday targeting. Set to `null` to disable. |
 
 ## Holiday Configuration
 

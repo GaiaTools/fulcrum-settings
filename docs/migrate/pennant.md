@@ -24,6 +24,25 @@ In your `config/pennant.php`:
 ],
 ```
 
+## Step 2: Enable Fulcrum Integration
+
+Fulcrum integration is disabled by default. You must enable it **and** register the driver (Step 3) for the integration to work.
+
+```php
+// config/fulcrum.php
+'pennant' => [
+    'enabled' => true,
+],
+```
+
+::: warning Important
+Both of these steps are required:
+1. Enable the integration in `config/fulcrum.php` (shown above)
+2. Register the driver with Pennant in your service provider (Step 3)
+
+The integration will not work without both steps.
+:::
+
 ## Step 2: Update Feature Definitions
 
 Instead of defining features in a Service Provider using `Feature::define()`, you define them as Fulcrum settings.
