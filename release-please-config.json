@@ -1,0 +1,12 @@
+{
+  "include-v-in-tag": true,
+  "include-component-in-tag": false,
+  "pull-request-title-pattern": "chore: release ${version}",
+  "packages": {
+    ".": {
+      "release-type": "php",
+      "package-name": "gaiatools/fulcrum-settings",
+      "changelog-path": "CHANGELOG.md"
+    }
+  }
+}
