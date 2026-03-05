@@ -33,7 +33,7 @@
         "pestphp/pest": "^4.1",
         "pestphp/pest-plugin-laravel": "^4.0",
         "phpstan/phpstan": "^2.1",
-        "spatie/laravel-permission": "^6.24"
+        "spatie/laravel-permission": "^7.2"
     },
     "autoload": {
         "psr-4": {
