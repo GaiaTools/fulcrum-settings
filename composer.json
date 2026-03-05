@@ -11,10 +11,10 @@
     ],
     "license": "Apache-2.0",
     "authors": [
-      {
-        "name": "Gaia Tools",
-        "email": "support@gaiatools.com"
-      }
+        {
+            "name": "Gaia Tools",
+            "email": "support@gaiatools.com"
+        }
     ],
     "require": {
         "php": "^8.3|^8.4",
