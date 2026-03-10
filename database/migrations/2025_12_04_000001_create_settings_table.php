@@ -24,7 +24,7 @@ return new class extends Migration
         Schema::create($settingsTable, function (Blueprint $table) {
             $table->id();
             $table->string('key')->unique();
-            $table->string('group')->nullable()->after('key')->index();
+            $table->string('group')->nullable()->index();
             $table->string('type');
             $table->text('description')->nullable();
             $table->boolean('masked')->default(false);
