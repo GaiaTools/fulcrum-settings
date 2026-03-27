@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use GaiaTools\FulcrumSettings\Enums\SettingType;
+use GaiaTools\FulcrumSettings\Types\ArrayTypeHandler;
 use GaiaTools\FulcrumSettings\Types\BooleanTypeHandler;
 use GaiaTools\FulcrumSettings\Types\FloatTypeHandler;
 use GaiaTools\FulcrumSettings\Types\IntegerTypeHandler;
@@ -152,7 +153,7 @@ describe('JsonTypeHandler', function () {
 });
 
 describe('ArrayTypeHandler', function () {
-    beforeEach(fn () => $this->handler = new \GaiaTools\FulcrumSettings\Types\ArrayTypeHandler);
+    beforeEach(fn () => $this->handler = new ArrayTypeHandler);
 
     test('get decodes json string or returns value if already array', function () {
         $data = ['a' => 1, 'b' => 2];

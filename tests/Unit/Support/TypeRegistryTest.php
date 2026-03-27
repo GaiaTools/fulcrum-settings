@@ -57,7 +57,7 @@ test('type registry throws exception for invalid handler class', function () {
 test('type registry throws exception for class not implementing SettingTypeHandler', function () {
     $registry = new TypeRegistry;
 
-    expect(fn () => $registry->register('invalid', \stdClass::class))
+    expect(fn () => $registry->register('invalid', stdClass::class))
         ->toThrow(InvalidTypeHandlerException::class);
 });
 

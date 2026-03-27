@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace GaiaTools\FulcrumSettings\Tests\Feature\Console;
 
 use GaiaTools\FulcrumSettings\Enums\SettingType;
+use GaiaTools\FulcrumSettings\Models\Scopes\TenantScope;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Tests\TestCase;
 use Illuminate\Support\Facades\Config;
@@ -27,7 +28,7 @@ class SetSettingWizardMultiTenancyTest extends TestCase
             ->expectsQuestion('Do you want to manage targeting rules for this setting?', false)
             ->assertExitCode(0);
 
-        $setting = Setting::withoutGlobalScope(\GaiaTools\FulcrumSettings\Models\Scopes\TenantScope::class)->where('key', 'tenancy.test')->first();
+        $setting = Setting::withoutGlobalScope(TenantScope::class)->where('key', 'tenancy.test')->first();
         $this->assertEquals('tenant-123', $setting->tenant_id);
     }
 
@@ -47,7 +48,7 @@ class SetSettingWizardMultiTenancyTest extends TestCase
             ->expectsQuestion('Do you want to manage targeting rules for this setting?', false)
             ->assertExitCode(0);
 
-        $setting = Setting::withoutGlobalScope(\GaiaTools\FulcrumSettings\Models\Scopes\TenantScope::class)->where('key', 'no.tenancy.test')->first();
+        $setting = Setting::withoutGlobalScope(TenantScope::class)->where('key', 'no.tenancy.test')->first();
         $this->assertNull($setting->tenant_id);
     }
 
@@ -63,7 +64,7 @@ class SetSettingWizardMultiTenancyTest extends TestCase
             ->expectsOutput('Setting [ignore.tenant.test] updated successfully.')
             ->assertExitCode(0);
 
-        $setting = Setting::withoutGlobalScope(\GaiaTools\FulcrumSettings\Models\Scopes\TenantScope::class)
+        $setting = Setting::withoutGlobalScope(TenantScope::class)
             ->where('key', 'ignore.tenant.test')
             ->first();
 

@@ -9,6 +9,7 @@ use GaiaTools\FulcrumSettings\Facades\Fulcrum;
 use GaiaTools\FulcrumSettings\Models\Concerns\HasMaskedValue;
 use GaiaTools\FulcrumSettings\Models\Scopes\TenantScope;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -29,9 +30,9 @@ use Illuminate\Support\Str;
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property Setting $setting
- * @property-read \Illuminate\Database\Eloquent\Collection<int, SettingRule> $rules
- * @property-read \Illuminate\Database\Eloquent\Collection<int, SettingRuleCondition> $conditions
- * @property-read \Illuminate\Database\Eloquent\Collection<int, SettingRuleRolloutVariant> $rolloutVariants
+ * @property-read Collection<int, SettingRule> $rules
+ * @property-read Collection<int, SettingRuleCondition> $conditions
+ * @property-read Collection<int, SettingRuleRolloutVariant> $rolloutVariants
  * @property-read SettingValue|null $value
  */
 class SettingRule extends Model

@@ -6,6 +6,7 @@ namespace GaiaTools\FulcrumSettings\Tests\Feature;
 
 use Carbon\Carbon;
 use GaiaTools\FulcrumSettings\Attributes\SettingProperty;
+use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Support\Settings\FulcrumSettings;
 use GaiaTools\FulcrumSettings\Tests\TestCase;
 
@@ -28,11 +29,11 @@ class CarbonIntegrationTest extends TestCase
         config(['fulcrum.carbon.store_utc' => true]);
 
         // Create the settings in the database
-        \GaiaTools\FulcrumSettings\Models\Setting::create([
+        Setting::create([
             'key' => 'maintenance_start',
             'type' => 'carbon',
         ]);
-        \GaiaTools\FulcrumSettings\Models\Setting::create([
+        Setting::create([
             'key' => 'maintenance_end',
             'type' => 'carbon',
         ]);

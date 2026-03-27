@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace GaiaTools\FulcrumSettings\Tests\Feature\Console;
 
+use GaiaTools\FulcrumSettings\Facades\Fulcrum;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use GaiaTools\FulcrumSettings\Tests\TestCase;
@@ -58,7 +59,7 @@ class SettingCommandsTest extends TestCase
             ->expectsOutput('Setting [new.setting] updated successfully.')
             ->assertExitCode(0);
 
-        $this->assertEquals('new-value', \GaiaTools\FulcrumSettings\Facades\Fulcrum::get('new.setting'));
+        $this->assertEquals('new-value', Fulcrum::get('new.setting'));
 
         $setting = Setting::where('key', 'new.setting')->first();
         $this->assertEquals('A new setting', $setting->description);
@@ -72,7 +73,7 @@ class SettingCommandsTest extends TestCase
             '--type' => 'integer',
         ])->assertExitCode(0);
 
-        $this->assertSame(123, \GaiaTools\FulcrumSettings\Facades\Fulcrum::get('int.setting'));
+        $this->assertSame(123, Fulcrum::get('int.setting'));
 
         $this->artisan('fulcrum:set', [
             'key' => 'bool.setting',
@@ -80,7 +81,7 @@ class SettingCommandsTest extends TestCase
             '--type' => 'boolean',
         ])->assertExitCode(0);
 
-        $this->assertSame(true, \GaiaTools\FulcrumSettings\Facades\Fulcrum::get('bool.setting'));
+        $this->assertSame(true, Fulcrum::get('bool.setting'));
     }
 
     public function test_set_immutable_setting_command()
@@ -105,7 +106,7 @@ class SettingCommandsTest extends TestCase
             ->expectsOutput('Setting [immutable.key] updated successfully.')
             ->assertExitCode(0);
 
-        $this->assertEquals('new-value', \GaiaTools\FulcrumSettings\Facades\Fulcrum::get('immutable.key'));
+        $this->assertEquals('new-value', Fulcrum::get('immutable.key'));
     }
 
     public function test_list_settings_command()

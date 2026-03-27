@@ -6,6 +6,7 @@ namespace GaiaTools\FulcrumSettings\Tests\Feature;
 
 use GaiaTools\FulcrumSettings\Enums\SettingType;
 use GaiaTools\FulcrumSettings\Models\Setting;
+use GaiaTools\FulcrumSettings\Models\SettingRule;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -75,12 +76,12 @@ test('setting rules are also tenant scoped', function () {
     FulcrumContext::setTenantId('tenant-1');
 
     // SettingRule::all() should only return Rule 1
-    $rules = \GaiaTools\FulcrumSettings\Models\SettingRule::all();
+    $rules = SettingRule::all();
 
     expect($rules->contains('name', 'Rule 1'))->toBeTrue()
         ->and($rules->contains('name', 'Rule 2'))->toBeFalse();
 
     // Even if we try to query Rule 2 directly, it should be filtered out
-    $rule2 = \GaiaTools\FulcrumSettings\Models\SettingRule::where('name', 'Rule 2')->first();
+    $rule2 = SettingRule::where('name', 'Rule 2')->first();
     expect($rule2)->toBeNull();
 });

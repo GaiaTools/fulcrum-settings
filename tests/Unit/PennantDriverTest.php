@@ -7,10 +7,12 @@ use GaiaTools\FulcrumSettings\Enums\ComparisonOperator;
 use GaiaTools\FulcrumSettings\Enums\SettingType;
 use GaiaTools\FulcrumSettings\Exceptions\PennantException;
 use GaiaTools\FulcrumSettings\Models\Setting;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Foundation\Auth\User;
+use Laravel\Pennant\Feature;
 
 beforeEach(function () {
-    if (! class_exists(\Laravel\Pennant\Feature::class)) {
+    if (! class_exists(Feature::class)) {
         $this->markTestSkipped('Laravel Pennant is not installed');
     }
 });
@@ -241,7 +243,7 @@ describe('PennantDriver', function () {
     });
 
     it('handles fallback email attributes in authenticatable scope', function () {
-        $user1 = new class implements \Illuminate\Contracts\Auth\Authenticatable
+        $user1 = new class implements Authenticatable
         {
             public $email = 'user1@example.com';
 
@@ -278,7 +280,7 @@ describe('PennantDriver', function () {
             }
         };
 
-        $user2 = new class implements \Illuminate\Contracts\Auth\Authenticatable
+        $user2 = new class implements Authenticatable
         {
             public $attributes = ['email' => 'user2@example.com'];
 

@@ -6,6 +6,7 @@ use GaiaTools\FulcrumSettings\Drivers\PennantDriver;
 use GaiaTools\FulcrumSettings\Enums\ComparisonOperator;
 use GaiaTools\FulcrumSettings\Enums\SettingType;
 use GaiaTools\FulcrumSettings\Models\Setting;
+use GaiaTools\FulcrumSettings\Models\SettingRule;
 use Illuminate\Foundation\Auth\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Pennant\Feature;
@@ -95,7 +96,7 @@ describe('Pennant Integration', function () {
             'value' => ['@company.com'],
         ]);
         $rule->value()->create([
-            'valuable_type' => \GaiaTools\FulcrumSettings\Models\SettingRule::class,
+            'valuable_type' => SettingRule::class,
             'valuable_id' => $rule->id,
             'value' => true,
         ]);
@@ -121,7 +122,7 @@ describe('Pennant Integration', function () {
             'value' => '2.0.0',
         ]);
         $rule->value()->create([
-            'valuable_type' => \GaiaTools\FulcrumSettings\Models\SettingRule::class,
+            'valuable_type' => SettingRule::class,
             'valuable_id' => $rule->id,
             'value' => true,
         ]);
@@ -248,7 +249,7 @@ describe('Pennant Integration', function () {
             'value' => 'premium',
         ]);
         $rule1->value()->create([
-            'valuable_type' => \GaiaTools\FulcrumSettings\Models\SettingRule::class,
+            'valuable_type' => SettingRule::class,
             'valuable_id' => $rule1->id,
             'value' => 'premium',
         ]);
@@ -260,7 +261,7 @@ describe('Pennant Integration', function () {
             'value' => 'pro',
         ]);
         $rule2->value()->create([
-            'valuable_type' => \GaiaTools\FulcrumSettings\Models\SettingRule::class,
+            'valuable_type' => SettingRule::class,
             'valuable_id' => $rule2->id,
             'value' => 'pro',
         ]);

@@ -6,8 +6,11 @@ namespace GaiaTools\FulcrumSettings\Tests\Feature;
 
 use GaiaTools\FulcrumSettings\Database\Migrations\SettingMigration;
 use GaiaTools\FulcrumSettings\Facades\Fulcrum;
+use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use GaiaTools\FulcrumSettings\Support\MaskedValue;
 use GaiaTools\FulcrumSettings\Tests\TestCase;
+use Illuminate\Foundation\Auth\User;
+use Illuminate\Support\Facades\Gate;
 
 class MaskingTest extends TestCase
 {
@@ -60,10 +63,10 @@ class MaskingTest extends TestCase
         $this->assertEquals('secret value', $value);
 
         // 3. Explicit reveal request WITH permission should be unmasked
-        $user = new class extends \Illuminate\Foundation\Auth\User {};
+        $user = new class extends User {};
         $this->actingAs($user);
 
-        \Illuminate\Support\Facades\Gate::define('viewSettingValue', function () {
+        Gate::define('viewSettingValue', function () {
             return true;
         });
 
@@ -86,17 +89,17 @@ class MaskingTest extends TestCase
         };
         $migration->up();
 
-        $user = new class extends \Illuminate\Foundation\Auth\User {};
+        $user = new class extends User {};
         $this->actingAs($user);
 
-        \Illuminate\Support\Facades\Gate::define('viewSettingValue', function () {
+        Gate::define('viewSettingValue', function () {
             return true;
         });
 
         $this->assertEquals('secret', Fulcrum::reveal()->get('masked_test_sticky'));
 
         // Manually clear reveal flag (usually happens at start of request)
-        \GaiaTools\FulcrumSettings\Support\FulcrumContext::reveal(false);
+        FulcrumContext::reveal(false);
 
         $this->assertInstanceOf(MaskedValue::class, Fulcrum::get('masked_test_sticky'));
     }

@@ -8,6 +8,7 @@ use GaiaTools\FulcrumSettings\Database\Migrations\SettingDefinition;
 use GaiaTools\FulcrumSettings\Enums\SettingType;
 use GaiaTools\FulcrumSettings\Exceptions\InvalidSettingValueException;
 use GaiaTools\FulcrumSettings\Exceptions\InvalidTypeHandlerException;
+use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use GaiaTools\FulcrumSettings\Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -25,11 +26,11 @@ class SettingDefinitionTest extends TestCase
             ->immutable()
             ->forTenant('tenant_1');
 
-        \GaiaTools\FulcrumSettings\Support\FulcrumContext::force(true);
+        FulcrumContext::force(true);
         try {
             $setting = $definition->save();
         } finally {
-            \GaiaTools\FulcrumSettings\Support\FulcrumContext::force(false);
+            FulcrumContext::force(false);
         }
 
         $this->assertEquals('test.key', $setting->key);

@@ -9,6 +9,7 @@ use GaiaTools\FulcrumSettings\Database\Migrations\SettingMigration;
 use GaiaTools\FulcrumSettings\Enums\ComparisonOperator;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Tests\TestCase;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 
@@ -266,14 +267,14 @@ class SettingMigrationExtendedTest extends TestCase
     public function test_modify_throws_if_not_exists()
     {
         $migration = $this->getMigration();
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
         $migration->call('modify', 'non_existent', function () {});
     }
 
     public function test_rename_throws_if_not_exists()
     {
         $migration = $this->getMigration();
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
         $migration->call('rename', 'non_existent', 'new_key');
     }
 

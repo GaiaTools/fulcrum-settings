@@ -16,6 +16,7 @@ use GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use GaiaTools\FulcrumSettings\Support\TypeRegistry;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Collection;
 
 class SetSettingCommand extends Command
 {
@@ -452,7 +453,7 @@ class SetSettingCommand extends Command
     protected function manageRollouts(SettingRule $rule, TypeRegistry $typeRegistry, ?string $tenantId): void
     {
         while (true) {
-            /** @var \Illuminate\Database\Eloquent\Collection<int, SettingRuleRolloutVariant> $variants */
+            /** @var Collection<int, SettingRuleRolloutVariant> $variants */
             $variants = $rule->rolloutVariants;
             if ($variants->isNotEmpty()) {
                 $this->table(['ID', 'Name', 'Weight (%)', 'Value'], $variants->map(fn (SettingRuleRolloutVariant $v) => [

@@ -6,8 +6,11 @@ use GaiaTools\FulcrumSettings\Conditions\DateTimeConditionTypeHandler;
 use GaiaTools\FulcrumSettings\Conditions\GeocodingConditionTypeHandler;
 use GaiaTools\FulcrumSettings\Conditions\UserAgentConditionTypeHandler;
 use GaiaTools\FulcrumSettings\Conditions\UserConditionTypeHandler;
+use GaiaTools\FulcrumSettings\Drivers\DefaultGeoResolver;
+use GaiaTools\FulcrumSettings\Drivers\DefaultUserAgentResolver;
 use GaiaTools\FulcrumSettings\Drivers\WeightDistributionStrategy;
 use GaiaTools\FulcrumSettings\Drivers\YasumiHolidayResolver;
+use GaiaTools\FulcrumSettings\Enums\ConditionType;
 use GaiaTools\FulcrumSettings\Services\Crc32BucketCalculator;
 use GaiaTools\FulcrumSettings\Types\ArrayTypeHandler;
 use GaiaTools\FulcrumSettings\Types\BooleanTypeHandler;
@@ -47,7 +50,7 @@ return [
     | - DefaultGeoResolver::class (default, returns IP only)
     |
     */
-    'geo_resolver' => \GaiaTools\FulcrumSettings\Drivers\DefaultGeoResolver::class,
+    'geo_resolver' => DefaultGeoResolver::class,
 
     /*
     |--------------------------------------------------------------------------
@@ -61,7 +64,7 @@ return [
     | - DefaultUserAgentResolver::class (default, basic regex-based detection)
     |
     */
-    'user_agent_resolver' => \GaiaTools\FulcrumSettings\Drivers\DefaultUserAgentResolver::class,
+    'user_agent_resolver' => DefaultUserAgentResolver::class,
 
     /*
     |--------------------------------------------------------------------------
@@ -302,7 +305,7 @@ return [
     |
     */
 
-    'condition_types_default' => \GaiaTools\FulcrumSettings\Enums\ConditionType::USER->value,
+    'condition_types_default' => ConditionType::USER->value,
 
     /*
     |--------------------------------------------------------------------------

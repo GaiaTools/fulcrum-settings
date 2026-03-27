@@ -6,6 +6,7 @@ namespace GaiaTools\FulcrumSettings\Services;
 
 use GaiaTools\FulcrumSettings\Contracts\GroupedSettingResolver;
 use GaiaTools\FulcrumSettings\Contracts\SettingResolver;
+use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use GaiaTools\FulcrumSettings\Support\GroupedSettingResolver as GroupedSettingResolverImpl;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Cache;
@@ -140,7 +141,7 @@ class CachedSettingResolver implements SettingResolver
 
     protected function resolveKey(string $key): string
     {
-        $group = $this->group ?? \GaiaTools\FulcrumSettings\Support\FulcrumContext::getGroup();
+        $group = $this->group ?? FulcrumContext::getGroup();
 
         if ($group && ! str_contains($key, '.')) {
             return $group.'.'.$key;

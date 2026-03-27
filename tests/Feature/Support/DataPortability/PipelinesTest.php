@@ -7,6 +7,11 @@ namespace GaiaTools\FulcrumSettings\Tests\Feature\Support\DataPortability;
 use GaiaTools\FulcrumSettings\Http\Requests\ExportRequest;
 use GaiaTools\FulcrumSettings\Http\Requests\ImportRequest;
 use GaiaTools\FulcrumSettings\Support\DataPortability\ExportManager;
+use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\CsvFormatter;
+use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\JsonFormatter;
+use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\SqlFormatter;
+use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\XmlFormatter;
+use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\YamlFormatter;
 use GaiaTools\FulcrumSettings\Support\DataPortability\ImportManager;
 use GaiaTools\FulcrumSettings\Support\DataPortability\Pipelines\Export\PrepareExport;
 use GaiaTools\FulcrumSettings\Support\DataPortability\Pipelines\Import\ProcessImport;
@@ -54,11 +59,11 @@ class PipelinesTest extends TestCase
 
             $pipeline->handle($request, function ($req) use ($format) {
                 $formatterClass = match ($format) {
-                    'json' => \GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\JsonFormatter::class,
-                    'xml' => \GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\XmlFormatter::class,
-                    'yaml', 'yml' => \GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\YamlFormatter::class,
-                    'sql' => \GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\SqlFormatter::class,
-                    default => \GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\CsvFormatter::class,
+                    'json' => JsonFormatter::class,
+                    'xml' => XmlFormatter::class,
+                    'yaml', 'yml' => YamlFormatter::class,
+                    'sql' => SqlFormatter::class,
+                    default => CsvFormatter::class,
                 };
                 $this->assertInstanceOf($formatterClass, $req->attributes->get('formatter'));
             });
@@ -73,7 +78,7 @@ class PipelinesTest extends TestCase
 
         $pipeline = new ProcessImport;
         $pipeline->handle($request, function ($req) {
-            $this->assertInstanceOf(\GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\YamlFormatter::class, $req->attributes->get('formatter'));
+            $this->assertInstanceOf(YamlFormatter::class, $req->attributes->get('formatter'));
         });
     }
 
@@ -85,7 +90,7 @@ class PipelinesTest extends TestCase
 
         $pipeline = new ProcessImport;
         $pipeline->handle($request, function ($req) {
-            $this->assertInstanceOf(\GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\SqlFormatter::class, $req->attributes->get('formatter'));
+            $this->assertInstanceOf(SqlFormatter::class, $req->attributes->get('formatter'));
         });
     }
 
@@ -97,7 +102,7 @@ class PipelinesTest extends TestCase
 
         $pipeline = new ProcessImport;
         $pipeline->handle($request, function ($req) {
-            $this->assertInstanceOf(\GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\XmlFormatter::class, $req->attributes->get('formatter'));
+            $this->assertInstanceOf(XmlFormatter::class, $req->attributes->get('formatter'));
         });
     }
 
@@ -109,7 +114,7 @@ class PipelinesTest extends TestCase
 
         $pipeline = new ProcessImport;
         $pipeline->handle($request, function ($req) {
-            $this->assertInstanceOf(\GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\CsvFormatter::class, $req->attributes->get('formatter'));
+            $this->assertInstanceOf(CsvFormatter::class, $req->attributes->get('formatter'));
         });
     }
 
@@ -121,7 +126,7 @@ class PipelinesTest extends TestCase
 
         $pipeline = new ProcessImport;
         $pipeline->handle($request, function ($req) {
-            $this->assertInstanceOf(\GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\CsvFormatter::class, $req->attributes->get('formatter'));
+            $this->assertInstanceOf(CsvFormatter::class, $req->attributes->get('formatter'));
         });
     }
 
@@ -133,7 +138,7 @@ class PipelinesTest extends TestCase
 
         $pipeline = new ProcessImport;
         $pipeline->handle($request, function ($req) {
-            $this->assertInstanceOf(\GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\JsonFormatter::class, $req->attributes->get('formatter'));
+            $this->assertInstanceOf(JsonFormatter::class, $req->attributes->get('formatter'));
         });
     }
 
@@ -145,7 +150,7 @@ class PipelinesTest extends TestCase
 
         $pipeline = new ProcessImport;
         $pipeline->handle($request, function ($req) {
-            $this->assertInstanceOf(\GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\JsonFormatter::class, $req->attributes->get('formatter'));
+            $this->assertInstanceOf(JsonFormatter::class, $req->attributes->get('formatter'));
         });
     }
 
@@ -158,7 +163,7 @@ class PipelinesTest extends TestCase
 
         $pipeline = new ProcessImport;
         $pipeline->handle($request, function ($req) {
-            $this->assertInstanceOf(\GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\XmlFormatter::class, $req->attributes->get('formatter'));
+            $this->assertInstanceOf(XmlFormatter::class, $req->attributes->get('formatter'));
         });
     }
 
@@ -168,7 +173,7 @@ class PipelinesTest extends TestCase
         $manager->shouldReceive('import')->once()->andReturn(true);
 
         $request = new ImportRequest;
-        $request->attributes->set('formatter', new \GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\JsonFormatter);
+        $request->attributes->set('formatter', new JsonFormatter);
         $request->attributes->set('file_path', 'some/path');
 
         $pipeline = new StoreData($manager);

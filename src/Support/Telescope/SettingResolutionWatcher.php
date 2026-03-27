@@ -6,6 +6,8 @@ namespace GaiaTools\FulcrumSettings\Support\Telescope;
 
 use GaiaTools\FulcrumSettings\Events\SettingResolved;
 use GaiaTools\FulcrumSettings\Support\MaskedValue;
+use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Contracts\Foundation\Application;
 use Laravel\Telescope\IncomingEntry;
 use Laravel\Telescope\Telescope;
 use Laravel\Telescope\Watchers\Watcher;
@@ -15,11 +17,11 @@ class SettingResolutionWatcher extends Watcher
     /**
      * Register the watcher.
      *
-     * @param  \Illuminate\Contracts\Foundation\Application  $app
+     * @param  Application  $app
      */
     public function register($app): void
     {
-        /** @var \Illuminate\Contracts\Events\Dispatcher $events */
+        /** @var Dispatcher $events */
         $events = $app->make('events');
         $events->listen(SettingResolved::class, [$this, 'recordResolution']);
     }

@@ -23,6 +23,7 @@ use GaiaTools\FulcrumSettings\Support\ResolutionContext;
 use GaiaTools\FulcrumSettings\Support\TypeRegistry;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
+use Laravel\Telescope\Telescope;
 
 class SettingResolver implements SettingResolverContract
 {
@@ -469,7 +470,7 @@ class SettingResolver implements SettingResolverContract
     protected function shouldRecordResolution(): bool
     {
         return config('fulcrum.telescope.enabled', true)
-            && class_exists(\Laravel\Telescope\Telescope::class);
+            && class_exists(Telescope::class);
     }
 
     // ========================================

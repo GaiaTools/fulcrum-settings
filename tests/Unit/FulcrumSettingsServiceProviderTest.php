@@ -4,17 +4,23 @@ declare(strict_types=1);
 
 namespace GaiaTools\FulcrumSettings\Tests\Unit;
 
+use GaiaTools\FulcrumSettings\Contracts\BucketCalculator;
+use GaiaTools\FulcrumSettings\Contracts\DistributionStrategy;
 use GaiaTools\FulcrumSettings\Contracts\RuleEvaluator;
 use GaiaTools\FulcrumSettings\Contracts\SegmentDriver;
 use GaiaTools\FulcrumSettings\Contracts\SettingResolver;
+use GaiaTools\FulcrumSettings\Drivers\SpatiePermissionSegmentDriver;
 use GaiaTools\FulcrumSettings\FulcrumSettingsServiceProvider;
 use GaiaTools\FulcrumSettings\Providers\FulcrumSettingsBootServiceProvider;
+use GaiaTools\FulcrumSettings\Services\CachedSettingResolver;
 use GaiaTools\FulcrumSettings\Support\ConditionTypeRegistry;
 use GaiaTools\FulcrumSettings\Support\Settings\FulcrumSettings;
 use GaiaTools\FulcrumSettings\Support\TypeRegistry;
 use GaiaTools\FulcrumSettings\Tests\TestCase;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\Config;
 use ReflectionClass;
+use Symfony\Component\Finder\SplFileInfo;
 
 class FulcrumSettingsServiceProviderTest extends TestCase
 {
@@ -25,8 +31,8 @@ class FulcrumSettingsServiceProviderTest extends TestCase
         $this->assertTrue($this->app->bound(SettingResolver::class));
         $this->assertTrue($this->app->bound(ConditionTypeRegistry::class));
         $this->assertTrue($this->app->bound(TypeRegistry::class));
-        $this->assertTrue($this->app->bound(\GaiaTools\FulcrumSettings\Contracts\BucketCalculator::class));
-        $this->assertTrue($this->app->bound(\GaiaTools\FulcrumSettings\Contracts\DistributionStrategy::class));
+        $this->assertTrue($this->app->bound(BucketCalculator::class));
+        $this->assertTrue($this->app->bound(DistributionStrategy::class));
     }
 
     public function test_it_registers_settings_classes_from_config()
@@ -159,7 +165,7 @@ class NoNamespaceSettings {}
 
     public function test_it_resolves_segment_driver()
     {
-        Config::set('fulcrum.segment_driver', \GaiaTools\FulcrumSettings\Drivers\SpatiePermissionSegmentDriver::class);
+        Config::set('fulcrum.segment_driver', SpatiePermissionSegmentDriver::class);
 
         // Re-register or re-bind because it's a singleton already bound by the provider during TestCase boot
         $this->app->singleton(SegmentDriver::class, function ($app) {
@@ -169,7 +175,7 @@ class NoNamespaceSettings {}
         });
 
         $driver = $this->app->make(SegmentDriver::class);
-        $this->assertInstanceOf(\GaiaTools\FulcrumSettings\Drivers\SpatiePermissionSegmentDriver::class, $driver);
+        $this->assertInstanceOf(SpatiePermissionSegmentDriver::class, $driver);
     }
 
     public function test_it_resolves_rule_evaluator()
@@ -185,7 +191,7 @@ class NoNamespaceSettings {}
         Config::set('fulcrum.cache.ttl', 100);
 
         $resolver = $this->app->make(SettingResolver::class);
-        $this->assertInstanceOf(\GaiaTools\FulcrumSettings\Services\CachedSettingResolver::class, $resolver);
+        $this->assertInstanceOf(CachedSettingResolver::class, $resolver);
     }
 
     public function test_boot_publishes_config_enums_and_migrations()
@@ -232,7 +238,7 @@ class NoNamespaceSettings {}
 
     public function test_boot_returns_early_when_not_running_in_console()
     {
-        $app = $this->createMock(\Illuminate\Contracts\Foundation\Application::class);
+        $app = $this->createMock(Application::class);
         $app->method('runningInConsole')->willReturn(false);
 
         $provider = new FulcrumSettingsBootServiceProvider($app);
@@ -310,7 +316,7 @@ class NoNamespaceSettings {}
         $method = $reflection->getMethod('migrationExistsInPath');
         $method->setAccessible(true);
 
-        $mockFile = $this->createMock(\Symfony\Component\Finder\SplFileInfo::class);
+        $mockFile = $this->createMock(SplFileInfo::class);
         $mockFile->method('getFilename')->willReturn('2024_01_01_000000_test.php');
 
         $result = $method->invoke($provider, $mockFile, '/non/existent/path');
@@ -370,7 +376,7 @@ class NoNamespaceSettings {}
 
         $provider->method('areMigrationsPublished')->willReturn(false);
 
-        $mockFile = $this->createMock(\Symfony\Component\Finder\SplFileInfo::class);
+        $mockFile = $this->createMock(SplFileInfo::class);
         $mockFile->method('getPathname')->willReturn('/path/to/migration.php');
 
         $provider->method('getPackageMigrationFiles')->willReturn([$mockFile]);

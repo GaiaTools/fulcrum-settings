@@ -1,5 +1,6 @@
 <?php
 
+use Cron\CronExpression;
 use GaiaTools\FulcrumSettings\Contracts\GeoResolver;
 use GaiaTools\FulcrumSettings\Contracts\HolidayResolver;
 use GaiaTools\FulcrumSettings\Contracts\SegmentDriver;
@@ -11,6 +12,7 @@ use GaiaTools\FulcrumSettings\Models\SettingRuleCondition;
 use GaiaTools\FulcrumSettings\Services\RuleEvaluator;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Support\Carbon;
 
 beforeEach(function () {
@@ -381,7 +383,7 @@ test('it covers IS_NOT_NULL', function () {
 });
 
 test('it handles email extraction if method exists', function () {
-    $user = Mockery::mock(Authenticatable::class, \Illuminate\Contracts\Auth\CanResetPassword::class);
+    $user = Mockery::mock(Authenticatable::class, CanResetPassword::class);
     $user->shouldReceive('getEmailForPasswordReset')->andReturn('test@example.com');
 
     $c = new SettingRuleCondition(['attribute' => 'email', 'operator' => ComparisonOperator::EQUALS, 'value' => 'test@example.com']);
@@ -589,7 +591,7 @@ test('it evaluates IS_BUSINESS_DAY and IS_HOLIDAY', function () {
 });
 
 test('it evaluates SCHEDULE_CRON', function () {
-    if (! class_exists(\Cron\CronExpression::class)) {
+    if (! class_exists(CronExpression::class)) {
         $this->markTestSkipped('CronExpression class not found');
     }
 

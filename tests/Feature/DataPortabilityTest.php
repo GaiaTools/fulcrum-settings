@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace GaiaTools\FulcrumSettings\Tests\Feature;
 
+use GaiaTools\FulcrumSettings\Http\Responses\ExportResponse;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Support\DataPortability\ExportManager;
 use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\JsonFormatter;
 use GaiaTools\FulcrumSettings\Support\DataPortability\ImportManager;
 use GaiaTools\FulcrumSettings\Tests\TestCase;
+use Illuminate\Foundation\Auth\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
@@ -31,7 +34,7 @@ class DataPortabilityTest extends TestCase
         $this->app['config']->set('fulcrum.portability.export_ability', 'exportFulcrumSettings');
         $this->app['config']->set('fulcrum.portability.import_ability', 'importFulcrumSettings');
 
-        $this->app['auth']->resolveUsersUsing(fn () => new \Illuminate\Foundation\Auth\User);
+        $this->app['auth']->resolveUsersUsing(fn () => new User);
 
         Gate::define('exportFulcrumSettings', fn () => true);
         Gate::define('importFulcrumSettings', fn () => true);
@@ -164,10 +167,10 @@ class DataPortabilityTest extends TestCase
         // We need to bypass the pipeline or force a failure that still reaches the response
         // ExportResponse is called with exportData from the pipeline.
 
-        $response = new \GaiaTools\FulcrumSettings\Http\Responses\ExportResponse(['file_path' => null]);
+        $response = new ExportResponse(['file_path' => null]);
         $result = $response->toResponse(request());
 
-        $this->assertInstanceOf(\Illuminate\Http\RedirectResponse::class, $result);
+        $this->assertInstanceOf(RedirectResponse::class, $result);
         $this->assertTrue(session()->has('errors'));
     }
 

@@ -12,6 +12,7 @@ use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use GaiaTools\FulcrumSettings\Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 class SettingModifierTest extends TestCase
 {
@@ -179,7 +180,7 @@ class SettingModifierTest extends TestCase
         $this->setting->unsetRelation('defaultValue');
 
         // Manual insert to avoid accessor/mutator issues during setup
-        \Illuminate\Support\Facades\DB::table('setting_values')->insert([
+        DB::table('setting_values')->insert([
             'valuable_type' => Setting::class,
             'valuable_id' => $this->setting->id,
             'value' => 'not-json', // Raw string that is not JSON

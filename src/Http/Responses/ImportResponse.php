@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace GaiaTools\FulcrumSettings\Http\Responses;
 
 use GaiaTools\FulcrumSettings\Contracts\DataPortability\ImportResponse as Contract;
+use Symfony\Component\HttpFoundation\Response;
 
 class ImportResponse implements Contract
 {
@@ -13,7 +14,7 @@ class ImportResponse implements Contract
      */
     public function __construct(protected mixed $importResult = null) {}
 
-    public function toResponse($request): \Symfony\Component\HttpFoundation\Response
+    public function toResponse($request): Response
     {
         $result = is_array($this->importResult) ? $this->importResult : [];
 

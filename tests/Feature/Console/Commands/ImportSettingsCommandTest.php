@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace GaiaTools\FulcrumSettings\Tests\Feature\Console\Commands;
 
 use GaiaTools\FulcrumSettings\Jobs\ImportSettingsJob;
+use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\JsonFormatter;
 use GaiaTools\FulcrumSettings\Support\DataPortability\ImportManager;
 use GaiaTools\FulcrumSettings\Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -123,7 +124,7 @@ class ImportSettingsCommandTest extends TestCase
         $manager = Mockery::mock(ImportManager::class);
         $manager->shouldReceive('import')
             ->once()
-            ->with(Mockery::type(\GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\JsonFormatter::class), Mockery::any(), Mockery::any())
+            ->with(Mockery::type(JsonFormatter::class), Mockery::any(), Mockery::any())
             ->andReturn(true);
 
         $this->app->instance(ImportManager::class, $manager);

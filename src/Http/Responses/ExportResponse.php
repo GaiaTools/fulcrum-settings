@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace GaiaTools\FulcrumSettings\Http\Responses;
 
 use GaiaTools\FulcrumSettings\Contracts\DataPortability\ExportResponse as Contract;
+use Symfony\Component\HttpFoundation\Response;
 
 class ExportResponse implements Contract
 {
@@ -13,7 +14,7 @@ class ExportResponse implements Contract
      */
     public function __construct(protected mixed $exportData = null) {}
 
-    public function toResponse($request): \Symfony\Component\HttpFoundation\Response
+    public function toResponse($request): Response
     {
         if ($request->expectsJson() || $request->ajax()) {
             $downloadUrl = is_array($this->exportData) ? ($this->exportData['file_path'] ?? null) : null;

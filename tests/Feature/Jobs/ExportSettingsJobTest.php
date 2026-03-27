@@ -6,9 +6,15 @@ namespace GaiaTools\FulcrumSettings\Tests\Feature\Jobs;
 
 use GaiaTools\FulcrumSettings\Jobs\ExportSettingsJob;
 use GaiaTools\FulcrumSettings\Support\DataPortability\ExportManager;
+use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\CsvFormatter;
+use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\JsonFormatter;
+use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\SqlFormatter;
+use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\XmlFormatter;
+use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\YamlFormatter;
 use GaiaTools\FulcrumSettings\Tests\TestCase;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 class ExportSettingsJobTest extends TestCase
 {
@@ -62,7 +68,7 @@ class ExportSettingsJobTest extends TestCase
     /**
      * @dataProvider supportedFormatsProvider
      */
-    #[\PHPUnit\Framework\Attributes\DataProvider('supportedFormatsProvider')]
+    #[DataProvider('supportedFormatsProvider')]
     public function test_it_uses_correct_formatter_for_each_format(string $format, string $expectedFormatterClass)
     {
         $manager = Mockery::mock(ExportManager::class);
@@ -80,12 +86,12 @@ class ExportSettingsJobTest extends TestCase
     public static function supportedFormatsProvider(): array
     {
         return [
-            ['json', \GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\JsonFormatter::class],
-            ['xml', \GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\XmlFormatter::class],
-            ['yaml', \GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\YamlFormatter::class],
-            ['yml', \GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\YamlFormatter::class],
-            ['sql', \GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\SqlFormatter::class],
-            ['csv', \GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\CsvFormatter::class],
+            ['json', JsonFormatter::class],
+            ['xml', XmlFormatter::class],
+            ['yaml', YamlFormatter::class],
+            ['yml', YamlFormatter::class],
+            ['sql', SqlFormatter::class],
+            ['csv', CsvFormatter::class],
         ];
     }
 }

@@ -7,9 +7,9 @@ use GaiaTools\FulcrumSettings\Support\GroupedSettingResolver;
 use Illuminate\Contracts\Auth\Authenticatable;
 
 test('grouped resolver supports forUser chaining', function () {
-    $resolver = \Mockery::mock(SettingResolver::class);
-    $user = \Mockery::mock(Authenticatable::class);
-    $userResolver = \Mockery::mock(SettingResolver::class);
+    $resolver = Mockery::mock(SettingResolver::class);
+    $user = Mockery::mock(Authenticatable::class);
+    $userResolver = Mockery::mock(SettingResolver::class);
 
     $resolver->shouldReceive('forUser')->with($user)->andReturn($userResolver);
     $userResolver->shouldReceive('getGroupKeys')->with('my_links')->andReturn(['my_links.twitter']);

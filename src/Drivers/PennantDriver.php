@@ -8,6 +8,7 @@ use GaiaTools\FulcrumSettings\Contracts\SettingResolver;
 use GaiaTools\FulcrumSettings\Exceptions\PennantException;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Auth\CanResetPassword;
 use Laravel\Pennant\Contracts\DefinesFeaturesExternally;
 use Laravel\Pennant\Contracts\Driver;
 
@@ -216,7 +217,7 @@ class PennantDriver implements DefinesFeaturesExternally, Driver
     protected function resolveUserEmail(object $scope): ?string
     {
         $email = match (true) {
-            $scope instanceof \Illuminate\Contracts\Auth\CanResetPassword => $scope->getEmailForPasswordReset(),
+            $scope instanceof CanResetPassword => $scope->getEmailForPasswordReset(),
             isset($scope->email) => $scope->email,
             isset($scope->attributes['email']) => $scope->attributes['email'],
             default => null,

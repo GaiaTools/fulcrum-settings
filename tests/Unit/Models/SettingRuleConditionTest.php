@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use GaiaTools\FulcrumSettings\Enums\ComparisonOperator;
 use GaiaTools\FulcrumSettings\Enums\SettingType;
+use GaiaTools\FulcrumSettings\Exceptions\ImmutableSettingException;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Models\SettingRule;
 use GaiaTools\FulcrumSettings\Models\SettingRuleCondition;
@@ -65,14 +66,14 @@ test('cannot create condition for immutable setting', function () {
     ]);
 
     // We have to bypass guard to create the rule first
-    \GaiaTools\FulcrumSettings\Support\FulcrumContext::force(true);
+    FulcrumContext::force(true);
     $rule = SettingRule::create([
         'setting_id' => $setting->id,
         'priority' => 1,
     ]);
-    \GaiaTools\FulcrumSettings\Support\FulcrumContext::force(false);
+    FulcrumContext::force(false);
 
-    $this->expectException(\GaiaTools\FulcrumSettings\Exceptions\ImmutableSettingException::class);
+    $this->expectException(ImmutableSettingException::class);
 
     SettingRuleCondition::create([
         'setting_rule_id' => $rule->id,
@@ -100,13 +101,13 @@ test('cannot update condition for immutable setting', function () {
         'value' => 'val',
     ]);
 
-    \GaiaTools\FulcrumSettings\Support\FulcrumContext::force(true);
+    FulcrumContext::force(true);
     $setting->update(['immutable' => true]);
-    \GaiaTools\FulcrumSettings\Support\FulcrumContext::force(false);
+    FulcrumContext::force(false);
 
     $condition->setRelation('rule', $rule->setRelation('setting', $setting->fresh()));
 
-    $this->expectException(\GaiaTools\FulcrumSettings\Exceptions\ImmutableSettingException::class);
+    $this->expectException(ImmutableSettingException::class);
 
     $condition->update(['value' => 'new-val']);
 });
@@ -129,13 +130,13 @@ test('cannot delete condition for immutable setting', function () {
         'value' => 'val',
     ]);
 
-    \GaiaTools\FulcrumSettings\Support\FulcrumContext::force(true);
+    FulcrumContext::force(true);
     $setting->update(['immutable' => true]);
-    \GaiaTools\FulcrumSettings\Support\FulcrumContext::force(false);
+    FulcrumContext::force(false);
 
     $condition->setRelation('rule', $rule->setRelation('setting', $setting->fresh()));
 
-    $this->expectException(\GaiaTools\FulcrumSettings\Exceptions\ImmutableSettingException::class);
+    $this->expectException(ImmutableSettingException::class);
 
     $condition->delete();
 });
@@ -147,7 +148,7 @@ test('can bypass immutability guard for condition with force', function () {
         'immutable' => true,
     ]);
 
-    \GaiaTools\FulcrumSettings\Support\FulcrumContext::force(true);
+    FulcrumContext::force(true);
 
     $rule = SettingRule::create([
         'setting_id' => $setting->id,
@@ -167,5 +168,5 @@ test('can bypass immutability guard for condition with force', function () {
     $condition->delete();
     expect(SettingRuleCondition::find($condition->id))->toBeNull();
 
-    \GaiaTools\FulcrumSettings\Support\FulcrumContext::force(false);
+    FulcrumContext::force(false);
 });

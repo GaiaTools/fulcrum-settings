@@ -6,6 +6,7 @@ namespace GaiaTools\FulcrumSettings\Tests\Feature\Console;
 
 use GaiaTools\FulcrumSettings\Enums\ComparisonOperator;
 use GaiaTools\FulcrumSettings\Enums\SettingType;
+use GaiaTools\FulcrumSettings\Models\Scopes\TenantScope;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Tests\TestCase;
 
@@ -47,21 +48,21 @@ class SetSettingWizardTest extends TestCase
             ->expectsOutput('Setting [wizard.test] saved successfully.')
             ->assertExitCode(0);
 
-        $setting = Setting::withoutGlobalScope(\GaiaTools\FulcrumSettings\Models\Scopes\TenantScope::class)->where('key', 'wizard.test')->first();
+        $setting = Setting::withoutGlobalScope(TenantScope::class)->where('key', 'wizard.test')->first();
         $this->assertNotNull($setting);
         $this->assertEquals('Wizard description', $setting->description);
         $this->assertEquals('default-val', $setting->getDefaultValue());
 
-        $rule = $setting->rules()->withoutGlobalScope(\GaiaTools\FulcrumSettings\Models\Scopes\TenantScope::class)->first();
+        $rule = $setting->rules()->withoutGlobalScope(TenantScope::class)->first();
         $this->assertNotNull($rule);
         $this->assertEquals('Test Rule', $rule->name);
 
-        $condition = $rule->conditions()->withoutGlobalScope(\GaiaTools\FulcrumSettings\Models\Scopes\TenantScope::class)->first();
+        $condition = $rule->conditions()->withoutGlobalScope(TenantScope::class)->first();
         $this->assertNotNull($condition);
         $this->assertEquals('user_id', $condition->attribute);
         $this->assertEquals('1', $condition->value);
 
-        $variant = $rule->rolloutVariants()->withoutGlobalScope(\GaiaTools\FulcrumSettings\Models\Scopes\TenantScope::class)->first();
+        $variant = $rule->rolloutVariants()->withoutGlobalScope(TenantScope::class)->first();
         $this->assertNotNull($variant);
         $this->assertEquals('A', $variant->name);
         $this->assertEquals(50.0, $variant->weight_percentage);

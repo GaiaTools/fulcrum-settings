@@ -6,6 +6,7 @@ namespace GaiaTools\FulcrumSettings\Services;
 
 use Carbon\Carbon;
 use Cron\CronExpression;
+use GaiaTools\FulcrumSettings\Conditions\AttributeValue;
 use GaiaTools\FulcrumSettings\Contracts\ConditionTypeHandler;
 use GaiaTools\FulcrumSettings\Contracts\HolidayResolver;
 use GaiaTools\FulcrumSettings\Contracts\RuleEvaluator as RuleEvaluatorContract;
@@ -99,7 +100,7 @@ class RuleEvaluator implements RuleEvaluatorContract
         return $this;
     }
 
-    protected function resolveConditionValue(string $type, string $field, mixed $scope): \GaiaTools\FulcrumSettings\Conditions\AttributeValue
+    protected function resolveConditionValue(string $type, string $field, mixed $scope): AttributeValue
     {
         $handler = $this->conditionTypeHandlers[$type]
             ??= $this->conditionTypeRegistry->getHandler($type);

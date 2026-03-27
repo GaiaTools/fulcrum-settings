@@ -6,6 +6,7 @@ namespace Tests\Unit\Services;
 
 require_once __DIR__.'/../../Helpers/NamespaceMocks.php';
 
+use GaiaTools\FulcrumSettings\Contracts\BucketCalculator;
 use GaiaTools\FulcrumSettings\Contracts\GeoResolver;
 use GaiaTools\FulcrumSettings\Contracts\HolidayResolver;
 use GaiaTools\FulcrumSettings\Contracts\SegmentDriver;
@@ -14,8 +15,11 @@ use GaiaTools\FulcrumSettings\Drivers\WeightDistributionStrategy;
 use GaiaTools\FulcrumSettings\Enums\SettingType;
 use GaiaTools\FulcrumSettings\Events\SettingResolved;
 use GaiaTools\FulcrumSettings\Events\VariantAssigned;
+use GaiaTools\FulcrumSettings\Exceptions\InvalidSettingValueException;
+use GaiaTools\FulcrumSettings\Exceptions\SettingNotFoundException;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Models\SettingRule;
+use GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant;
 use GaiaTools\FulcrumSettings\Models\SettingValue;
 use GaiaTools\FulcrumSettings\Services\Crc32BucketCalculator;
 use GaiaTools\FulcrumSettings\Services\RuleEvaluator;
@@ -306,7 +310,7 @@ test('it can set a setting value', function () {
 });
 
 test('it throws exception when setting to set not found', function () {
-    $this->expectException(\GaiaTools\FulcrumSettings\Exceptions\SettingNotFoundException::class);
+    $this->expectException(SettingNotFoundException::class);
     $this->resolver->set('non.existent', 'value');
 });
 
@@ -316,7 +320,7 @@ test('it throws exception for invalid value type during set', function () {
         'type' => SettingType::INTEGER,
     ]);
 
-    $this->expectException(\GaiaTools\FulcrumSettings\Exceptions\InvalidSettingValueException::class);
+    $this->expectException(InvalidSettingValueException::class);
     $this->resolver->set('invalid.set', 'not-an-integer');
 });
 
@@ -353,7 +357,7 @@ test('it resolves rollout variants', function () {
         'weight' => 50000, // 50%
     ]);
     $variant1->value()->create([
-        'valuable_type' => \GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant::class,
+        'valuable_type' => SettingRuleRolloutVariant::class,
         'valuable_id' => $variant1->id,
         'value' => 'value-v1',
     ]);
@@ -363,7 +367,7 @@ test('it resolves rollout variants', function () {
         'weight' => 50000, // 50%
     ]);
     $variant2->value()->create([
-        'valuable_type' => \GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant::class,
+        'valuable_type' => SettingRuleRolloutVariant::class,
         'valuable_id' => $variant2->id,
         'value' => 'value-v2',
     ]);
@@ -400,7 +404,7 @@ test('it resolves rollout identifier from different scope types', function () {
     $rule = SettingRule::create(['setting_id' => $setting->id, 'rollout_salt' => 'salt']);
     $variant = $rule->rolloutVariants()->create(['name' => 'v', 'weight' => 100000]);
     $variant->value()->create([
-        'valuable_type' => \GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant::class,
+        'valuable_type' => SettingRuleRolloutVariant::class,
         'valuable_id' => $variant->id,
         'value' => 'hit',
     ]);
@@ -439,7 +443,7 @@ test('it respects rollout event config', function () {
     $rule = SettingRule::create(['setting_id' => $setting->id]);
     $variant = $rule->rolloutVariants()->create(['name' => 'v', 'weight' => 100000]);
     $variant->value()->create([
-        'valuable_type' => \GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant::class,
+        'valuable_type' => SettingRuleRolloutVariant::class,
         'valuable_id' => $variant->id,
         'value' => 'val',
     ]);
@@ -462,7 +466,7 @@ test('it falls through if bucket exceeds cumulative weight', function () {
     $this->segmentDriver->shouldReceive('evaluate')->andReturn(true);
 
     // Force a high bucket value
-    $mockCalculator = Mockery::mock(\GaiaTools\FulcrumSettings\Contracts\BucketCalculator::class);
+    $mockCalculator = Mockery::mock(BucketCalculator::class);
     $mockCalculator->shouldReceive('calculate')->andReturn(50000); // 50%
 
     $resolver = new SettingResolver($this->evaluator, $mockCalculator, $this->distributionStrategy);
@@ -487,7 +491,7 @@ test('it continues to next rule if rollout fails to select variant', function ()
     $this->segmentDriver->shouldReceive('setUser')->andReturn($this->evaluator);
     $this->segmentDriver->shouldReceive('evaluate')->andReturn(true);
 
-    $mockCalculator = Mockery::mock(\GaiaTools\FulcrumSettings\Contracts\BucketCalculator::class);
+    $mockCalculator = Mockery::mock(BucketCalculator::class);
     $mockCalculator->shouldReceive('calculate')->andReturn(50000); // 50%
 
     $resolver = new SettingResolver($this->evaluator, $mockCalculator, $this->distributionStrategy);
