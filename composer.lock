@@ -1409,16 +1409,16 @@
         },
         {
             "name": "laravel/serializable-closure",
-            "version": "v2.0.10",
+            "version": "v2.0.11",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/serializable-closure.git",
-                "reference": "870fc81d2f879903dfc5b60bf8a0f94a1609e669"
+                "reference": "d1af40ac4a6ccc12bd062a7184f63c9995a63bdd"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/serializable-closure/zipball/870fc81d2f879903dfc5b60bf8a0f94a1609e669",
-                "reference": "870fc81d2f879903dfc5b60bf8a0f94a1609e669",
+                "url": "https://api.github.com/repos/laravel/serializable-closure/zipball/d1af40ac4a6ccc12bd062a7184f63c9995a63bdd",
+                "reference": "d1af40ac4a6ccc12bd062a7184f63c9995a63bdd",
                 "shasum": ""
             },
             "require": {
@@ -1466,7 +1466,7 @@
                 "issues": "https://github.com/laravel/serializable-closure/issues",
                 "source": "https://github.com/laravel/serializable-closure"
             },
-            "time": "2026-02-20T19:59:49+00:00"
+            "time": "2026-04-07T13:32:18+00:00"
         },
         {
             "name": "league/commonmark",
@@ -2132,16 +2132,16 @@
         },
         {
             "name": "nesbot/carbon",
-            "version": "3.11.3",
+            "version": "3.11.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/CarbonPHP/carbon.git",
-                "reference": "6a7e652845bb018c668220c2a545aded8594fbbf"
+                "reference": "e890471a3494740f7d9326d72ce6a8c559ffee60"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/CarbonPHP/carbon/zipball/6a7e652845bb018c668220c2a545aded8594fbbf",
-                "reference": "6a7e652845bb018c668220c2a545aded8594fbbf",
+                "url": "https://api.github.com/repos/CarbonPHP/carbon/zipball/e890471a3494740f7d9326d72ce6a8c559ffee60",
+                "reference": "e890471a3494740f7d9326d72ce6a8c559ffee60",
                 "shasum": ""
             },
             "require": {
@@ -2233,7 +2233,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-03-11T17:23:39+00:00"
+            "time": "2026-04-07T09:57:54+00:00"
         },
         {
             "name": "nette/schema",
@@ -6761,16 +6761,16 @@
         },
         {
             "name": "laravel/sentinel",
-            "version": "v1.0.1",
+            "version": "v1.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/sentinel.git",
-                "reference": "7a98db53e0d9d6f61387f3141c07477f97425603"
+                "reference": "972d9885d9d14312a118e9565c4e6ecc5e751ea1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/sentinel/zipball/7a98db53e0d9d6f61387f3141c07477f97425603",
-                "reference": "7a98db53e0d9d6f61387f3141c07477f97425603",
+                "url": "https://api.github.com/repos/laravel/sentinel/zipball/972d9885d9d14312a118e9565c4e6ecc5e751ea1",
+                "reference": "972d9885d9d14312a118e9565c4e6ecc5e751ea1",
                 "shasum": ""
             },
             "require": {
@@ -6789,9 +6789,6 @@
                     "providers": [
                         "Laravel\\Sentinel\\SentinelServiceProvider"
                     ]
-                },
-                "branch-alias": {
-                    "dev-main": "1.x-dev"
                 }
             },
             "autoload": {
@@ -6814,22 +6811,22 @@
                 }
             ],
             "support": {
-                "source": "https://github.com/laravel/sentinel/tree/v1.0.1"
+                "source": "https://github.com/laravel/sentinel/tree/v1.1.0"
             },
-            "time": "2026-02-12T13:32:54+00:00"
+            "time": "2026-03-24T14:03:38+00:00"
         },
         {
             "name": "laravel/telescope",
-            "version": "v5.19.0",
+            "version": "v5.20.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/telescope.git",
-                "reference": "5e95df170d14e03dd74c4b744969cf01f67a050b"
+                "reference": "38ec6e6006a67e05e0c476c5f8ef3550b72e43d8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/telescope/zipball/5e95df170d14e03dd74c4b744969cf01f67a050b",
-                "reference": "5e95df170d14e03dd74c4b744969cf01f67a050b",
+                "url": "https://api.github.com/repos/laravel/telescope/zipball/38ec6e6006a67e05e0c476c5f8ef3550b72e43d8",
+                "reference": "38ec6e6006a67e05e0c476c5f8ef3550b72e43d8",
                 "shasum": ""
             },
             "require": {
@@ -6883,9 +6880,9 @@
             ],
             "support": {
                 "issues": "https://github.com/laravel/telescope/issues",
-                "source": "https://github.com/laravel/telescope/tree/v5.19.0"
+                "source": "https://github.com/laravel/telescope/tree/v5.20.0"
             },
-            "time": "2026-03-24T18:37:14+00:00"
+            "time": "2026-04-06T12:52:26+00:00"
         },
         {
             "name": "laravel/tinker",
@@ -10339,16 +10336,16 @@
         },
         {
             "name": "webmozart/assert",
-            "version": "2.1.6",
+            "version": "2.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webmozarts/assert.git",
-                "reference": "ff31ad6efc62e66e518fbab1cde3453d389bcdc8"
+                "reference": "1b99650e7ffcad232624a260bc7fbdec2ffc407c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/webmozarts/assert/zipball/ff31ad6efc62e66e518fbab1cde3453d389bcdc8",
-                "reference": "ff31ad6efc62e66e518fbab1cde3453d389bcdc8",
+                "url": "https://api.github.com/repos/webmozarts/assert/zipball/1b99650e7ffcad232624a260bc7fbdec2ffc407c",
+                "reference": "1b99650e7ffcad232624a260bc7fbdec2ffc407c",
                 "shasum": ""
             },
             "require": {
@@ -10395,9 +10392,9 @@
             ],
             "support": {
                 "issues": "https://github.com/webmozarts/assert/issues",
-                "source": "https://github.com/webmozarts/assert/tree/2.1.6"
+                "source": "https://github.com/webmozarts/assert/tree/2.2.0"
             },
-            "time": "2026-02-27T10:28:38+00:00"
+            "time": "2026-04-09T16:54:47+00:00"
         }
     ],
     "aliases": [],
