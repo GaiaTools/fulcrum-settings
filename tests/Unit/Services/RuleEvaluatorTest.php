@@ -376,6 +376,45 @@ test('it handles invalid date range gracefully', function () {
     expect($this->evaluator->evaluateCondition($c, ['date' => '2024-01-01']))->toBeFalse();
 });
 
+test('it matches a valid regex pattern', function () {
+    $c = new SettingRuleCondition(['attribute' => 'attr', 'operator' => ComparisonOperator::MATCHES_REGEX, 'value' => '/^hello/']);
+    expect($this->evaluator->evaluateCondition($c, ['attr' => 'hello world']))->toBeTrue();
+    expect($this->evaluator->evaluateCondition($c, ['attr' => 'goodbye']))->toBeFalse();
+});
+
+test('it fails closed on a malformed regex pattern', function () {
+    // No delimiters: preg_match would emit a warning and return false. The
+    // condition must fail closed (no match) instead of throwing.
+    $c = new SettingRuleCondition(['attribute' => 'attr', 'operator' => ComparisonOperator::MATCHES_REGEX, 'value' => 'unclosed(']);
+    expect($this->evaluator->evaluateCondition($c, ['attr' => 'anything']))->toBeFalse();
+});
+
+test('it fails closed when regex pattern is not a usable string', function () {
+    // Empty string pattern.
+    $c = new SettingRuleCondition(['attribute' => 'attr', 'operator' => ComparisonOperator::MATCHES_REGEX, 'value' => '']);
+    expect($this->evaluator->evaluateCondition($c, ['attr' => 'anything']))->toBeFalse();
+
+    // Non-string pattern (array).
+    $c = new SettingRuleCondition(['attribute' => 'attr', 'operator' => ComparisonOperator::MATCHES_REGEX, 'value' => ['/^a/']]);
+    expect($this->evaluator->evaluateCondition($c, ['attr' => 'anything']))->toBeFalse();
+});
+
+test('it fails closed when a numeric threshold cannot be parsed', function () {
+    $scope = ['val' => 10];
+
+    foreach ([
+        ComparisonOperator::NUMBER_EQUALS,
+        ComparisonOperator::NUMBER_NOT_EQUALS,
+        ComparisonOperator::NUMBER_GT,
+        ComparisonOperator::NUMBER_GTE,
+        ComparisonOperator::NUMBER_LT,
+        ComparisonOperator::NUMBER_LTE,
+    ] as $op) {
+        $c = new SettingRuleCondition(['attribute' => 'val', 'operator' => $op, 'value' => 'not-a-number']);
+        expect($this->evaluator->evaluateCondition($c, $scope))->toBeFalse();
+    }
+});
+
 test('it covers IS_NOT_NULL', function () {
     $c = new SettingRuleCondition(['attribute' => 'attr', 'operator' => ComparisonOperator::IS_NOT_NULL]);
     expect($this->evaluator->evaluateCondition($c, ['attr' => 'value']))->toBeTrue();

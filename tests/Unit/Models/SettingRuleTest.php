@@ -5,6 +5,7 @@ declare(strict_types=1);
 use GaiaTools\FulcrumSettings\Enums\ComparisonOperator;
 use GaiaTools\FulcrumSettings\Enums\SettingType;
 use GaiaTools\FulcrumSettings\Exceptions\ImmutableSettingException;
+use GaiaTools\FulcrumSettings\Exceptions\SettingNotFoundException;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Models\SettingRule;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
@@ -185,6 +186,18 @@ test('creating rule inherits tenant_id from setting', function () {
     ]);
 
     expect((string) $rule->tenant_id)->toBe('999');
+});
+
+test('creating rule for a missing setting throws SettingNotFoundException', function () {
+    // Multi-tenancy is enabled in tests and tenant_id is left null, so the
+    // creating hook must resolve the parent setting. A missing parent should
+    // fail loudly instead of silently inheriting a null tenant.
+    $this->expectException(SettingNotFoundException::class);
+
+    SettingRule::create([
+        'setting_id' => 999999,
+        'priority' => 1,
+    ]);
 });
 
 test('cannot create rule for immutable setting', function () {
