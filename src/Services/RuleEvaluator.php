@@ -158,6 +158,7 @@ class RuleEvaluator implements RuleEvaluatorContract
     protected function evaluateNumericComparison(mixed $actual, mixed $expected, ComparisonOperator $operator): bool
     {
         $actualNumber = $this->toFloat($actual);
+
         if ($actualNumber === null) {
             return false;
         }
@@ -169,11 +170,8 @@ class RuleEvaluator implements RuleEvaluatorContract
         // Fail closed on an unparseable threshold so a misconfigured rule never
         // silently matches everything (or nothing) via a null comparison.
         $expectedNumber = $this->toFloat($expected);
-        if ($expectedNumber === null) {
-            return false;
-        }
 
-        return match ($operator) {
+        return $expectedNumber !== null && match ($operator) {
             ComparisonOperator::NUMBER_EQUALS => $actualNumber === $expectedNumber,
             ComparisonOperator::NUMBER_NOT_EQUALS => $actualNumber !== $expectedNumber,
             ComparisonOperator::NUMBER_GT => $actualNumber > $expectedNumber,
