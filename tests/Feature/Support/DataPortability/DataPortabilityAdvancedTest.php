@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace GaiaTools\FulcrumSettings\Tests\Feature\Support\DataPortability;
 
+use GaiaTools\FulcrumSettings\Exceptions\DuplicateSettingException;
+use GaiaTools\FulcrumSettings\Exceptions\InvalidImportDataException;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Models\SettingValue;
 use GaiaTools\FulcrumSettings\Support\DataPortability\ExportManager;
@@ -155,8 +157,8 @@ class DataPortabilityAdvancedTest extends TestCase
 
         $manager = new ImportManager;
 
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Setting already exists: existing');
+        $this->expectException(DuplicateSettingException::class);
+        $this->expectExceptionMessage('Setting [existing] already exists.');
 
         $manager->import(new JsonFormatter, $path, [
             'mode' => 'insert',
@@ -354,6 +356,98 @@ class DataPortabilityAdvancedTest extends TestCase
             'dry_run' => true,
         ]);
         $this->assertTrue($result);
+    }
+
+    public function test_import_dry_run_passes_for_valid_data_without_persisting()
+    {
+        $data = [['key' => 'valid', 'type' => 'string']];
+        Storage::disk('local')->put('valid_dry.json', json_encode($data));
+
+        $manager = new ImportManager;
+        $result = $manager->import(new JsonFormatter, Storage::disk('local')->path('valid_dry.json'), [
+            'dry_run' => true,
+        ]);
+
+        $this->assertTrue($result);
+        $this->assertDatabaseMissing('settings', ['key' => 'valid']);
+    }
+
+    public function test_import_dry_run_accepts_raw_sql_payloads()
+    {
+        $data = [['__raw_sql' => 'SELECT 1']];
+        Storage::disk('local')->put('raw_dry.json', json_encode($data));
+
+        $manager = new ImportManager;
+        $result = $manager->import(new JsonFormatter, Storage::disk('local')->path('raw_dry.json'), [
+            'dry_run' => true,
+        ]);
+
+        $this->assertTrue($result);
+    }
+
+    public function test_import_dry_run_throws_on_missing_key_when_failing()
+    {
+        $data = [['type' => 'string']];
+        Storage::disk('local')->put('invalid_dry.json', json_encode($data));
+
+        $manager = new ImportManager;
+
+        $this->expectException(InvalidImportDataException::class);
+        $this->expectExceptionMessage('Setting is missing a valid "key".');
+
+        $manager->import(new JsonFormatter, Storage::disk('local')->path('invalid_dry.json'), [
+            'dry_run' => true,
+            'conflict_handling' => 'fail',
+        ]);
+    }
+
+    public function test_import_dry_run_collects_structural_problems_when_skipping()
+    {
+        // A formatter that yields rows the JSON formatter would otherwise filter,
+        // so every validation branch is exercised in a single pass.
+        $formatter = new class implements Formatter
+        {
+            public function format(array $data): string
+            {
+                return '';
+            }
+
+            public function parse(string $content): array
+            {
+                return [
+                    'not-an-object',                   // non-array record
+                    ['key' => 'no-type'],              // missing type
+                    ['type' => 'string'],              // missing key
+                    ['key' => '', 'type' => 'string'], // empty key
+                ];
+            }
+        };
+
+        Storage::disk('local')->put('skip_dry.txt', 'x');
+
+        $manager = new ImportManager;
+        $result = $manager->import($formatter, Storage::disk('local')->path('skip_dry.txt'), [
+            'dry_run' => true,
+            'conflict_handling' => 'skip',
+        ]);
+
+        $this->assertFalse($result);
+    }
+
+    public function test_import_dry_run_logs_validation_failures()
+    {
+        Log::shouldReceive('error')->once()->with(Mockery::on(fn ($msg) => str_contains($msg, 'Import validation failed')));
+
+        $data = [['type' => 'string']];
+        Storage::disk('local')->put('log_dry.json', json_encode($data));
+
+        $manager = new ImportManager;
+        $result = $manager->import(new JsonFormatter, Storage::disk('local')->path('log_dry.json'), [
+            'dry_run' => true,
+            'conflict_handling' => 'log',
+        ]);
+
+        $this->assertFalse($result);
     }
 
     public function test_import_manager_truncate()

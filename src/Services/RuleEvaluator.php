@@ -133,9 +133,26 @@ class RuleEvaluator implements RuleEvaluatorContract
             ComparisonOperator::NOT_CONTAINS_ANY => ! $this->containsAny($actual, $expectedList),
             ComparisonOperator::STARTS_WITH_ANY => $this->startsWithAny($actual, $expectedList),
             ComparisonOperator::ENDS_WITH_ANY => $this->endsWithAny($actual, $expectedList),
-            ComparisonOperator::MATCHES_REGEX => is_string($expected) && preg_match($expected, $actual) === 1,
+            ComparisonOperator::MATCHES_REGEX => $this->safeRegexMatch($expected, $actual),
             default => false,
         };
+    }
+
+    /**
+     * Patterns come from stored rule conditions, so we cannot trust them. PCRE
+     * warnings are suppressed and any error return (invalid pattern, exceeded
+     * backtrack/recursion limit, etc.) is treated as "no match" so a bad rule
+     * fails closed instead of throwing or matching unexpectedly.
+     */
+    protected function safeRegexMatch(mixed $pattern, string $subject): bool
+    {
+        if (! is_string($pattern) || $pattern === '') {
+            return false;
+        }
+
+        $result = @preg_match($pattern, $subject);
+
+        return $result === 1;
     }
 
     protected function evaluateNumericComparison(mixed $actual, mixed $expected, ComparisonOperator $operator): bool
@@ -145,14 +162,24 @@ class RuleEvaluator implements RuleEvaluatorContract
             return false;
         }
 
+        if ($operator === ComparisonOperator::NUMBER_BETWEEN) {
+            return $this->isBetween($actualNumber, array_values((array) $expected));
+        }
+
+        // Fail closed on an unparseable threshold so a misconfigured rule never
+        // silently matches everything (or nothing) via a null comparison.
+        $expectedNumber = $this->toFloat($expected);
+        if ($expectedNumber === null) {
+            return false;
+        }
+
         return match ($operator) {
-            ComparisonOperator::NUMBER_EQUALS => $actualNumber === $this->toFloat($expected),
-            ComparisonOperator::NUMBER_NOT_EQUALS => $actualNumber !== $this->toFloat($expected),
-            ComparisonOperator::NUMBER_GT => $actualNumber > ($this->toFloat($expected) ?? PHP_FLOAT_MAX),
-            ComparisonOperator::NUMBER_GTE => $actualNumber >= ($this->toFloat($expected) ?? PHP_FLOAT_MAX),
-            ComparisonOperator::NUMBER_LT => $actualNumber < ($this->toFloat($expected) ?? -PHP_FLOAT_MAX),
-            ComparisonOperator::NUMBER_LTE => $actualNumber <= ($this->toFloat($expected) ?? -PHP_FLOAT_MAX),
-            ComparisonOperator::NUMBER_BETWEEN => $this->isBetween($actualNumber, array_values((array) $expected)),
+            ComparisonOperator::NUMBER_EQUALS => $actualNumber === $expectedNumber,
+            ComparisonOperator::NUMBER_NOT_EQUALS => $actualNumber !== $expectedNumber,
+            ComparisonOperator::NUMBER_GT => $actualNumber > $expectedNumber,
+            ComparisonOperator::NUMBER_GTE => $actualNumber >= $expectedNumber,
+            ComparisonOperator::NUMBER_LT => $actualNumber < $expectedNumber,
+            ComparisonOperator::NUMBER_LTE => $actualNumber <= $expectedNumber,
             default => false,
         };
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace GaiaTools\FulcrumSettings\Models;
 
 use GaiaTools\FulcrumSettings\Exceptions\ImmutableSettingException;
+use GaiaTools\FulcrumSettings\Exceptions\SettingNotFoundException;
 use GaiaTools\FulcrumSettings\Facades\Fulcrum;
 use GaiaTools\FulcrumSettings\Models\Concerns\HasMaskedValue;
 use GaiaTools\FulcrumSettings\Models\Scopes\TenantScope;
@@ -115,9 +116,10 @@ class SettingRule extends Model
         static::creating(function (self $model) {
             if (Fulcrum::isMultiTenancyEnabled() && $model->tenant_id === null) {
                 $setting = Setting::find($model->setting_id);
-                if ($setting) {
-                    $model->tenant_id = $setting->tenant_id;
+                if (! $setting) {
+                    throw new SettingNotFoundException((string) $model->setting_id);
                 }
+                $model->tenant_id = $setting->tenant_id;
             }
         });
 

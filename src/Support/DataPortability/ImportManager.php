@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace GaiaTools\FulcrumSettings\Support\DataPortability;
 
 use GaiaTools\FulcrumSettings\Enums\ConditionType;
+use GaiaTools\FulcrumSettings\Exceptions\DuplicateSettingException;
+use GaiaTools\FulcrumSettings\Exceptions\InvalidImportDataException;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Models\SettingRule;
 use GaiaTools\FulcrumSettings\Models\SettingRuleCondition;
@@ -45,7 +47,7 @@ class ImportManager
         $data = $formatter->parse($content);
 
         if ($dryRun) {
-            return true;
+            return $this->validateData($data, $conflictHandling);
         }
 
         return DB::connection($connection)->transaction(function () use ($connection, $data, $mode, $truncate, $conflictHandling, $chunkSize) {
@@ -82,6 +84,55 @@ class ImportManager
 
             return true;
         });
+    }
+
+    /**
+     * @param  array<int, mixed>  $data
+     */
+    protected function validateData(array $data, string $conflictHandling): bool
+    {
+        $valid = true;
+
+        foreach ($data as $settingData) {
+            if (! is_array($settingData)) {
+                $valid = false;
+                $this->reportValidationFailure('Record is not a valid object.', $conflictHandling);
+
+                continue;
+            }
+
+            // Raw SQL payloads can only be verified by executing them, which a
+            // dry run must not do, so they are accepted as-is here.
+            if (isset($settingData['__raw_sql'])) {
+                continue;
+            }
+
+            $key = $settingData['key'] ?? null;
+            if (! is_scalar($key) || (string) $key === '') {
+                $valid = false;
+                $this->reportValidationFailure('Setting is missing a valid "key".', $conflictHandling);
+
+                continue;
+            }
+
+            if (! isset($settingData['type'])) {
+                $valid = false;
+                $this->reportValidationFailure('Setting ['.(string) $key.'] is missing a "type".', $conflictHandling);
+            }
+        }
+
+        return $valid;
+    }
+
+    protected function reportValidationFailure(string $reason, string $conflictHandling): void
+    {
+        if ($conflictHandling === 'fail') {
+            throw new InvalidImportDataException($reason);
+        }
+
+        if ($conflictHandling === 'log') {
+            Log::error('Import validation failed: '.$reason);
+        }
     }
 
     protected function getContent(string $path): string
@@ -149,7 +200,7 @@ class ImportManager
         $setting = Setting::where('key', $key)->where('tenant_id', $tenantId)->first();
 
         if ($setting && $mode === 'insert') {
-            throw new \Exception("Setting already exists: {$key}");
+            throw new DuplicateSettingException($key, is_scalar($tenantId) ? (string) $tenantId : null);
         }
 
         FulcrumContext::force(true);
@@ -183,8 +234,8 @@ class ImportManager
             }
 
             if (isset($data['rules']) && is_array($data['rules'])) {
-                // For simplicity in upsert, we might want to clear existing rules or match them.
-                // Given the complexity of rules, clearing and re-creating might be safer if we want to match the export exactly.
+                // Rules are replaced wholesale so the imported state exactly
+                // mirrors the source rather than merging with existing rules.
                 $setting->rules()->each(fn ($rule) => $rule->delete());
                 foreach ($data['rules'] as $ruleData) {
                     if (is_array($ruleData)) {
