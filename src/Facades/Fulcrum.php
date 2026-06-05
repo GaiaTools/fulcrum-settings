@@ -15,7 +15,9 @@ use Illuminate\Support\Facades\Facade;
  * @method static SettingResolver forTenant(?string $tenantId)
  * @method static SettingResolver forGroup(?string $group)
  * @method static \GaiaTools\FulcrumSettings\Contracts\GroupedSettingResolver group(string $group)
+ * @method static array<int, string> getGroupKeys(string $group)
  * @method static mixed get(string $key, mixed $default = null, mixed $scope = null)
+ * @method static SettingResolver reveal(bool $reveal = true)
  * @method static void set(string $key, mixed $value)
  * @method static bool isMultiTenancyEnabled()
  *

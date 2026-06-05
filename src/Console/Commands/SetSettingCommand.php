@@ -25,7 +25,7 @@ class SetSettingCommand extends Command
     protected $signature = 'fulcrum:set
                             {key? : The setting key to create or update}
                             {value? : The value to set}
-                            {--type=string : The type of the setting (string, integer, float, boolean, json, carbon)}
+                            {--type=string : The type of the setting (string, integer, float, boolean, json, array, carbon)}
                             {--description= : A description of the setting}
                             {--masked : Mark the setting as sensitive/encrypted}
                             {--immutable : Mark the setting as immutable}

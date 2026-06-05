@@ -32,7 +32,7 @@ return [
     |
     | Available drivers:
     | - null (default)
-    | - SpatiePermissionsDriver::class (requires spatie/laravel-permission)
+    | - SpatiePermissionSegmentDriver::class (requires spatie/laravel-permission)
     |
     */
 
@@ -74,7 +74,7 @@ return [
     | The holiday resolver determines whether a given date is a holiday.
     | You can swap implementations by providing a different resolver class.
     |
-    | Default: null (disabled). Provide a resolver class to enable.
+    | Default: YasumiHolidayResolver (enabled). Set to null to disable.
     | Available options:
     |   \GaiaTools\FulcrumSettings\Drivers\YasumiHolidayResolver::class
     */

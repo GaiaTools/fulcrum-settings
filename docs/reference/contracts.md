@@ -70,10 +70,23 @@ public function resolve(string $key, mixed $scope = null): mixed;
 public function isActive(string $key, mixed $scope = null): bool;
 public function forUser(?Authenticatable $user): static;
 public function forTenant(?string $tenantId): static;
+public function forGroup(?string $group): static;
+public function group(string $group): GroupedSettingResolver;
+public function getGroupKeys(string $group): array;
 public function get(string $key, mixed $default = null, mixed $scope = null): mixed;
 public function reveal(bool $reveal = true): static;
 public function set(string $key, mixed $value): void;
 public function isMultiTenancyEnabled(): bool;
+```
+
+## GroupedSettingResolver
+
+```php
+public function all(mixed $scope = null, bool $stripGroupPrefix = true): array;
+public function forUser(?Authenticatable $user): self;
+public function forTenant(?string $tenantId): self;
+public function forGroup(string $group): self;
+public function group(string $group): self;
 ```
 
 ## SettingTypeHandler
