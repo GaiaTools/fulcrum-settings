@@ -164,6 +164,22 @@ $links = Fulcrum::forUser($user)->group('my_links')->all();
 $links = Fulcrum::group('my_links')->forUser($user)->all();
 ```
 
+### `getGroupKeys(string $group): array`
+
+Return the setting keys registered under a group.
+
+**Parameters**
+- `group`: Group name (dot-separated for nested groups).
+
+**Returns**
+- An array of setting keys belonging to the group.
+
+**Example**
+```php
+$keys = Fulcrum::getGroupKeys('general');
+// ['general.site_name', 'general.timezone', ...]
+```
+
 ### `isMultiTenancyEnabled(): bool`
 
 Check if multi-tenancy is enabled.

@@ -13,6 +13,22 @@ Base exception type for Fulcrum errors.
 
 Thrown when a requested setting does not exist and no default is provided.
 
+## `DuplicateSettingException`
+
+Thrown when creating a setting whose key already exists (optionally within a tenant). Extends `RuntimeException`.
+
+## `InvalidImportDataException`
+
+Thrown during import when the source data is malformed or fails validation. Extends `RuntimeException`.
+
+## `MissingConditionTypeHandlerException`
+
+Thrown when a condition type has no registered handler. Extends `RuntimeException`.
+
+## `InvalidConditionTypeHandlerException`
+
+Thrown when a registered condition type handler class does not exist or is misconfigured. Extends `InvalidArgumentException`.
+
 ## `InvalidSettingValueException`
 
 Thrown when a value fails validation or type handling.

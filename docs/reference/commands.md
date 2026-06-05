@@ -59,7 +59,7 @@ php artisan fulcrum:set feature.new_dashboard
 **Options:**
 | Option | Description |
 |--------|-------------|
-| `--type=` | Setting type (string, integer, float, boolean, json, carbon) |
+| `--type=` | Setting type (string, integer, float, boolean, json, array, carbon) |
 | `--description=` | Setting description |
 | `--masked` | Mark as sensitive/encrypted |
 | `--immutable` | Prevent modification (unless forced) |
