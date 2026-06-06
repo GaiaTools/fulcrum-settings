@@ -309,6 +309,30 @@ test('it can set a setting value', function () {
     expect($this->resolver->resolve('set.setting'))->toBe('new-value');
 });
 
+test('it can set an array setting value without double-encoding', function () {
+    Setting::create([
+        'key' => 'set.array',
+        'type' => SettingType::ARRAY,
+    ]);
+
+    $value = ['a' => 1, 'b' => ['c' => 2]];
+    $this->resolver->set('set.array', $value);
+
+    expect($this->resolver->resolve('set.array'))->toBe($value);
+});
+
+test('it can set a json setting value without double-encoding', function () {
+    Setting::create([
+        'key' => 'set.json',
+        'type' => SettingType::JSON,
+    ]);
+
+    $value = ['name' => 'gaia', 'tags' => ['x', 'y']];
+    $this->resolver->set('set.json', $value);
+
+    expect($this->resolver->resolve('set.json'))->toBe($value);
+});
+
 test('it throws exception when setting to set not found', function () {
     $this->expectException(SettingNotFoundException::class);
     $this->resolver->set('non.existent', 'value');

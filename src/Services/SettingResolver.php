@@ -488,12 +488,14 @@ class SettingResolver implements SettingResolverContract
             throw InvalidSettingValueException::forSetting($setting->key, $setting->type, $value);
         }
 
-        $storageValue = $handler->set($value);
-
+        // Pass the raw value through. The SettingValue model's `value` mutator
+        // serializes it via the type handler. Pre-encoding here would cause a
+        // double-encode (e.g. arrays/json become JSON-stringified twice and
+        // read back as empty/broken); scalars happen to be idempotent and hide it.
         $setting->defaultValue()->updateOrCreate([
             'valuable_type' => $setting->getMorphClass(),
             'valuable_id' => $setting->getKey(),
-        ], ['value' => $storageValue]);
+        ], ['value' => $value]);
     }
 
     // ========================================
