@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/GaiaTools/fulcrum-settings/compare/v1.0.0...v1.0.1) (2026-06-06)
+
+
+### Bug Fixes
+
+* prevent double-encoding of array/json values in set() ([b302f19](https://github.com/GaiaTools/fulcrum-settings/commit/b302f19d2b5ca7f8d697bf3502efbb73cca12bfc))
+
 ## 1.0.0 (2026-06-05)
 
 
