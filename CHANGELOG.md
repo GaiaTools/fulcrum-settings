@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.1](https://github.com/GaiaTools/fulcrum-settings/compare/v1.0.0...v1.0.1) (2026-06-19)
+
+
+### Bug Fixes
+
+* prevent double-encoding of array/json values in set() ([b302f19](https://github.com/GaiaTools/fulcrum-settings/commit/b302f19d2b5ca7f8d697bf3502efbb73cca12bfc))
+
+
+### Miscellaneous Chores
+
+* **deps:** bump actions/checkout from 6 to 7 ([6048671](https://github.com/GaiaTools/fulcrum-settings/commit/604867125f290e12160d74bc8518c15d4acefe05))
+* **deps:** bump laravel/pint from 1.29.1 to 1.29.3 ([9d6b10f](https://github.com/GaiaTools/fulcrum-settings/commit/9d6b10f53b78dd3e03595df1a38740094386dcda))
+* **deps:** bump pestphp/pest from 4.7.2 to 4.7.3 ([1172c50](https://github.com/GaiaTools/fulcrum-settings/commit/1172c507f104b0021dffbb0109135076a69c8714))
+
 ## 1.0.0 (2026-06-05)
 
 
