@@ -10177,16 +10177,16 @@
         },
         {
             "name": "spatie/laravel-permission",
-            "version": "8.0.0",
+            "version": "8.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/spatie/laravel-permission.git",
-                "reference": "70a6ab04108616b438e0839598f473b513281644"
+                "reference": "e97b03679f1767af7d181c14efce2dd8cb242e57"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/spatie/laravel-permission/zipball/70a6ab04108616b438e0839598f473b513281644",
-                "reference": "70a6ab04108616b438e0839598f473b513281644",
+                "url": "https://api.github.com/repos/spatie/laravel-permission/zipball/e97b03679f1767af7d181c14efce2dd8cb242e57",
+                "reference": "e97b03679f1767af7d181c14efce2dd8cb242e57",
                 "shasum": ""
             },
             "require": {
@@ -10252,7 +10252,7 @@
             ],
             "support": {
                 "issues": "https://github.com/spatie/laravel-permission/issues",
-                "source": "https://github.com/spatie/laravel-permission/tree/8.0.0"
+                "source": "https://github.com/spatie/laravel-permission/tree/8.2.0"
             },
             "funding": [
                 {
@@ -10260,7 +10260,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-05-30T19:30:22+00:00"
+            "time": "2026-07-02T23:59:17+00:00"
         },
         {
             "name": "staabm/side-effects-detector",
