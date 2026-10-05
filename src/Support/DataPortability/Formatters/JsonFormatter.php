@@ -24,7 +24,7 @@ class JsonFormatter implements Formatter
         $normalized = [];
         foreach ($decoded as $row) {
             if (is_array($row)) {
-                $normalized[] = $row;
+                $normalized[] = array_filter($row, is_string(...), ARRAY_FILTER_USE_KEY);
             }
         }
 

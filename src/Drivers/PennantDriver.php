@@ -69,7 +69,7 @@ class PennantDriver implements DefinesFeaturesExternally, Driver
             }
 
             if ($isConvenienceCall) {
-                $results[$featureName] = $this->get($featureName, $scopesList[0] ?? null);
+                $results[$featureName] = $this->get($featureName, null);
 
                 continue;
             }

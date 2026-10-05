@@ -4,12 +4,26 @@ declare(strict_types=1);
 
 namespace GaiaTools\FulcrumSettings\Tests\Feature\Support\DataPortability;
 
+use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\JsonFormatter;
 use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\SqlFormatter;
 use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\YamlFormatter;
 use GaiaTools\FulcrumSettings\Tests\TestCase;
 
 class FormatterTest extends TestCase
 {
+    public function test_json_and_yaml_parsers_keep_only_named_record_fields(): void
+    {
+        foreach ([new JsonFormatter, new YamlFormatter] as $formatter) {
+            $content = $formatter->format([
+                ['key' => 'test_setting', 'type' => 'string', 0 => 'invalid field'],
+            ]);
+
+            $this->assertSame([
+                ['key' => 'test_setting', 'type' => 'string'],
+            ], $formatter->parse($content));
+        }
+    }
+
     public function test_yaml_formatter_format_and_parse()
     {
         $formatter = new YamlFormatter;

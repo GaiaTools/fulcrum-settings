@@ -75,7 +75,6 @@ class GetSettingCommand extends Command
             is_array($value) || is_object($value) => json_encode($value, JSON_PRETTY_PRINT) ?: '',
             is_bool($value) => $value ? 'true' : 'false',
             is_scalar($value) => (string) $value,
-            is_object($value) && method_exists($value, '__toString') => (string) $value,
             default => '',
         };
     }
