@@ -1,0 +1,24 @@
+<?php
+
+namespace Illuminate\Database;
+
+class Connection implements ConnectionInterface
+{
+    /**
+     * SQL imports intentionally execute dynamic file contents. Laravel's
+     * implementation accepts strings and passes them to PDO::exec().
+     *
+     * @param string $query
+     * @return bool
+     */
+    public function unprepared($query) {}
+}
+
+interface ConnectionInterface {}
+
+interface ConnectionResolverInterface {}
+
+/**
+ * @mixin \Illuminate\Database\Connection
+ */
+class DatabaseManager implements ConnectionResolverInterface {}
