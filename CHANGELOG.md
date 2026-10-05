@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/GaiaTools/fulcrum-settings/compare/v1.0.2...v1.0.3) (2026-10-05)
+
+
+### Bug Fixes
+
+* resolve Laravel 13 static analysis failures ([a74e6ac](https://github.com/GaiaTools/fulcrum-settings/commit/a74e6ac97190935266980f0f53722486d0911ca3))
+
 ## [1.0.2](https://github.com/GaiaTools/fulcrum-settings/compare/v1.0.1...v1.0.2) (2026-07-17)
 
 
