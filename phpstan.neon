@@ -6,5 +6,15 @@ parameters:
     noEnvCallsOutsideOfConfig: true
     paths:
         - src
+    stubFiles:
+        - stubs/phpstan/IlluminateDatabaseConnection.stub
     tmpDir: build/phpstan
     reportUnmatchedIgnoredErrors: false
+
+extensions:
+    sqlImportStubAutowiring: GaiaTools\FulcrumSettings\Tests\PHPStan\SqlImportStubAutowiringExtension
+
+services:
+    sqlImportStubFilesProvider:
+        class: GaiaTools\FulcrumSettings\Tests\PHPStan\SqlImportStubFilesProvider
+        autowired: PHPStan\PhpDoc\StubFilesProvider

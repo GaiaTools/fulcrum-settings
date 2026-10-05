@@ -62,8 +62,7 @@ class ImportManager
                         if (isset($settingData['__raw_sql'])) {
                             $rawSql = $settingData['__raw_sql'];
                             if (is_string($rawSql)) {
-                                // SQL imports intentionally execute file content rather than a literal query.
-                                DB::connection($connection)->unprepared($rawSql); // @phpstan-ignore argument.type
+                                DB::connection($connection)->unprepared($rawSql);
                             }
 
                             continue;
