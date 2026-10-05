@@ -1,5 +1,39 @@
 # Changelog
 
+## [1.0.3](https://github.com/GaiaTools/fulcrum-settings/compare/v1.0.2...v1.0.3) (2026-10-05)
+
+
+### Bug Fixes
+
+* resolve Laravel 13 static analysis failures ([a74e6ac](https://github.com/GaiaTools/fulcrum-settings/commit/a74e6ac97190935266980f0f53722486d0911ca3))
+
+
+### Miscellaneous Chores
+
+* add Laravel 13 support ([99dcd42](https://github.com/GaiaTools/fulcrum-settings/commit/99dcd42fef6d7b9ca8b953d55e17e3bf4bd195be))
+* **deps:** bump guzzlehttp/guzzle from 7.14.0 to 7.15.1 ([1c1af94](https://github.com/GaiaTools/fulcrum-settings/commit/1c1af94e556980283aeeb1d876322ae94f45d98e))
+* **deps:** bump guzzlehttp/guzzle from 7.15.1 to 7.15.2 ([71999c9](https://github.com/GaiaTools/fulcrum-settings/commit/71999c9a99923c3b3166dc95042ba48a06ad7f45))
+* **deps:** bump larastan/larastan from 3.10.0 to 3.11.0 ([54d20e1](https://github.com/GaiaTools/fulcrum-settings/commit/54d20e17ab52ad6eb89164d17d288c990cb7558a))
+* **deps:** bump larastan/larastan from 3.11.0 to 3.12.1 ([60783e2](https://github.com/GaiaTools/fulcrum-settings/commit/60783e2cbf21c39606612ddf0504c443a8e953b0))
+* **deps:** bump laravel/pennant from 1.24.0 to 1.26.0 ([a9aaf5c](https://github.com/GaiaTools/fulcrum-settings/commit/a9aaf5ce9331d689f9f2e2df695a83225897d76d))
+* **deps:** bump laravel/pint from 1.29.3 to 1.30.3 ([6d7b182](https://github.com/GaiaTools/fulcrum-settings/commit/6d7b182e7da2058fd4cb2421ca922cbc657c759e))
+* **deps:** bump laravel/pint from 1.30.3 to 1.30.5 ([4c8ae70](https://github.com/GaiaTools/fulcrum-settings/commit/4c8ae70d1dcf529d8800320911da42b81b637137))
+* **deps:** bump laravel/pint from 1.30.5 to 1.31.0 ([f0ba68e](https://github.com/GaiaTools/fulcrum-settings/commit/f0ba68efc3eeebcdb4dc5759c524a923088c2cdb))
+* **deps:** bump laravel/telescope from 5.20.0 to 5.21.0 ([65945cb](https://github.com/GaiaTools/fulcrum-settings/commit/65945cba7d679928d0808eba93e5301bdea2e778))
+* **deps:** bump laravel/telescope from 5.21.0 to 5.22.0 ([37ea183](https://github.com/GaiaTools/fulcrum-settings/commit/37ea1836a115e4588db882520c904d0e7a5ff5a6))
+* **deps:** bump laravel/telescope from 5.22.0 to 5.22.1 ([ffc7bfd](https://github.com/GaiaTools/fulcrum-settings/commit/ffc7bfd65000895e5d057cf027f2ee8b9ebd27ed))
+* **deps:** bump laravel/telescope from 5.22.1 to 5.23.0 ([c2f2d61](https://github.com/GaiaTools/fulcrum-settings/commit/c2f2d611c3119a0f957d0b9685bd05b3c76c3de2))
+* **deps:** bump laravel/telescope from 5.23.0 to 5.24.0 ([61dadee](https://github.com/GaiaTools/fulcrum-settings/commit/61dadee0308914fd999c07314703581d0c7371bb))
+* **deps:** bump laravel/telescope from 5.24.0 to 5.25.0 ([94e09e2](https://github.com/GaiaTools/fulcrum-settings/commit/94e09e2b2ca4aa91a60667cd3a7c5bd5204d43d2))
+* **deps:** bump league/commonmark from 2.8.3 to 2.9.0 ([eeb053a](https://github.com/GaiaTools/fulcrum-settings/commit/eeb053a691c2fda872caacbbdc8dbe4d3cd656eb))
+* **deps:** bump phpstan/phpstan from 2.2.14 to 2.2.16 ([451f42f](https://github.com/GaiaTools/fulcrum-settings/commit/451f42f33ba75c0e19cfa451ac3f50e0004a5378))
+* **deps:** bump phpstan/phpstan from 2.2.5 to 2.2.6 ([35f1566](https://github.com/GaiaTools/fulcrum-settings/commit/35f156679692226751f2e1b098d8a8470d787feb))
+* **deps:** bump phpstan/phpstan from 2.2.6 to 2.2.7 ([67f105e](https://github.com/GaiaTools/fulcrum-settings/commit/67f105e02eb49f722b66c9b55a9ac2d09836bca3))
+* **deps:** bump phpstan/phpstan from 2.2.7 to 2.2.9 ([3f94d01](https://github.com/GaiaTools/fulcrum-settings/commit/3f94d01986d3b7f46ab87ea3765a977d434e76e8))
+* **deps:** bump phpstan/phpstan from 2.2.9 to 2.2.12 ([38f7750](https://github.com/GaiaTools/fulcrum-settings/commit/38f775053492b45501619bec17f42966d75084c8))
+* merge main and resolve Composer lockfile conflict ([27e85c0](https://github.com/GaiaTools/fulcrum-settings/commit/27e85c0ed850a85173b4a6c057deff008621d8c4))
+* replace SQL import suppression with PHPStan stub ([042066a](https://github.com/GaiaTools/fulcrum-settings/commit/042066a978104c3187910cdc49e2a918d8a1408c))
+
 ## [1.0.2](https://github.com/GaiaTools/fulcrum-settings/compare/v1.0.1...v1.0.2) (2026-07-17)
 
 
