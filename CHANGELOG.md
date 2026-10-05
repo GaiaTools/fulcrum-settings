@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.0.2](https://github.com/GaiaTools/fulcrum-settings/compare/v1.0.1...v1.0.2) (2026-07-17)
+
+
+### Miscellaneous Chores
+
+* **deps:** bump actions/cache from 5 to 6 ([a18479f](https://github.com/GaiaTools/fulcrum-settings/commit/a18479f9527de436ff031dab750e357cf10c93e7))
+* **deps:** bump guzzlehttp/guzzle from 7.11.0 to 7.12.1 ([99883e8](https://github.com/GaiaTools/fulcrum-settings/commit/99883e8edcac19623844204392ebc138e5511f62))
+* **deps:** bump laravel/pennant from 1.23.0 to 1.24.0 ([9636c35](https://github.com/GaiaTools/fulcrum-settings/commit/9636c35a8e46d02a67d8d32ab7f9eb667e4055f7))
+* **deps:** bump pestphp/pest from 4.7.3 to 4.7.4 ([2e3e601](https://github.com/GaiaTools/fulcrum-settings/commit/2e3e601517835de6be99fed390d1179f8b8d5891))
+* **deps:** bump pestphp/pest from 4.7.4 to 4.7.5 ([956f5bb](https://github.com/GaiaTools/fulcrum-settings/commit/956f5bb4b7b2321265109ee8d40ca6b25b0e5d59))
+* **deps:** bump phpstan/phpstan from 2.2.2 to 2.2.4 ([9893f17](https://github.com/GaiaTools/fulcrum-settings/commit/9893f175d09103b60fddece12ad3da842e687c78))
+* **deps:** bump phpstan/phpstan from 2.2.4 to 2.2.5 ([84858b8](https://github.com/GaiaTools/fulcrum-settings/commit/84858b866399435462d3fef2fad8510fd2ba696f))
+* **deps:** bump spatie/laravel-permission from 8.0.0 to 8.2.0 ([79f9334](https://github.com/GaiaTools/fulcrum-settings/commit/79f9334d66b297cb2e814c1d049bad0e01c72008))
+* **deps:** bump spatie/laravel-permission from 8.2.0 to 8.3.0 ([2a9f082](https://github.com/GaiaTools/fulcrum-settings/commit/2a9f0826b9747f663559791c5fd579ae28fa3157))
+
 ## [1.0.1](https://github.com/GaiaTools/fulcrum-settings/compare/v1.0.0...v1.0.1) (2026-06-19)
 
 
