@@ -59,27 +59,7 @@ class ImportManager
             $chunks = array_chunk($data, $chunkSize);
             foreach ($chunks as $chunk) {
                 foreach ($chunk as $settingData) {
-                    try {
-                        if (isset($settingData['__raw_sql'])) {
-                            $rawSql = $settingData['__raw_sql'];
-                            if (is_string($rawSql)) {
-                                DB::connection($connection)->unprepared($rawSql);
-                            }
-
-                            continue;
-                        }
-                        $this->importSetting($settingData, $mode, $conflictHandling);
-                    } catch (\Throwable $e) {
-                        if ($conflictHandling === 'fail') {
-                            throw $e;
-                        }
-                        if ($conflictHandling === 'log') {
-                            $keyLabel = $settingData['key'] ?? 'unknown';
-                            $keyLabel = is_scalar($keyLabel) ? (string) $keyLabel : 'unknown';
-                            Log::error('Import failed for setting: '.$keyLabel.'. Error: '.$e->getMessage());
-                        }
-                        // if skip, just continue
-                    }
+                    $this->importRecord($settingData, $mode, $conflictHandling, $connection);
                 }
             }
 
@@ -89,6 +69,32 @@ class ImportManager
 
             return true;
         });
+    }
+
+    /** @param array<string, mixed> $settingData */
+    protected function importRecord(array $settingData, string $mode, string $conflictHandling, ?string $connection): void
+    {
+        try {
+            if (isset($settingData['__raw_sql'])) {
+                $rawSql = $settingData['__raw_sql'];
+                if (is_string($rawSql)) {
+                    DB::connection($connection)->unprepared($rawSql);
+                }
+
+                return;
+            }
+            $this->importSetting($settingData, $mode, $conflictHandling);
+        } catch (\Throwable $e) {
+            if ($conflictHandling === 'fail') {
+                throw $e;
+            }
+            if ($conflictHandling === 'log') {
+                $keyLabel = $settingData['key'] ?? 'unknown';
+                $keyLabel = is_scalar($keyLabel) ? (string) $keyLabel : 'unknown';
+                Log::error('Import failed for setting: '.$keyLabel.'. Error: '.$e->getMessage());
+            }
+            // if skip, just continue
+        }
     }
 
     /**

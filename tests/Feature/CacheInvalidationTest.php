@@ -287,3 +287,11 @@ test('geo condition changes invalidate dependency metadata and restore shared hi
     expect($this->resolver->resolve('cached'))->toBe('rule')
         ->and(DB::connection()->getQueryLog())->toBe([]);
 });
+
+test('imports fall back to the default database for a non-string connection option', function () {
+    Storage::fake('local');
+    Storage::disk('local')->put('fallback.json', json_encode([['key' => 'cached', 'type' => 'string', 'default_value' => 'fallback-import']]));
+    expect($this->resolver->resolve('cached'))->toBe('old');
+    expect((new ImportManager)->import(new JsonFormatter, 'fallback.json', ['connection' => 123]))->toBeTrue();
+    expect($this->resolver->resolve('cached'))->toBe('fallback-import');
+});

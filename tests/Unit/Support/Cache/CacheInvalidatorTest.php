@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use GaiaTools\FulcrumSettings\Exceptions\UnsupportedCacheStoreException;
 use GaiaTools\FulcrumSettings\Support\Cache\CacheInvalidator;
 use Illuminate\Cache\ArrayStore;
 use Illuminate\Cache\Repository;
@@ -51,6 +52,6 @@ test('stores without locking cannot initialize or rotate generations', function 
     $store->shouldReceive('get')->with('fulcrum:generation')->andReturn(null);
     Cache::shouldReceive('store')->with(null)->andReturn(new Repository($store));
     $invalidator = new CacheInvalidator;
-    expect(fn () => $invalidator->generation())->toThrow(RuntimeException::class, 'supporting locks')
-        ->and(fn () => $invalidator->invalidate())->toThrow(RuntimeException::class, 'supporting locks');
+    expect(fn () => $invalidator->generation())->toThrow(UnsupportedCacheStoreException::class, 'supporting locks')
+        ->and(fn () => $invalidator->invalidate())->toThrow(UnsupportedCacheStoreException::class, 'supporting locks');
 });

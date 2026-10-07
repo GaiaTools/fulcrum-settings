@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace GaiaTools\FulcrumSettings\Support\Cache;
 
 use Closure;
+use GaiaTools\FulcrumSettings\Exceptions\UnsupportedCacheStoreException;
 use Illuminate\Contracts\Cache\LockProvider;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\Cache;
@@ -63,7 +64,7 @@ class CacheInvalidator
     {
         $store = Cache::store($this->store)->getStore();
         if (! $store instanceof LockProvider) {
-            throw new \RuntimeException('Fulcrum cache invalidation requires a cache store supporting locks.');
+            throw new UnsupportedCacheStoreException('Fulcrum cache invalidation requires a cache store supporting locks.');
         }
 
         $lock = $store->lock($this->prefix.':generation:lock', 10);
