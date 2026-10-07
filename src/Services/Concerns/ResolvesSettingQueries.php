@@ -47,8 +47,7 @@ trait ResolvesSettingQueries
 
     /**
      * Build a base query for finding settings, respecting tenant scope.
-     */
-    /**
+     *
      * @return Builder<Setting>
      */
     protected function buildSettingQuery(string $key, ?string $tenantId): Builder
@@ -68,8 +67,7 @@ trait ResolvesSettingQueries
 
     /**
      * Find a setting by key, respecting tenant scope.
-     */
-    /**
+     *
      * @param  array<int, string>  $with
      */
     protected function findSettingByKey(string $key, ?string $tenantId, array $with = []): ?Setting
