@@ -19,6 +19,10 @@ use GaiaTools\FulcrumSettings\Models\SettingRuleCondition;
 use GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant;
 use GaiaTools\FulcrumSettings\Models\SettingValue;
 use GaiaTools\FulcrumSettings\Observers\InvalidatesSettingCache;
+use GaiaTools\FulcrumSettings\Support\Cache\PendingCacheInvalidations;
+use Illuminate\Database\Events\TransactionCommitted;
+use Illuminate\Database\Events\TransactionRolledBack;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Symfony\Component\Finder\Finder;
@@ -28,6 +32,9 @@ class FulcrumSettingsBootServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
+        $this->app->singleton(PendingCacheInvalidations::class);
+        Event::listen(TransactionRolledBack::class, fn ($event) => app(PendingCacheInvalidations::class)->rolledBack($event->connection));
+        Event::listen(TransactionCommitted::class, fn ($event) => app(PendingCacheInvalidations::class)->committed($event->connection));
         $this->bootMigrations();
         $this->bootPublishables();
         $this->bootViews();

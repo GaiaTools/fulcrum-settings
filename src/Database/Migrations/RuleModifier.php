@@ -322,7 +322,7 @@ class RuleModifier
                 $query->where('type', $condition['type']);
             }
 
-            $query->each(fn ($condition) => $condition->delete());
+            $query->lazyById()->each(fn ($condition) => $condition->delete());
         }
 
         // Modify existing conditions

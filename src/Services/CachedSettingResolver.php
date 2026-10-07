@@ -11,6 +11,7 @@ use GaiaTools\FulcrumSettings\Contracts\GroupedSettingResolver;
 use GaiaTools\FulcrumSettings\Contracts\SettingResolver;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Support\Cache\CacheInvalidator;
+use GaiaTools\FulcrumSettings\Support\Cache\PendingCacheInvalidations;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use GaiaTools\FulcrumSettings\Support\GroupedSettingResolver as GroupedSettingResolverImpl;
 use GaiaTools\FulcrumSettings\Support\RequestCacheDependencies;
@@ -43,7 +44,7 @@ class CachedSettingResolver implements SettingResolver
     {
         $resolvedKey = $this->resolveKey($key);
 
-        if (! $this->enabled || (new Setting)->getConnection()->transactionLevel() > 0) {
+        if (! $this->enabled || app(PendingCacheInvalidations::class)->hasWrites(Setting::resolveConnection())) {
             return $this->resolver->resolve($resolvedKey, $scope);
         }
         if (! $this->resolver instanceof CacheContextProvider || ! $this->isCacheable($scope)) {
@@ -124,7 +125,7 @@ class CachedSettingResolver implements SettingResolver
         $this->resolver->set($this->resolveKey($key), $value);
 
         if ($this->enabled) {
-            (new CacheInvalidator($this->prefix, $this->store))->invalidateAfterCommit((new Setting)->getConnection());
+            (new CacheInvalidator($this->prefix, $this->store))->invalidateAfterCommit(Setting::resolveConnection());
         }
     }
 

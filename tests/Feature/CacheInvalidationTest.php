@@ -17,6 +17,7 @@ use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\JsonFormatter;
 use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\SqlFormatter;
 use GaiaTools\FulcrumSettings\Support\DataPortability\ImportManager;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Foundation\Auth\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -182,7 +183,7 @@ test('raw SQL imports invalidate cached results even without model events', func
     expect($this->resolver->resolve('cached'))->toBe('imported');
 });
 
-test('expired generation metadata cannot resurrect old cached results', function () {
+test('missing generation metadata creates a fresh namespace', function () {
     expect($this->resolver->resolve('cached'))->toBe('old');
     $this->resolver->set('cached', 'new');
     Cache::forget('fulcrum:generation');
@@ -294,4 +295,93 @@ test('imports fall back to the default database for a non-string connection opti
     expect($this->resolver->resolve('cached'))->toBe('old');
     expect((new ImportManager)->import(new JsonFormatter, 'fallback.json', ['connection' => 123]))->toBeTrue();
     expect($this->resolver->resolve('cached'))->toBe('fallback-import');
+});
+
+test('read only transactions retain cache hits', function () {
+    expect($this->resolver->resolve('cached'))->toBe('old');
+    DB::beginTransaction();
+    try {
+        DB::connection()->enableQueryLog();
+        DB::connection()->flushQueryLog();
+        expect($this->resolver->resolve('cached'))->toBe('old')
+            ->and(DB::connection()->getQueryLog())->toBe([]);
+    } finally {
+        DB::rollBack();
+    }
+});
+
+test('many import rows rotate the cache once after commit', function () {
+    Storage::fake('local');
+    $rows = array_map(fn ($id) => ['key' => 'import-'.$id, 'type' => 'string', 'default_value' => 'value'], range(1, 50));
+    Storage::disk('local')->put('many.json', json_encode($rows));
+    $cache = Cache::store();
+    $spy = Mockery::mock($cache)->makePartial();
+    $spy->shouldReceive('forever')->with('fulcrum:generation', Mockery::type('string'))->once()->passthru();
+    Cache::shouldReceive('store')->with(null)->andReturn($spy);
+    expect((new ImportManager)->import(new JsonFormatter, 'many.json'))->toBeTrue();
+});
+
+test('cache rotation failure reports the error without failing successful writes or imports', function () {
+    $cache = Cache::store();
+    $spy = Mockery::mock($cache)->makePartial();
+    $spy->shouldReceive('getStore')->andThrow(new RuntimeException('cache offline'));
+    Cache::shouldReceive('store')->with(null)->andReturn($spy);
+    $handler = Mockery::mock(ExceptionHandler::class);
+    $handler->shouldReceive('report')->times(2)->with(Mockery::on(fn ($error) => $error->getMessage() === 'cache offline'));
+    app()->instance(ExceptionHandler::class, $handler);
+    $this->setting->defaultValue->update(['value' => 'saved']);
+    expect($this->setting->defaultValue->fresh()->value)->toBe('saved');
+    Storage::fake('local');
+    Storage::disk('local')->put('offline.json', json_encode([['key' => 'cached', 'type' => 'string', 'default_value' => 'imported']]));
+    expect((new ImportManager)->import(new JsonFormatter, 'offline.json'))->toBeTrue()
+        ->and($this->setting->defaultValue->fresh()->value)->toBe('imported');
+});
+
+test('unchanged saves do not rotate generations even after previous changes', function () {
+    $value = $this->setting->defaultValue;
+    $value->update(['value' => 'changed']);
+    $generation = CacheInvalidator::configured()->generation();
+    $value->save();
+    $this->setting->save();
+    expect(CacheInvalidator::configured()->generation())->toBe($generation);
+});
+
+test('nested rollbacks clear only writes within the rolled back savepoint', function () {
+    expect($this->resolver->resolve('cached'))->toBe('old');
+    DB::beginTransaction();
+    DB::beginTransaction();
+    $this->resolver->set('cached', 'discarded');
+    DB::rollBack();
+    DB::connection()->enableQueryLog();
+    DB::connection()->flushQueryLog();
+    expect($this->resolver->resolve('cached'))->toBe('old')
+        ->and(DB::connection()->getQueryLog())->toBe([]);
+    $this->resolver->set('cached', 'committed');
+    DB::beginTransaction();
+    $this->resolver->set('cached', 'discarded-again');
+    DB::rollBack();
+    expect($this->resolver->resolve('cached'))->toBe('committed');
+    DB::commit();
+    expect($this->resolver->resolve('cached'))->toBe('committed');
+});
+
+test('condition deletion visits every row across pagination boundaries', function () {
+    $rule = $this->setting->rules()->create(['name' => 'many', 'priority' => 1]);
+    $rows = array_fill(0, 1001, ['setting_rule_id' => $rule->id, 'attribute' => 'plan', 'type' => 'user', 'operator' => 'equals', 'value' => 'premium']);
+    DB::table('setting_rule_conditions')->insert($rows);
+    DB::transaction(fn () => (new RuleModifier($rule))->removeCondition('plan')->apply());
+    expect($rule->conditions()->count())->toBe(0);
+});
+
+test('writes first made in a committed savepoint remain pending until the outer transaction ends', function () {
+    $generation = CacheInvalidator::configured()->generation();
+    DB::beginTransaction();
+    DB::beginTransaction();
+    $this->resolver->set('cached', 'nested');
+    DB::commit();
+    expect($this->resolver->resolve('cached'))->toBe('nested')
+        ->and(CacheInvalidator::configured()->generation())->toBe($generation);
+    DB::rollBack();
+    expect($this->resolver->resolve('cached'))->toBe('old')
+        ->and(CacheInvalidator::configured()->generation())->toBe($generation);
 });

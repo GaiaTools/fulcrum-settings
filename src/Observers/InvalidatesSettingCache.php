@@ -9,15 +9,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class InvalidatesSettingCache
 {
-    public function saved(Model $model): void
+    public function created(Model $model): void
     {
-        if (config()->boolean('fulcrum.cache.enabled', false)) {
-            CacheInvalidator::configured()->invalidateAfterCommit($model->getConnection());
-        }
+        $this->deleted($model);
+    }
+
+    public function updated(Model $model): void
+    {
+        $this->deleted($model);
     }
 
     public function deleted(Model $model): void
     {
-        $this->saved($model);
+        if (config()->boolean('fulcrum.cache.enabled', false)) {
+            CacheInvalidator::configured()->invalidateAfterCommit($model->getConnection());
+        }
     }
 }

@@ -79,12 +79,28 @@ class CacheInvalidator
 
     public function invalidateAfterCommit(Connection $connection): void
     {
+        $pending = app(PendingCacheInvalidations::class);
+        $namespace = serialize([$this->prefix, $this->store]);
         if ($connection->transactionLevel() > 0) {
-            $connection->afterCommit(fn () => $this->invalidate());
+            if ($pending->register($connection, $namespace)) {
+                $connection->afterCommit(function () use ($pending, $connection, $namespace): void {
+                    $pending->forget($connection, $namespace);
+                    $this->invalidateSafely();
+                });
+            }
 
             return;
         }
 
-        $this->invalidate();
+        $this->invalidateSafely();
+    }
+
+    private function invalidateSafely(): void
+    {
+        try {
+            $this->invalidate();
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
     }
 }
