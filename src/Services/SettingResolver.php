@@ -5,28 +5,31 @@ declare(strict_types=1);
 namespace GaiaTools\FulcrumSettings\Services;
 
 use GaiaTools\FulcrumSettings\Contracts\BucketCalculator;
+use GaiaTools\FulcrumSettings\Contracts\CacheContextProvider;
 use GaiaTools\FulcrumSettings\Contracts\DistributionStrategy;
 use GaiaTools\FulcrumSettings\Contracts\GroupedSettingResolver;
 use GaiaTools\FulcrumSettings\Contracts\RuleEvaluator;
 use GaiaTools\FulcrumSettings\Contracts\SettingResolver as SettingResolverContract;
 use GaiaTools\FulcrumSettings\Events\SettingResolved;
-use GaiaTools\FulcrumSettings\Events\VariantAssigned;
 use GaiaTools\FulcrumSettings\Exceptions\InvalidSettingValueException;
 use GaiaTools\FulcrumSettings\Exceptions\SettingNotFoundException;
-use GaiaTools\FulcrumSettings\Models\Scopes\TenantScope;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Models\SettingRule;
 use GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant;
+use GaiaTools\FulcrumSettings\Services\Concerns\ResolvesRolloutVariants;
+use GaiaTools\FulcrumSettings\Services\Concerns\ResolvesSettingQueries;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use GaiaTools\FulcrumSettings\Support\GroupedSettingResolver as GroupedSettingResolverImpl;
 use GaiaTools\FulcrumSettings\Support\ResolutionContext;
 use GaiaTools\FulcrumSettings\Support\TypeRegistry;
 use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Database\Eloquent\Builder;
 use Laravel\Telescope\Telescope;
 
-class SettingResolver implements SettingResolverContract
+class SettingResolver implements CacheContextProvider, SettingResolverContract
 {
+    use ResolvesRolloutVariants;
+    use ResolvesSettingQueries;
+
     protected ?Authenticatable $user = null;
 
     protected ?string $tenantId = null;
@@ -40,10 +43,6 @@ class SettingResolver implements SettingResolverContract
         protected BucketCalculator $bucketCalculator,
         protected DistributionStrategy $distributionStrategy,
     ) {}
-
-    // ========================================
-    // Public API
-    // ========================================
 
     public function resolve(string $key, mixed $scope = null): mixed
     {
@@ -138,89 +137,10 @@ class SettingResolver implements SettingResolverContract
         return new GroupedSettingResolverImpl($this->forGroup($normalized), $normalized);
     }
 
-    /**
-     * @return array<int, string>
-     */
-    public function getGroupKeys(string $group): array
-    {
-        $normalized = $this->normalizeGroup($group);
-        $tenantId = $this->resolveTenantId();
-
-        $query = Setting::withoutGlobalScope(TenantScope::class)
-            ->where('group', $normalized);
-
-        if ($this->isMultiTenancyEnabled()) {
-            if ($tenantId !== null) {
-                $query->where(function (Builder $builder) use ($tenantId) {
-                    $builder->where('tenant_id', $tenantId)->orWhereNull('tenant_id');
-                })->orderByRaw('tenant_id IS NOT NULL DESC');
-            } else {
-                $query->whereNull('tenant_id');
-            }
-        }
-
-        $settings = $query->orderBy('id')->get(['key', 'tenant_id']);
-        $keys = [];
-
-        foreach ($settings as $setting) {
-            if (! array_key_exists($setting->key, $keys)) {
-                $keys[$setting->key] = true;
-            }
-        }
-
-        return array_keys($keys);
-    }
-
     public function getLastCalculatedBucket(): ?int
     {
         return $this->lastCalculatedBucket;
     }
-
-    // ========================================
-    // Query Building
-    // ========================================
-
-    /**
-     * Build a base query for finding settings, respecting tenant scope.
-     */
-    /**
-     * @return Builder<Setting>
-     */
-    protected function buildSettingQuery(string $key, ?string $tenantId): Builder
-    {
-        return Setting::withoutGlobalScope(TenantScope::class)
-            ->where('key', $key)
-            ->when(
-                $this->isMultiTenancyEnabled() && $tenantId,
-                fn (Builder $query) => $query->where(fn ($q) => $q->where('tenant_id', $tenantId)->orWhereNull('tenant_id')
-                )->orderByRaw('tenant_id IS NOT NULL DESC') // Tenant-specific first
-            )
-            ->when(
-                $this->isMultiTenancyEnabled() && ! $tenantId,
-                fn (Builder $query) => $query->whereNull('tenant_id')
-            );
-    }
-
-    /**
-     * Find a setting by key, respecting tenant scope.
-     */
-    /**
-     * @param  array<int, string>  $with
-     */
-    protected function findSettingByKey(string $key, ?string $tenantId, array $with = []): ?Setting
-    {
-        $query = $this->buildSettingQuery($key, $tenantId);
-
-        if (! empty($with)) {
-            $query->with($with);
-        }
-
-        return $query->first();
-    }
-
-    // ========================================
-    // Rule Evaluation
-    // ========================================
 
     /**
      * Evaluate all rules for a setting and return the first matching rule/variant.
@@ -286,138 +206,6 @@ class SettingResolver implements SettingResolverContract
         return [$setting->getDefaultValue(), 'default'];
     }
 
-    // ========================================
-    // Rollout Logic
-    // ========================================
-
-    /**
-     * Select a rollout variant based on consistent bucketing.
-     */
-    protected function selectRolloutVariant(SettingRule $rule, mixed $scope): ?SettingRuleRolloutVariant
-    {
-        $identifier = $this->resolveRolloutIdentifier($scope);
-
-        if ($identifier === null) {
-            return null;
-        }
-
-        $this->lastCalculatedBucket = $this->calculateBucket($rule, $identifier);
-
-        return $this->findVariantForBucket($rule, $this->lastCalculatedBucket);
-    }
-
-    /**
-     * Calculate the bucket value for an identifier.
-     */
-    protected function calculateBucket(SettingRule $rule, string $identifier): int
-    {
-        $salt = $rule->getEffectiveSalt();
-        $precisionConfig = config('fulcrum.rollout.bucket_precision', 100_000);
-        $precision = is_numeric($precisionConfig) ? (int) $precisionConfig : 100_000;
-
-        return $this->bucketCalculator->calculate($identifier, $salt, $precision);
-    }
-
-    /**
-     * Find the variant that corresponds to a given bucket value.
-     */
-    protected function findVariantForBucket(SettingRule $rule, int $bucket): ?SettingRuleRolloutVariant
-    {
-        return $this->distributionStrategy->findVariantForBucket($rule, $bucket);
-    }
-
-    /**
-     * Resolve the identifier used for bucket calculation.
-     */
-    protected function resolveRolloutIdentifier(mixed $scope): ?string
-    {
-        // Custom resolver takes precedence
-        if ($customIdentifier = $this->callCustomIdentifierResolver($scope)) {
-            return $customIdentifier;
-        }
-
-        // Try standard identifier sources
-        return $this->extractIdentifierFromUser()
-            ?? $this->extractIdentifierFromScope($scope);
-    }
-
-    /**
-     * Call the custom identifier resolver if configured.
-     */
-    protected function callCustomIdentifierResolver(mixed $scope): ?string
-    {
-        $resolver = config('fulcrum.rollout.identifier_resolver');
-
-        if (! is_callable($resolver)) {
-            return null;
-        }
-
-        $result = $resolver($scope, $this->user);
-
-        return match (true) {
-            $result === null => null,
-            is_scalar($result) => (string) $result,
-            is_object($result) && method_exists($result, '__toString') => (string) $result,
-            default => null,
-        };
-    }
-
-    /**
-     * Extract identifier from the current user.
-     */
-    protected function extractIdentifierFromUser(): ?string
-    {
-        $identifier = $this->user?->getAuthIdentifier();
-
-        return is_scalar($identifier) ? (string) $identifier : null;
-    }
-
-    /**
-     * Extract identifier from scope (scalar, array, or object).
-     */
-    protected function extractIdentifierFromScope(mixed $scope): ?string
-    {
-        return match (true) {
-            is_scalar($scope) => (string) $scope,
-            is_array($scope) && isset($scope['id']) && is_scalar($scope['id']) => (string) $scope['id'],
-            is_object($scope) && property_exists($scope, 'id') && is_scalar($scope->id) => (string) $scope->id,
-            default => null,
-        };
-    }
-
-    // ========================================
-    // Event Handling
-    // ========================================
-
-    /**
-     * Fire the variant assigned event for analytics integration.
-     */
-    protected function fireVariantAssignedEvent(
-        Setting $setting,
-        ?SettingRule $rule,
-        SettingRuleRolloutVariant $variant,
-        mixed $scope,
-        ?string $tenantId,
-    ): void {
-        if (! config('fulcrum.rollout.fire_assignment_events', true)) {
-            return;
-        }
-
-        event(new VariantAssigned(
-            settingKey: $setting->key,
-            ruleName: $rule && is_string($rule->name) ? $rule->name : 'unnamed',
-            variantName: $variant->name,
-            value: $variant->getValue(),
-            identifier: $this->resolveRolloutIdentifier($scope) ?? 'unknown',
-            bucket: $this->lastCalculatedBucket ?? 0,
-            setting: $setting,
-            rule: $rule,
-            variant: $variant,
-            tenantId: $tenantId,
-            context: is_array($scope) ? $scope : [],
-        ));
-    }
-
     /**
      * Record the setting resolution event if enabled.
      */
@@ -473,10 +261,6 @@ class SettingResolver implements SettingResolverContract
             && class_exists(Telescope::class);
     }
 
-    // ========================================
-    // Setting Mutation
-    // ========================================
-
     /**
      * Validate and store a setting value.
      */
@@ -496,68 +280,5 @@ class SettingResolver implements SettingResolverContract
             'valuable_type' => $setting->getMorphClass(),
             'valuable_id' => $setting->getKey(),
         ], ['value' => $value]);
-    }
-
-    // ========================================
-    // Tenant Resolution
-    // ========================================
-
-    /**
-     * Resolve the current tenant ID.
-     */
-    protected function resolveTenantId(): ?string
-    {
-        if ($this->tenantId) {
-            return $this->tenantId;
-        }
-
-        if (! $this->isMultiTenancyEnabled()) {
-            return null;
-        }
-
-        $resolver = config('fulcrum.multi_tenancy.tenant_resolver');
-
-        return is_callable($resolver)
-            ? $resolver()
-            : FulcrumContext::getTenantId();
-    }
-
-    /**
-     * Check if multi-tenancy is enabled.
-     */
-    public function isMultiTenancyEnabled(): bool
-    {
-        return config()->boolean('fulcrum.multi_tenancy.enabled', false);
-    }
-
-    protected function resolveGroup(): ?string
-    {
-        if ($this->group !== null) {
-            return $this->group;
-        }
-
-        return FulcrumContext::getGroup();
-    }
-
-    protected function resolveKey(string $key): string
-    {
-        $group = $this->resolveGroup();
-
-        if ($group && ! str_contains($key, '.')) {
-            return $group.'.'.$key;
-        }
-
-        return $key;
-    }
-
-    protected function normalizeGroup(string $group): string
-    {
-        $normalized = trim($group, " .\t\n\r\0\x0B");
-
-        if ($normalized === '') {
-            throw new \InvalidArgumentException('Group name cannot be empty.');
-        }
-
-        return $normalized;
     }
 }

@@ -191,6 +191,8 @@ return [
         'store' => env('FULCRUM_CACHE_STORE', null),
         'ttl' => env('FULCRUM_CACHE_TTL', 3600),
         'prefix' => env('FULCRUM_CACHE_PREFIX', 'fulcrum'),
+        // Override request inputs used by custom condition handlers.
+        'request_dependencies' => [],
     ],
 
     /*

@@ -854,8 +854,7 @@ abstract class SettingMigration extends Migration
      *     DB::table('settings')->where('type', 'string')->update(['type' => 'text']);
      * });
      * ```
-     */
-    /**
+     *
      * @param  Closure(): mixed  $callback
      */
     protected function raw(Closure $callback): mixed

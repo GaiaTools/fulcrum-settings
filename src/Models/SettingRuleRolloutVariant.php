@@ -98,8 +98,7 @@ class SettingRuleRolloutVariant extends Model
 
     /**
      * Get the weight as a percentage (0.000 - 100.000).
-     */
-    /**
+     *
      * @return Attribute<float, float>
      */
     public function weightPercentage(): Attribute

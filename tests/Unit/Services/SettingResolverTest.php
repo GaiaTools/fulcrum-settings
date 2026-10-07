@@ -454,6 +454,22 @@ test('it resolves rollout identifier from different scope types', function () {
     config(['fulcrum.rollout.identifier_resolver' => fn ($s) => 'custom-'.$s]);
     expect($this->resolver->resolve('scope.setting', 'foo'))->toBe('hit');
 
+    config(['fulcrum.rollout.identifier_resolver' => fn () => null]);
+    expect($this->resolver->resolve('scope.setting', 'fallback-id'))->toBe('hit');
+    config(['fulcrum.rollout.identifier_resolver' => fn () => new class implements \Stringable
+    {
+        public function __toString(): string
+        {
+            return 'stringable-id';
+        }
+    }]);
+    $assignedIdentifier = null;
+    Event::listen(VariantAssigned::class, function ($event) use (&$assignedIdentifier) {
+        $assignedIdentifier = $event->identifier;
+    });
+    expect($this->resolver->resolve('scope.setting'))->toBe('hit')
+        ->and($assignedIdentifier)->toBe('stringable-id');
+
     // No identifier found
     config(['fulcrum.rollout.identifier_resolver' => null]);
     expect($this->resolver->resolve('scope.setting', []))->toBeNull(); // Falls through because no ID
@@ -520,4 +536,22 @@ test('it continues to next rule if rollout fails to select variant', function ()
 
     $resolver = new SettingResolver($this->evaluator, $mockCalculator, $this->distributionStrategy);
     expect($resolver->resolve('next.rule.rollout', 'any-id'))->toBe('rule2-value');
+});
+
+test('group keys include tenant overrides and global fallback without duplicates', function () {
+    foreach ([['billing.shared', null], ['billing.shared', '0'], ['billing.local', '0'], ['billing.other', 'other']] as [$key, $tenant]) {
+        Setting::create(['key' => $key, 'group' => 'billing', 'type' => SettingType::STRING, 'tenant_id' => $tenant]);
+    }
+    expect($this->resolver->forTenant('0')->getGroupKeys('billing'))->toBe(['billing.shared', 'billing.local']);
+    expect(fn () => $this->resolver->group(' . '))->toThrow(\InvalidArgumentException::class, 'Group name cannot be empty.');
+});
+
+test('authenticatable scope is passed to the rule evaluator', function () {
+    $setting = Setting::create(['key' => 'scope-user', 'type' => SettingType::STRING]);
+    $rule = $setting->rules()->create(['name' => 'user', 'priority' => 1]);
+    $rule->value()->create(['value' => 'matched']);
+    $user = Mockery::mock(Authenticatable::class);
+    $user->shouldReceive('getAuthIdentifier')->andReturn(7);
+    $this->segmentDriver->shouldReceive('evaluate')->with(Mockery::any(), $user, Mockery::any())->andReturn(true);
+    expect($this->resolver->resolve('scope-user', $user))->toBe('matched');
 });

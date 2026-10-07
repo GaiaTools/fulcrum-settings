@@ -31,7 +31,7 @@ class TenantScope implements Scope
 
         // Use a unique group for the scope to avoid conflicts with other where clauses
         $builder->where(function (Builder $query) use ($tenantId, $model) {
-            if ($tenantId) {
+            if ($tenantId !== null) {
                 $query->where($model->getTable().'.tenant_id', $tenantId)
                     ->orWhereNull($model->getTable().'.tenant_id');
             } else {
