@@ -4,6 +4,7 @@ use GaiaTools\FulcrumSettings\Contracts\CacheContextProvider;
 use GaiaTools\FulcrumSettings\Contracts\SettingResolver;
 use GaiaTools\FulcrumSettings\Enums\SettingType;
 use GaiaTools\FulcrumSettings\Services\CachedSettingResolver;
+use GaiaTools\FulcrumSettings\Support\Cache\CacheInvalidator;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use GaiaTools\FulcrumSettings\Support\RequestCacheDependencies;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -25,6 +26,7 @@ beforeEach(function () {
 
 test('it resolves from cache and calls inner resolver when cache is empty', function () {
     Cache::shouldReceive('store')->andReturnSelf();
+    Cache::shouldReceive('get')->with('test_prefix:generation')->andReturn('generation');
     Cache::shouldReceive('remember')->withArgs(fn ($key, $ttl, $callback) => str_contains($key, ':dependencies:'))->andReturn(new RequestCacheDependencies([], 'test'))->byDefault();
     Cache::shouldReceive('remember')->withArgs(fn ($key, $ttl, $callback) => ! str_contains($key, ':dependencies:'))->once()->andReturnUsing(function ($key, $ttl, $callback) {
         return $callback();
@@ -39,6 +41,7 @@ test('it resolves from cache and calls inner resolver when cache is empty', func
 
 test('it resolves from cache and does NOT call inner resolver when cache is hit', function () {
     Cache::shouldReceive('store')->andReturnSelf();
+    Cache::shouldReceive('get')->with('test_prefix:generation')->andReturn('generation');
     Cache::shouldReceive('remember')->withArgs(fn ($key, $ttl, $callback) => str_contains($key, ':dependencies:'))->andReturn(new RequestCacheDependencies([], 'test'))->byDefault();
     Cache::shouldReceive('remember')->withArgs(fn ($key, $ttl, $callback) => ! str_contains($key, ':dependencies:'))->once()->andReturn('cached_value');
 
@@ -61,6 +64,7 @@ test('it bypasses cache when disabled', function () {
 
 test('it handles isActive', function () {
     Cache::shouldReceive('store')->andReturnSelf();
+    Cache::shouldReceive('get')->with('test_prefix:generation')->andReturn('generation');
     Cache::shouldReceive('remember')->withArgs(fn ($key, $ttl, $callback) => str_contains($key, ':dependencies:'))->andReturn(new RequestCacheDependencies([], 'test'))->byDefault();
     Cache::shouldReceive('remember')->withArgs(fn ($key, $ttl, $callback) => ! str_contains($key, ':dependencies:'))->andReturn(true);
 
@@ -69,6 +73,7 @@ test('it handles isActive', function () {
 
 test('it handles get with default', function () {
     Cache::shouldReceive('store')->andReturnSelf();
+    Cache::shouldReceive('get')->with('test_prefix:generation')->andReturn('generation');
     Cache::shouldReceive('remember')->withArgs(fn ($key, $ttl, $callback) => str_contains($key, ':dependencies:'))->andReturn(new RequestCacheDependencies([], 'test'))->byDefault();
     Cache::shouldReceive('remember')->withArgs(fn ($key, $ttl, $callback) => ! str_contains($key, ':dependencies:'))->andReturn(null);
 
@@ -429,4 +434,18 @@ test('refreshing unchanged dependency metadata preserves a later result entries 
     expect($this->cachedResolver->resolve('plain', 'later'))->toBe('later');
     $this->travel(200)->seconds();
     expect($this->cachedResolver->resolve('plain', 'later'))->toBe('later');
+});
+
+test('enabled writes rotate the custom cache generation', function () {
+    $this->innerResolver->shouldReceive('set')->with('some_key', 'new_value')->once();
+    $invalidator = new CacheInvalidator('test_prefix');
+    $generation = $invalidator->generation();
+    $this->cachedResolver->set('some_key', 'new_value');
+    expect($invalidator->generation())->not->toBe($generation);
+});
+
+test('disabled cache writes delegate without accessing the cache store', function () {
+    Cache::shouldReceive('store')->never();
+    $this->innerResolver->shouldReceive('set')->with('some_key', 'new_value')->once();
+    (new CachedSettingResolver($this->innerResolver, enabled: false))->set('some_key', 'new_value');
 });

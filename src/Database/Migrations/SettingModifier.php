@@ -208,7 +208,7 @@ class SettingModifier
         foreach ($this->rulesToRemove as $ruleName) {
             $this->setting->rules()
                 ->where('name', $ruleName)
-                ->delete();
+                ->each(fn ($rule) => $rule->delete());
         }
 
         // Modify existing rules

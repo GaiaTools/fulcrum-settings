@@ -572,7 +572,7 @@ abstract class SettingMigration extends Migration
         $this->withinContext(function () use ($settingKey, $ruleName, $attribute) {
             $setting = Setting::withoutGlobalScopes()->where('key', $settingKey)->first();
             $rule = $setting?->rules()->where('name', $ruleName)->first();
-            $rule?->conditions()->where('attribute', $attribute)->delete();
+            $rule?->conditions()->where('attribute', $attribute)->each(fn ($condition) => $condition->delete());
         });
     }
 

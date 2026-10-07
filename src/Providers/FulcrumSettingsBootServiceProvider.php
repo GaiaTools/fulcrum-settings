@@ -13,6 +13,12 @@ use GaiaTools\FulcrumSettings\Console\Commands\MigrateFromSpatieCommand;
 use GaiaTools\FulcrumSettings\Console\Commands\SetSettingCommand;
 use GaiaTools\FulcrumSettings\Facades\Fulcrum;
 use GaiaTools\FulcrumSettings\Http\Controllers\DataPortabilityController;
+use GaiaTools\FulcrumSettings\Models\Setting;
+use GaiaTools\FulcrumSettings\Models\SettingRule;
+use GaiaTools\FulcrumSettings\Models\SettingRuleCondition;
+use GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant;
+use GaiaTools\FulcrumSettings\Models\SettingValue;
+use GaiaTools\FulcrumSettings\Observers\InvalidatesSettingCache;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Symfony\Component\Finder\Finder;
@@ -27,6 +33,10 @@ class FulcrumSettingsBootServiceProvider extends ServiceProvider
         $this->bootViews();
         $this->bootCommands();
         $this->bootRoutes();
+
+        foreach ([Setting::class, SettingRule::class, SettingRuleCondition::class, SettingRuleRolloutVariant::class, SettingValue::class] as $model) {
+            $model::observe(InvalidatesSettingCache::class);
+        }
     }
 
     protected function bootMigrations(): void

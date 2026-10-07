@@ -12,6 +12,7 @@ use GaiaTools\FulcrumSettings\Models\SettingRule;
 use GaiaTools\FulcrumSettings\Models\SettingRuleCondition;
 use GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant;
 use GaiaTools\FulcrumSettings\Models\SettingValue;
+use GaiaTools\FulcrumSettings\Support\Cache\CacheInvalidator;
 use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\Formatter;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use Illuminate\Support\Facades\DB;
@@ -80,6 +81,10 @@ class ImportManager
                         // if skip, just continue
                     }
                 }
+            }
+
+            if (config()->boolean('fulcrum.cache.enabled', false)) {
+                CacheInvalidator::configured()->invalidateAfterCommit(DB::connection($connection));
             }
 
             return true;
