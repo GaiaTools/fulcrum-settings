@@ -13,6 +13,10 @@ use Illuminate\Support\Facades\Cache;
 
 class CachedSettingResolver implements SettingResolver
 {
+    protected ?Authenticatable $user = null;
+
+    protected ?string $tenantId = null;
+
     public function __construct(
         protected SettingResolver $resolver,
         protected bool $enabled = true,
@@ -27,7 +31,7 @@ class CachedSettingResolver implements SettingResolver
     {
         $resolvedKey = $this->resolveKey($key);
 
-        if (! $this->enabled) {
+        if (! $this->enabled || ! $this->isCacheable($scope)) {
             return $this->resolver->resolve($resolvedKey, $scope);
         }
 
@@ -47,6 +51,7 @@ class CachedSettingResolver implements SettingResolver
     {
         $clone = clone $this;
         $clone->resolver = $this->resolver->forUser($user);
+        $clone->user = $user;
         $identifier = $user?->getAuthIdentifier();
         $clone->userIdentifier = is_scalar($identifier) ? (string) $identifier : null;
 
@@ -57,6 +62,7 @@ class CachedSettingResolver implements SettingResolver
     {
         $clone = clone $this;
         $clone->resolver = $this->resolver->forTenant($tenantId);
+        $clone->tenantId = $tenantId;
 
         return $clone;
     }
@@ -113,30 +119,83 @@ class CachedSettingResolver implements SettingResolver
 
     protected function getCacheKey(string $key, mixed $scope): string
     {
-        if ($scope === null) {
-            $scopeKey = $this->resolveDefaultScopeKey();
-        } else {
-            $scopeKey = is_scalar($scope) ? (string) $scope : hash('sha256', serialize($scope));
-        }
+        $tenantResolver = config('fulcrum.multi_tenancy.tenant_resolver');
+        $tenantId = $this->tenantId ?: (
+            config()->boolean('fulcrum.multi_tenancy.enabled', false)
+                ? (is_callable($tenantResolver) ? $tenantResolver() : FulcrumContext::getTenantId())
+                : null
+        );
 
-        return "{$this->prefix}:{$key}:{$scopeKey}";
+        // Hash a structured payload so types and delimiters cannot collide, and
+        // targeting attributes never appear in plaintext in cache keys.
+        $fingerprint = hash('sha256', serialize([
+            $key,
+            $tenantId,
+            config()->boolean('fulcrum.multi_tenancy.enabled', false),
+            $this->cacheScope($scope),
+            $this->userCacheIdentity($scope),
+            $this->cacheScope(FulcrumContext::all()),
+            request()->ip(),
+            request()->userAgent(),
+        ]));
+
+        return "{$this->prefix}:v3:{$fingerprint}";
     }
 
-    protected function resolveDefaultScopeKey(): string
+    protected function isCacheable(mixed $scope): bool
     {
-        if ($this->userIdentifier !== null) {
-            return 'user:'.$this->userIdentifier;
+        // Revealed values must always go through the current Gate. Ordinary
+        // user-targeted results remain cached for the configured TTL.
+        $user = $this->user ?? ($scope instanceof Authenticatable ? $scope : auth()->user());
+
+        return ! FulcrumContext::shouldReveal()
+            && ($user === null || is_scalar($user->getAuthIdentifier()))
+            && $this->containsOnlyCacheableValues($scope)
+            && $this->containsOnlyCacheableValues(FulcrumContext::all());
+    }
+
+    /** @return array{class: string, id: mixed}|null */
+    protected function userCacheIdentity(mixed $scope): ?array
+    {
+        $user = $this->user ?? ($scope instanceof Authenticatable ? $scope : auth()->user());
+
+        if ($user !== null) {
+            return ['class' => $user::class, 'id' => $user->getAuthIdentifier()];
         }
 
-        $user = auth()->user();
-        if ($user) {
-            $identifier = $user->getAuthIdentifier();
-            if (is_scalar($identifier)) {
-                return 'user:'.(string) $identifier;
+        return $this->userIdentifier !== null
+            ? ['class' => 'identifier', 'id' => $this->userIdentifier]
+            : null;
+    }
+
+    protected function cacheScope(mixed $value): mixed
+    {
+        if ($value instanceof Authenticatable) {
+            return ['authenticatable', $value::class, $value->getAuthIdentifier()];
+        }
+
+        return is_array($value)
+            ? ['array', array_map($this->cacheScope(...), $value)]
+            : ['scalar', $value];
+    }
+
+    protected function containsOnlyCacheableValues(mixed $value): bool
+    {
+        if ($value instanceof Authenticatable) {
+            return is_scalar($value->getAuthIdentifier());
+        }
+
+        if (is_array($value)) {
+            foreach ($value as $item) {
+                if (! $this->containsOnlyCacheableValues($item)) {
+                    return false;
+                }
             }
+
+            return true;
         }
 
-        return 'global';
+        return $value === null || is_scalar($value);
     }
 
     protected function resolveKey(string $key): string
