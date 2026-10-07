@@ -119,12 +119,11 @@ class CachedSettingResolver implements SettingResolver
 
     protected function getCacheKey(string $key, mixed $scope): string
     {
-        $tenantResolver = config('fulcrum.multi_tenancy.tenant_resolver');
-        $tenantId = $this->tenantId ?: (
-            config()->boolean('fulcrum.multi_tenancy.enabled', false)
-                ? (is_callable($tenantResolver) ? $tenantResolver() : FulcrumContext::getTenantId())
-                : null
-        );
+        $tenantId = $this->tenantId;
+        if (! $tenantId && config()->boolean('fulcrum.multi_tenancy.enabled', false)) {
+            $tenantResolver = config('fulcrum.multi_tenancy.tenant_resolver');
+            $tenantId = is_callable($tenantResolver) ? $tenantResolver() : FulcrumContext::getTenantId();
+        }
 
         // Hash a structured payload so types and delimiters cannot collide, and
         // targeting attributes never appear in plaintext in cache keys.
@@ -181,10 +180,6 @@ class CachedSettingResolver implements SettingResolver
 
     protected function containsOnlyCacheableValues(mixed $value): bool
     {
-        if ($value instanceof Authenticatable) {
-            return is_scalar($value->getAuthIdentifier());
-        }
-
         if (is_array($value)) {
             foreach ($value as $item) {
                 if (! $this->containsOnlyCacheableValues($item)) {
@@ -195,7 +190,9 @@ class CachedSettingResolver implements SettingResolver
             return true;
         }
 
-        return $value === null || is_scalar($value);
+        return $value instanceof Authenticatable
+            ? is_scalar($value->getAuthIdentifier())
+            : $value === null || is_scalar($value);
     }
 
     protected function resolveKey(string $key): string
