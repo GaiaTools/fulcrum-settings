@@ -48,8 +48,7 @@ class SettingValue extends Model
 
     /**
      * Accessor/Mutator: Handle type resolution, serialization/deserialization, and encryption.
-     */
-    /**
+     *
      * @return Attribute<mixed, mixed>
      */
     public function value(): Attribute

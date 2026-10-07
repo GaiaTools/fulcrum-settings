@@ -61,8 +61,7 @@ class RuleConditionBuilder
 
     /**
      * Get all conditions.
-     */
-    /**
+     *
      * @return array<int, array{type: string|null, attribute: string, operator: ComparisonOperator, value: mixed, boolean: string}>
      */
     public function getConditions(): array
