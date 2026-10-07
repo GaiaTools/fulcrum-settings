@@ -12,6 +12,7 @@ use GaiaTools\FulcrumSettings\Models\SettingRule;
 use GaiaTools\FulcrumSettings\Models\SettingRuleCondition;
 use GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant;
 use GaiaTools\FulcrumSettings\Models\SettingValue;
+use GaiaTools\FulcrumSettings\Support\Cache\CacheInvalidator;
 use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\Formatter;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use Illuminate\Support\Facades\DB;
@@ -58,32 +59,42 @@ class ImportManager
             $chunks = array_chunk($data, $chunkSize);
             foreach ($chunks as $chunk) {
                 foreach ($chunk as $settingData) {
-                    try {
-                        if (isset($settingData['__raw_sql'])) {
-                            $rawSql = $settingData['__raw_sql'];
-                            if (is_string($rawSql)) {
-                                DB::connection($connection)->unprepared($rawSql);
-                            }
-
-                            continue;
-                        }
-                        $this->importSetting($settingData, $mode, $conflictHandling);
-                    } catch (\Throwable $e) {
-                        if ($conflictHandling === 'fail') {
-                            throw $e;
-                        }
-                        if ($conflictHandling === 'log') {
-                            $keyLabel = $settingData['key'] ?? 'unknown';
-                            $keyLabel = is_scalar($keyLabel) ? (string) $keyLabel : 'unknown';
-                            Log::error('Import failed for setting: '.$keyLabel.'. Error: '.$e->getMessage());
-                        }
-                        // if skip, just continue
-                    }
+                    $this->importRecord($settingData, $mode, $conflictHandling, $connection);
                 }
+            }
+
+            if (config()->boolean('fulcrum.cache.enabled', false)) {
+                CacheInvalidator::configured()->invalidateAfterCommit(DB::connection($connection));
             }
 
             return true;
         });
+    }
+
+    /** @param array<string, mixed> $settingData */
+    protected function importRecord(array $settingData, string $mode, string $conflictHandling, ?string $connection): void
+    {
+        try {
+            if (isset($settingData['__raw_sql'])) {
+                $rawSql = $settingData['__raw_sql'];
+                if (is_string($rawSql)) {
+                    DB::connection($connection)->unprepared($rawSql);
+                }
+
+                return;
+            }
+            $this->importSetting($settingData, $mode, $conflictHandling);
+        } catch (\Throwable $e) {
+            if ($conflictHandling === 'fail') {
+                throw $e;
+            }
+            if ($conflictHandling === 'log') {
+                $keyLabel = $settingData['key'] ?? 'unknown';
+                $keyLabel = is_scalar($keyLabel) ? (string) $keyLabel : 'unknown';
+                Log::error('Import failed for setting: '.$keyLabel.'. Error: '.$e->getMessage());
+            }
+            // if skip, just continue
+        }
     }
 
     /**

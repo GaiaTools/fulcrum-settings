@@ -9,6 +9,9 @@ use DateTimeInterface;
 use GaiaTools\FulcrumSettings\Contracts\CacheContextProvider;
 use GaiaTools\FulcrumSettings\Contracts\GroupedSettingResolver;
 use GaiaTools\FulcrumSettings\Contracts\SettingResolver;
+use GaiaTools\FulcrumSettings\Models\Setting;
+use GaiaTools\FulcrumSettings\Support\Cache\CacheInvalidator;
+use GaiaTools\FulcrumSettings\Support\Cache\PendingCacheInvalidations;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use GaiaTools\FulcrumSettings\Support\GroupedSettingResolver as GroupedSettingResolverImpl;
 use GaiaTools\FulcrumSettings\Support\RequestCacheDependencies;
@@ -41,7 +44,7 @@ class CachedSettingResolver implements SettingResolver
     {
         $resolvedKey = $this->resolveKey($key);
 
-        if (! $this->enabled) {
+        if (! $this->enabled || app(PendingCacheInvalidations::class)->hasWrites(Setting::resolveConnection())) {
             return $this->resolver->resolve($resolvedKey, $scope);
         }
         if (! $this->resolver instanceof CacheContextProvider || ! $this->isCacheable($scope)) {
@@ -121,7 +124,9 @@ class CachedSettingResolver implements SettingResolver
     {
         $this->resolver->set($this->resolveKey($key), $value);
 
-        // Write invalidation is separate; cached results currently retain their TTL.
+        if ($this->enabled) {
+            (new CacheInvalidator($this->prefix, $this->store))->invalidateAfterCommit(Setting::resolveConnection());
+        }
     }
 
     public function isMultiTenancyEnabled(): bool
@@ -133,7 +138,8 @@ class CachedSettingResolver implements SettingResolver
     {
         $tenantId = $contextProvider->currentTenantId();
         $multiTenancy = $this->resolver->isMultiTenancyEnabled();
-        $metadataKey = $this->prefix.':v'.self::CACHE_KEY_VERSION.':dependencies:'.hash('sha256', serialize([$key, $tenantId, $multiTenancy]));
+        $generation = (new CacheInvalidator($this->prefix, $this->store))->generation();
+        $metadataKey = $this->prefix.':v'.self::CACHE_KEY_VERSION.":{$generation}:dependencies:".hash('sha256', serialize([$key, $tenantId, $multiTenancy]));
         $metadata = Cache::store($this->store)->remember($metadataKey, $this->ttl, function () use ($contextProvider, $key): RequestCacheDependencies {
             $inputs = $contextProvider->requestDependencies($key);
             sort($inputs);
@@ -157,7 +163,7 @@ class CachedSettingResolver implements SettingResolver
             in_array('user_agent', $metadata->inputs, true) ? request()->userAgent() : null,
         ]));
 
-        return $this->prefix.':v'.self::CACHE_KEY_VERSION.':'.$fingerprint;
+        return $this->prefix.':v'.self::CACHE_KEY_VERSION.":{$generation}:{$fingerprint}";
     }
 
     protected function isCacheable(mixed $scope): bool

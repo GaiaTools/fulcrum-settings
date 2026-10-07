@@ -102,7 +102,52 @@ Each store can enable cache overrides:
 
 ## Invalidation
 
-Fulcrum does not automatically invalidate scoped cache keys. When settings change, clear the cache store manually (or rotate the cache prefix), including dependency metadata to avoid stale results. If you update values outside of Fulcrum, you must clear cache manually.
+Fulcrum automatically invalidates its result cache after successful setting writes,
+including creates, changed updates, and deletes of settings, default values, rules, conditions, and
+rollout variants. Writes through the resolver, settings classes, package migrations,
+and imports (including raw SQL and truncate imports) also invalidate results.
+
+Invalidation rotates a generation token for the configured cache store and prefix.
+All cached user, tenant, and scope results and request-dependency metadata in that namespace become unreachable;
+unrelated application cache entries are preserved. Old results expire with their
+original TTL. This deliberately invalidates the whole Fulcrum result cache on writes,
+rather than tracking every scoped key or requiring cache tags.
+
+Writes inside database transactions invalidate only after the outer transaction
+commits. Repeated writes to the same cache namespace register one invalidation per
+connection transaction, including imports. Rolled-back writes leave the committed
+cache intact. Read-only transactions retain caching. Once a transaction has pending
+Fulcrum writes, resolution bypasses the shared cache so reads see transactional changes without
+publishing uncommitted values. An in-flight read may finish with its original result,
+but cannot repopulate the new cache generation with that result.
+
+The cache store must support Laravel locks; Laravel's built-in array, file, database,
+Redis, and Memcached stores support them. Generation initialization and rotation use
+a short lock; ordinary cache hits do not acquire it. Each cached resolution reads the
+current generation, adding one cache round-trip. It is not memoized across requests
+or worker jobs, so rotations made by other workers remain visible. The array store
+is process-local; it cannot propagate invalidation between workers.
+
+Automatic invalidation failures are reported through Laravel's exception handler
+and do not fail successful database writes or commits. A missed rotation can leave
+previous results stale until their TTL expires. Immediate manual `invalidate()`
+continues to throw on failure. A store without lock support raises
+`UnsupportedCacheStoreException` when caching first initializes its generation.
+
+External SQL, application-owned bulk Eloquent updates/deletes, and silent model
+writes do not dispatch model events. Invalidate explicitly after those operations:
+
+```php
+use GaiaTools\FulcrumSettings\Support\Cache\CacheInvalidator;
+use Illuminate\Support\Facades\DB;
+
+CacheInvalidator::configured()->invalidateAfterCommit(DB::connection());
+```
+
+Use `invalidate()` for immediate manual invalidation outside transactions. A
+manually constructed resolver using a custom prefix or store should use a matching
+`new CacheInvalidator($prefix, $store)` for external writes. Purely time-based changes
+and user permission changes continue to follow the configured TTL.
 
 ## Warming
 
