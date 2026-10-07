@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace GaiaTools\FulcrumSettings\Services;
 
 use GaiaTools\FulcrumSettings\Contracts\BucketCalculator;
+use GaiaTools\FulcrumSettings\Contracts\CacheContextProvider;
 use GaiaTools\FulcrumSettings\Contracts\DistributionStrategy;
 use GaiaTools\FulcrumSettings\Contracts\GroupedSettingResolver;
 use GaiaTools\FulcrumSettings\Contracts\RuleEvaluator;
 use GaiaTools\FulcrumSettings\Contracts\SettingResolver as SettingResolverContract;
+use GaiaTools\FulcrumSettings\Contracts\TenantResolver;
 use GaiaTools\FulcrumSettings\Events\SettingResolved;
 use GaiaTools\FulcrumSettings\Events\VariantAssigned;
 use GaiaTools\FulcrumSettings\Exceptions\InvalidSettingValueException;
@@ -25,7 +27,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
 use Laravel\Telescope\Telescope;
 
-class SettingResolver implements SettingResolverContract
+class SettingResolver implements CacheContextProvider, SettingResolverContract
 {
     protected ?Authenticatable $user = null;
 
@@ -191,12 +193,12 @@ class SettingResolver implements SettingResolverContract
         return Setting::withoutGlobalScope(TenantScope::class)
             ->where('key', $key)
             ->when(
-                $this->isMultiTenancyEnabled() && $tenantId,
+                $this->isMultiTenancyEnabled() && $tenantId !== null,
                 fn (Builder $query) => $query->where(fn ($q) => $q->where('tenant_id', $tenantId)->orWhereNull('tenant_id')
                 )->orderByRaw('tenant_id IS NOT NULL DESC') // Tenant-specific first
             )
             ->when(
-                $this->isMultiTenancyEnabled() && ! $tenantId,
+                $this->isMultiTenancyEnabled() && $tenantId === null,
                 fn (Builder $query) => $query->whereNull('tenant_id')
             );
     }
@@ -212,7 +214,15 @@ class SettingResolver implements SettingResolverContract
         $query = $this->buildSettingQuery($key, $tenantId);
 
         if (! empty($with)) {
-            $query->with($with);
+            // The parent query establishes the tenant boundary. Related rows
+            // belong to that setting and must not inherit a different ambient tenant.
+            $relations = [];
+            foreach ($with as $relation) {
+                $unscoped = fn ($related) => $related->getQuery()->withoutGlobalScope(TenantScope::class);
+                $relations[$relation] = $unscoped;
+                $relations[explode('.', $relation)[0]] = $unscoped;
+            }
+            $query->with($relations);
         }
 
         return $query->first();
@@ -507,15 +517,19 @@ class SettingResolver implements SettingResolverContract
      */
     protected function resolveTenantId(): ?string
     {
-        if ($this->tenantId) {
+        return $this->currentTenantId();
+    }
+
+    public function currentTenantId(): ?string
+    {
+        if ($this->tenantId !== null || ! $this->isMultiTenancyEnabled()) {
             return $this->tenantId;
         }
 
-        if (! $this->isMultiTenancyEnabled()) {
-            return null;
-        }
-
         $resolver = config('fulcrum.multi_tenancy.tenant_resolver');
+        if (is_string($resolver) && class_exists($resolver) && ($instance = app($resolver)) instanceof TenantResolver) {
+            return $instance->resolve();
+        }
 
         return is_callable($resolver)
             ? $resolver()
@@ -528,6 +542,33 @@ class SettingResolver implements SettingResolverContract
     public function isMultiTenancyEnabled(): bool
     {
         return config()->boolean('fulcrum.multi_tenancy.enabled', false);
+    }
+
+    /** @return list<string> */
+    public function requestDependencies(string $key): array
+    {
+        $setting = $this->findSettingByKey($this->resolveKey($key), $this->currentTenantId(), ['rules.conditions']);
+        $dependencies = [];
+        foreach ($setting->rules ?? [] as $rule) {
+            foreach ($rule->conditions as $condition) {
+                $type = $condition->type ?? config()->string('fulcrum.condition_types_default', 'user');
+                $dependencies = array_merge($dependencies, $this->conditionRequestInputs($type));
+            }
+        }
+
+        return array_values(array_unique($dependencies));
+    }
+
+    /** @return list<string> */
+    protected function conditionRequestInputs(string $type): array
+    {
+        $defaults = ['user' => [], 'date_time' => [], 'geocoding' => ['ip'], 'user_agent' => ['user_agent']];
+        $overrides = config('fulcrum.cache.request_dependencies', []);
+        $overrides = is_array($overrides) ? $overrides : [];
+        $inputs = $overrides[$type] ?? $defaults[$type] ?? ['ip', 'user_agent'];
+        $inputs = is_array($inputs) ? $inputs : ['ip', 'user_agent'];
+
+        return array_values(array_filter($inputs, fn ($input) => is_string($input) && in_array($input, ['ip', 'user_agent'], true)));
     }
 
     protected function resolveGroup(): ?string
