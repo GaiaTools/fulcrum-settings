@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\Cache;
 
 class CachedSettingResolver implements SettingResolver
 {
+    /** Bump only when the cache-key format or cached-value semantics become incompatible. */
+    private const CACHE_KEY_VERSION = 3;
+
     protected ?Authenticatable $user = null;
 
     protected ?string $tenantId = null;
@@ -138,7 +141,7 @@ class CachedSettingResolver implements SettingResolver
             request()->userAgent(),
         ]));
 
-        return "{$this->prefix}:v3:{$fingerprint}";
+        return $this->prefix.':v'.self::CACHE_KEY_VERSION.':'.$fingerprint;
     }
 
     protected function isCacheable(mixed $scope): bool
