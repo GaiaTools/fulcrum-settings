@@ -25,7 +25,7 @@ class FulcrumLifecycle
 
     private function isStatefulBinding(string $abstract, Container $container): bool
     {
-        if (! $container->isShared($abstract)) {
+        if (! $container->resolved($abstract) || ! $container->isShared($abstract)) {
             return false;
         }
         foreach (self::STATEFUL_TYPES as $type) {

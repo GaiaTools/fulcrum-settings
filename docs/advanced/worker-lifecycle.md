@@ -10,12 +10,21 @@ It does not reset on `JobProcessing`: tenancy listeners can establish the curren
 job's context there without depending on package-provider registration order.
 No job trait is required for standard daemon workers.
 
+On older Laravel 11 releases without `JobAttempted`, Fulcrum falls back to
+`JobProcessed`, `JobExceptionOccurred`, and `JobFailed`. This also cleans up
+retryable exceptions and direct `Worker::process()` calls. Cleanup on those
+fallback events depends on listener order: later completion/exception listeners
+may see cleared context. Capture any required context earlier in job processing,
+or upgrade to a release with `JobAttempted` for cleanup after those observers.
+The job's `failed()` handler runs before `JobFailed` cleanup.
+
 Cleanup clears ambient tenant, group, custom targeting attributes, reveal mode,
 and force mode. It releases shared setting services, settings objects, and
 condition handlers by their registered container binding keys, including
 abstract-to-concrete mappings, and clears the Fulcrum facade reference.
 
-`JobProcessed` and `JobExceptionOccurred` listeners can still read the job's
+On releases with `JobAttempted`, `JobProcessed` and `JobExceptionOccurred`
+listeners can still read the job's
 context for logging and metrics. By `JobAttempted`, cleanup may already have run;
 observers requiring context should use the earlier completion/exception events.
 Direct `Worker::process()` callers receive final cleanup but do not emit `Looping`.
@@ -50,7 +59,9 @@ by [Octane's lifecycle events](https://github.com/laravel/octane/blob/2.x/src/Ev
 Octane is optional; installing Fulcrum does not require it.
 
 Stateful Fulcrum services and configured/discovered settings classes use Laravel
-scoped bindings. Configuration registries and shared cached results survive
+scoped bindings. Cleanup also forgets application-bound singleton instances of
+`FulcrumSettings` subclasses, including abstract-to-concrete bindings. Resolving
+those bindings in the next operation creates fresh instances. Configuration registries and shared cached results survive
 cleanup. Lifecycle cleanup neither flushes the result cache nor rotates its
 generation.
 
@@ -64,8 +75,9 @@ Application code remains responsible for its own state and database transactions
 `fulcrum.lifecycle.reset_authentication` defaults to `true`. Cleanup forgets
 Laravel's resolved authentication guards, including their cached users. This
 changes application-wide authentication state at operation boundaries, rather
-than only Fulcrum's own context. Completion and exception observers run before the
-final cleanup.
+than only Fulcrum's own context. On releases with `JobAttempted`, completion and exception observers run before
+the final cleanup; older Laravel 11 fallback events have the listener-order
+limitation described above.
 
 Applications that manage authentication lifecycle themselves can opt out:
 
@@ -85,3 +97,8 @@ The regression tests exercise sandbox event payloads, including worker errors,
 against the documented Octane event structure. They do not instantiate the actual
 optional Octane event classes or run a live Octane server. Full Octane integration
 testing remains a follow-up.
+
+The current CI dependency matrix uses Testbench 10/11 and therefore tests Laravel
+12/13. Legacy completion events are exercised with an isolated dispatcher and a
+provider that selects the fallback path; a complete Laravel 11 dependency matrix
+remains a follow-up.

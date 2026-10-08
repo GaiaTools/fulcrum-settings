@@ -5,7 +5,8 @@
 ### Behavior changes
 
 - Worker lifecycle cleanup now forgets resolved Laravel authentication guards by default. Set `fulcrum.lifecycle.reset_authentication` to `false` to preserve application-managed authentication state.
-- Queue context cleanup runs on `Looping` and `JobAttempted`, preserving tenant initialization on `JobProcessing` and context visibility for completion/exception observers.
+- Queue context cleanup runs on `Looping` and `JobAttempted`, preserving tenant initialization on `JobProcessing` and context visibility for completion/exception observers. Older Laravel 11 releases fall back to `JobProcessed`, `JobExceptionOccurred`, and `JobFailed`; later listeners for those events may see cleared context.
+- Lifecycle cleanup releases application-bound `FulcrumSettings` singletons, including abstract-to-concrete bindings, so the next operation resolves fresh instances.
 
 ## [1.0.3](https://github.com/GaiaTools/fulcrum-settings/compare/v1.0.2...v1.0.3) (2026-10-05)
 

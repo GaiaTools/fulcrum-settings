@@ -7,6 +7,9 @@ namespace GaiaTools\FulcrumSettings\Providers;
 use GaiaTools\FulcrumSettings\Support\Lifecycle\FulcrumLifecycle;
 use Illuminate\Container\Container;
 use Illuminate\Queue\Events\JobAttempted;
+use Illuminate\Queue\Events\JobExceptionOccurred;
+use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Queue\Jobs\SyncJob;
 use Illuminate\Support\ServiceProvider;
@@ -21,17 +24,18 @@ class FulcrumLifecycleServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->app->make('events')->listen(Looping::class, function (): void {
-            // Resolve the active container, which may be an Octane sandbox.
-            $container = Container::getInstance();
-            $container->make(FulcrumLifecycle::class)->reset($container);
+            $this->resetActiveContainer();
         });
-        $this->app->make('events')->listen(JobAttempted::class, function ($event): void {
+        // Early Laravel 11 has no JobAttempted; exceptions also cover retries
+        // that do not emit JobFailed.
+        $completionEvents = $this->hasJobAttemptedEvent()
+            ? [JobAttempted::class]
+            : [JobProcessed::class, JobExceptionOccurred::class, JobFailed::class];
+        $this->app->make('events')->listen($completionEvents, function ($event): void {
             // Sync and deferred jobs keep their caller scope. Background jobs
             // also execute as SyncJob, in a separate process.
             if (! $event->job instanceof SyncJob) {
-                // Resolve the active container, which may be an Octane sandbox.
-                $container = Container::getInstance();
-                $container->make(FulcrumLifecycle::class)->reset($container);
+                $this->resetActiveContainer();
             }
         });
         $this->app->make('events')->listen([
@@ -47,5 +51,17 @@ class FulcrumLifecycleServiceProvider extends ServiceProvider
                 $event->sandbox->make(FulcrumLifecycle::class)->reset($event->sandbox);
             }
         });
+    }
+
+    protected function hasJobAttemptedEvent(): bool
+    {
+        return class_exists(JobAttempted::class);
+    }
+
+    private function resetActiveContainer(): void
+    {
+        // Resolve the active container, which may be an Octane sandbox.
+        $container = Container::getInstance();
+        $container->make(FulcrumLifecycle::class)->reset($container);
     }
 }
