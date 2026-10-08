@@ -21,7 +21,7 @@ class FulcrumLifecycleServiceProvider extends ServiceProvider
     {
         $this->app->singleton(FulcrumLifecycle::class);
         foreach ([Contracts\SettingResolver::class, Contracts\RuleEvaluator::class, Contracts\GeoResolver::class, Contracts\UserAgentResolver::class, Contracts\SegmentDriver::class, Contracts\HolidayResolver::class, Contracts\ConditionTypeHandler::class, FulcrumSettings::class] as $abstract) {
-            $this->app->afterResolving($abstract, fn ($instance) => $this->app->make(FulcrumLifecycle::class)->track($instance));
+            $this->app->afterResolving($abstract, fn ($instance, $container) => $container->make(FulcrumLifecycle::class)->track($instance));
         }
     }
 

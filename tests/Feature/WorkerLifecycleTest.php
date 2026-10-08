@@ -8,6 +8,7 @@ use GaiaTools\FulcrumSettings\Contracts\UserAgentResolver;
 use GaiaTools\FulcrumSettings\Facades\Fulcrum;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
+use GaiaTools\FulcrumSettings\Support\Lifecycle\FulcrumLifecycle;
 use GaiaTools\FulcrumSettings\Support\Settings\FulcrumSettings;
 use Illuminate\Contracts\Queue\Job;
 use Illuminate\Foundation\Auth\User;
@@ -130,4 +131,13 @@ test('user targeted flags do not inherit the previous jobs authenticated user', 
     $worker->process('testing', lifecycleJob(function () {
         expect(Fulcrum::isActive('worker-user'))->toBeFalse();
     }), new WorkerOptions(maxTries: 0));
+});
+
+test('a cold sandbox tracks its own resolved settings instances', function () {
+    app()->forgetInstance(FulcrumLifecycle::class);
+    app()->singleton(LifecycleSettings::class);
+    $sandbox = clone app();
+    $before = $sandbox->make(LifecycleSettings::class);
+    Event::dispatch('Laravel\\Octane\\Events\\RequestTerminated', [(object) ['sandbox' => $sandbox]]);
+    expect($sandbox->make(LifecycleSettings::class))->not->toBe($before);
 });
