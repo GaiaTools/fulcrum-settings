@@ -23,6 +23,19 @@ use GaiaTools\FulcrumSettings\Types\StringTypeHandler;
 return [
     /*
     |--------------------------------------------------------------------------
+    | Worker Lifecycle
+    |--------------------------------------------------------------------------
+    |
+    | Clear resolved authentication guards at worker operation boundaries.
+    | Disable this when your application manages authentication cleanup itself.
+    |
+    */
+    'lifecycle' => [
+        'reset_authentication' => true,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Default Segment Driver
     |--------------------------------------------------------------------------
     |

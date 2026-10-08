@@ -56,3 +56,10 @@ Fulcrum fires standard events on completion. Listen for `SettingsLoaded` or `Set
     ],
 ],
 ```
+
+## Worker context isolation
+
+Asynchronous jobs start with clean Fulcrum context and services. Set the tenant and
+user in each job; they are not inherited from the previous job or automatically
+transported from the dispatching request. See [Worker Lifecycle](../advanced/worker-lifecycle.md)
+for cleanup behavior, inline `sync` jobs, and Octane integration.

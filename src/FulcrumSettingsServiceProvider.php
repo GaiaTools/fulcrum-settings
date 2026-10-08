@@ -13,6 +13,7 @@ use GaiaTools\FulcrumSettings\Contracts\SegmentDriver as SegmentDriverContract;
 use GaiaTools\FulcrumSettings\Contracts\SettingResolver as SettingResolverContract;
 use GaiaTools\FulcrumSettings\Contracts\UserAgentResolver as UserAgentResolverContract;
 use GaiaTools\FulcrumSettings\Drivers\WeightDistributionStrategy;
+use GaiaTools\FulcrumSettings\Providers\FulcrumLifecycleServiceProvider;
 use GaiaTools\FulcrumSettings\Providers\FulcrumSettingsBootServiceProvider;
 use GaiaTools\FulcrumSettings\Services\CachedSettingResolver;
 use GaiaTools\FulcrumSettings\Services\Crc32BucketCalculator;
@@ -34,6 +35,7 @@ class FulcrumSettingsServiceProvider extends ServiceProvider
         );
 
         $this->app->register(FulcrumSettingsBootServiceProvider::class);
+        $this->app->register(FulcrumLifecycleServiceProvider::class);
 
         $this->registerSegmentDriver();
         $this->registerGeoResolver();
@@ -97,14 +99,14 @@ class FulcrumSettingsServiceProvider extends ServiceProvider
 
         foreach ($settingsClasses as $class) {
             if (is_string($class)) {
-                $this->app->singleton($class);
+                $this->app->scoped($class);
             }
         }
     }
 
     protected function registerGeoResolver(): void
     {
-        $this->app->singleton(GeoResolverContract::class, function ($app) {
+        $this->app->scoped(GeoResolverContract::class, function ($app) {
             $resolverClass = config('fulcrum.geo_resolver');
 
             return $app->make($resolverClass);
@@ -113,7 +115,7 @@ class FulcrumSettingsServiceProvider extends ServiceProvider
 
     protected function registerUserAgentResolver(): void
     {
-        $this->app->singleton(UserAgentResolverContract::class, function ($app) {
+        $this->app->scoped(UserAgentResolverContract::class, function ($app) {
             $resolverClass = config('fulcrum.user_agent_resolver');
 
             return $app->make($resolverClass);
@@ -128,12 +130,12 @@ class FulcrumSettingsServiceProvider extends ServiceProvider
             return;
         }
 
-        $this->app->singleton(SegmentDriverContract::class, fn ($app) => $app->make($driverClass));
+        $this->app->scoped(SegmentDriverContract::class, fn ($app) => $app->make($driverClass));
     }
 
     protected function registerRuleEvaluator(): void
     {
-        $this->app->singleton(RuleEvaluatorContract::class, function ($app) {
+        $this->app->scoped(RuleEvaluatorContract::class, function ($app) {
             $segmentDriver = $app->bound(SegmentDriverContract::class)
                 ? $app->make(SegmentDriverContract::class)
                 : null;
@@ -157,7 +159,7 @@ class FulcrumSettingsServiceProvider extends ServiceProvider
             return;
         }
 
-        $this->app->singleton(HolidayResolverContract::class, fn ($app) => $app->make($resolverClass));
+        $this->app->scoped(HolidayResolverContract::class, fn ($app) => $app->make($resolverClass));
     }
 
     protected function registerBucketCalculator(): void
@@ -183,7 +185,7 @@ class FulcrumSettingsServiceProvider extends ServiceProvider
 
     protected function registerSettingResolver(): void
     {
-        $this->app->singleton(SettingResolverContract::class, function ($app) {
+        $this->app->scoped(SettingResolverContract::class, function ($app) {
             $baseResolver = new SettingResolver(
                 $app->make(RuleEvaluatorContract::class),
                 $app->make(BucketCalculatorContract::class),
