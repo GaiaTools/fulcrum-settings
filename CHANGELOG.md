@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fixes
+
+- SQL exports honor configured table names, connection prefixes and driver quoting, preserve relation IDs and condition types, and leave foreign-key checks enabled. Models and migration foreign keys now consistently honor configured table names.
+- HTTP imports report successful setting counts instead of zero. Structured imports and truncation use the selected connection; failed records are rolled back before skip/log handling. The existing boolean import API remains available.
+
 ### Behavior changes
 
 - Worker lifecycle cleanup now forgets resolved Laravel authentication guards by default. Set `fulcrum.lifecycle.reset_authentication` to `false` to preserve application-managed authentication state.

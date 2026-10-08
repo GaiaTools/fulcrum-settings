@@ -33,6 +33,22 @@ class ImportManager
      */
     public function import(Formatter $formatter, string $path, array $options = []): bool
     {
+        return $this->importWithResult($formatter, $path, $options)['success'];
+    }
+
+    /**
+     * @param array{
+     *     connection?: string,
+     *     mode?: 'insert'|'upsert',
+     *     truncate?: bool,
+     *     conflict_handling?: 'fail'|'skip'|'log',
+     *     dry_run?: bool,
+     *     chunk_size?: int
+     * } $options
+     * @return array{success: bool, count: int}
+     */
+    public function importWithResult(Formatter $formatter, string $path, array $options = []): array
+    {
         $connection = $options['connection'] ?? config('database.default');
         if (! is_string($connection)) {
             $connection = null;
@@ -48,18 +64,19 @@ class ImportManager
         $data = $formatter->parse($content);
 
         if ($dryRun) {
-            return $this->validateData($data, $conflictHandling);
+            return ['success' => $this->validateData($data, $conflictHandling), 'count' => 0];
         }
 
         return DB::connection($connection)->transaction(function () use ($connection, $data, $mode, $truncate, $conflictHandling, $chunkSize) {
             if ($truncate) {
-                $this->truncateTables();
+                $this->truncateTables($connection);
             }
 
+            $count = 0;
             $chunks = array_chunk($data, $chunkSize);
             foreach ($chunks as $chunk) {
                 foreach ($chunk as $settingData) {
-                    $this->importRecord($settingData, $mode, $conflictHandling, $connection);
+                    $count += $this->importRecord($settingData, $mode, $conflictHandling, $connection);
                 }
             }
 
@@ -67,23 +84,26 @@ class ImportManager
                 CacheInvalidator::configured()->invalidateAfterCommit(DB::connection($connection));
             }
 
-            return true;
+            return ['success' => true, 'count' => $count];
         });
     }
 
     /** @param array<string, mixed> $settingData */
-    protected function importRecord(array $settingData, string $mode, string $conflictHandling, ?string $connection): void
+    protected function importRecord(array $settingData, string $mode, string $conflictHandling, ?string $connection): int
     {
+        $count = 0;
         try {
-            if (isset($settingData['__raw_sql'])) {
-                $rawSql = $settingData['__raw_sql'];
-                if (is_string($rawSql)) {
-                    DB::connection($connection)->unprepared($rawSql);
+            $count = DB::connection($connection)->transaction(function () use ($settingData, $mode, $conflictHandling, $connection): int {
+                if (isset($settingData['__raw_sql'])) {
+                    return $this->importSql($settingData['__raw_sql'], $connection);
                 }
+                if (! is_scalar($settingData['key'] ?? null) || (string) $settingData['key'] === '') {
+                    return 0;
+                }
+                $this->importSetting($settingData, $mode, $conflictHandling, $connection);
 
-                return;
-            }
-            $this->importSetting($settingData, $mode, $conflictHandling);
+                return 1;
+            });
         } catch (\Throwable $e) {
             if ($conflictHandling === 'fail') {
                 throw $e;
@@ -93,8 +113,22 @@ class ImportManager
                 $keyLabel = is_scalar($keyLabel) ? (string) $keyLabel : 'unknown';
                 Log::error('Import failed for setting: '.$keyLabel.'. Error: '.$e->getMessage());
             }
-            // if skip, just continue
         }
+
+        return $count;
+    }
+
+    protected function importSql(mixed $sql, ?string $connection): int
+    {
+        if (! is_string($sql)) {
+            return 0;
+        }
+        $database = DB::connection($connection);
+        $table = (new Setting)->getTable();
+        $before = $database->table($table)->count();
+        $database->unprepared($sql);
+
+        return max(0, $database->table($table)->count() - $before);
     }
 
     /**
@@ -182,15 +216,15 @@ class ImportManager
         return is_string($content) ? $content : '';
     }
 
-    protected function truncateTables(): void
+    protected function truncateTables(?string $connection = null): void
     {
         FulcrumContext::force(true);
         try {
-            SettingValue::query()->delete();
-            SettingRuleCondition::query()->delete();
-            SettingRuleRolloutVariant::query()->delete();
-            SettingRule::query()->delete();
-            Setting::query()->delete();
+            SettingValue::on($connection)->delete();
+            SettingRuleCondition::on($connection)->delete();
+            SettingRuleRolloutVariant::on($connection)->delete();
+            SettingRule::on($connection)->delete();
+            Setting::on($connection)->delete();
         } finally {
             FulcrumContext::force(false);
         }
@@ -199,7 +233,7 @@ class ImportManager
     /**
      * @param  array<string, mixed>  $data
      */
-    protected function importSetting(array $data, string $mode, string $conflictHandling): void
+    protected function importSetting(array $data, string $mode, string $conflictHandling, ?string $connection = null): void
     {
         $keyValue = $data['key'] ?? null;
         if (! is_scalar($keyValue)) {
@@ -208,7 +242,7 @@ class ImportManager
         $key = (string) $keyValue;
         $tenantId = $data['tenant_id'] ?? null;
 
-        $setting = Setting::where('key', $key)->where('tenant_id', $tenantId)->first();
+        $setting = Setting::on($connection)->where('key', $key)->where('tenant_id', $tenantId)->first();
 
         if ($setting && $mode === 'insert') {
             throw new DuplicateSettingException($key, is_scalar($tenantId) ? (string) $tenantId : null);
@@ -217,7 +251,7 @@ class ImportManager
         FulcrumContext::force(true);
         try {
             if (! $setting) {
-                $setting = Setting::create([
+                $setting = Setting::on($connection)->create([
                     'key' => $data['key'],
                     'tenant_id' => $data['tenant_id'] ?? null,
                     'type' => $data['type'],
@@ -247,7 +281,7 @@ class ImportManager
             if (isset($data['rules']) && is_array($data['rules'])) {
                 // Rules are replaced wholesale so the imported state exactly
                 // mirrors the source rather than merging with existing rules.
-                $setting->rules()->each(fn ($rule) => $rule->delete());
+                $setting->rules()->lazyById()->each(fn ($rule) => $rule->delete());
                 foreach ($data['rules'] as $ruleData) {
                     if (is_array($ruleData)) {
                         /** @var array<string, mixed> $ruleData */

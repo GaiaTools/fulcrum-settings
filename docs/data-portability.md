@@ -105,3 +105,22 @@ Once enabled, you can use:
 
 - [Example: Data Portability](examples/data-portability) - See examples of migration and backup workflows.
 - [Integrations: Queues and Jobs](integrations/queues-and-jobs) - Learn more about asynchronous operations.
+
+## SQL exports and import counts
+
+SQL exports use `fulcrum.table_names`, the selected connection's table prefix,
+identifier grammar, and literal quoting. Related rows are inserted after their
+parents, without disabling foreign-key checks. SQL files target the export
+connection's database dialect; use JSON, YAML, CSV, or XML when moving between
+engines. Import SQL only from trusted sources, since SQL imports execute the file.
+
+HTTP JSON responses return the actual count in `data.imported_count`; browser
+imports flash `imported_count` in the session. Structured imports count each
+successfully inserted or updated setting record. Skipped, malformed, and failed
+records do not count, and failed records roll back their partial writes. A dry run
+reports zero writes. SQL imports report the nonnegative net increase in setting
+rows per SQL payload, rather than counting arbitrary SQL statements or updates.
+
+`ImportManager::import()` retains its boolean return value. Use
+`importWithResult()` for `['success' => bool, 'count' => int]` without storing
+per-import counters on the manager.

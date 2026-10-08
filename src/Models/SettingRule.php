@@ -8,6 +8,7 @@ use GaiaTools\FulcrumSettings\Exceptions\ImmutableSettingException;
 use GaiaTools\FulcrumSettings\Exceptions\SettingNotFoundException;
 use GaiaTools\FulcrumSettings\Facades\Fulcrum;
 use GaiaTools\FulcrumSettings\Models\Concerns\HasMaskedValue;
+use GaiaTools\FulcrumSettings\Models\Concerns\UsesConfiguredTable;
 use GaiaTools\FulcrumSettings\Models\Scopes\TenantScope;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use Illuminate\Database\Eloquent\Collection;
@@ -39,6 +40,7 @@ use Illuminate\Support\Str;
 class SettingRule extends Model
 {
     use HasMaskedValue;
+    use UsesConfiguredTable;
 
     protected $fillable = [
         'setting_id',

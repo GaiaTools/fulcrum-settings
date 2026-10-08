@@ -7,6 +7,7 @@ namespace GaiaTools\FulcrumSettings\Models;
 use GaiaTools\FulcrumSettings\Exceptions\ImmutableSettingException;
 use GaiaTools\FulcrumSettings\Exceptions\SettingNotFoundException;
 use GaiaTools\FulcrumSettings\Facades\Fulcrum;
+use GaiaTools\FulcrumSettings\Models\Concerns\UsesConfiguredTable;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use GaiaTools\FulcrumSettings\Support\TypeRegistry;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -28,6 +29,8 @@ use Illuminate\Support\Facades\Gate;
  */
 class SettingValue extends Model
 {
+    use UsesConfiguredTable;
+
     protected $fillable = [
         'valuable_type',
         'valuable_id',
