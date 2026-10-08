@@ -41,6 +41,7 @@ A powerful feature flag and configuration management system for Laravel with rul
 - [Laravel Horizon Integration](docs/integrations/horizon.md)
 - [Carbon/DateTime Integration](docs/integrations/carbon-integration.md)
 - [Queues and Jobs](docs/integrations/queues-and-jobs.md)
+- [Worker Lifecycle](docs/advanced/worker-lifecycle.md)
 - [Spatie Settings Migration](docs/migrate/spatie.md)
 - [Laravel Pennant Migration](docs/migrate/pennant.md)
 - [Troubleshooting](docs/troubleshooting.md)
