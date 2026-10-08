@@ -103,7 +103,7 @@ test('the protected import extension point rejects records without scalar keys',
     {
         public function importInvalidRecord(): void
         {
-            $this->importSetting(['key' => []], 'upsert', 'fail');
+            $this->importSetting(['key' => []], 'upsert');
         }
     };
     $manager->importInvalidRecord();

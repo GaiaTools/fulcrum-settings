@@ -93,14 +93,14 @@ class ImportManager
     {
         $count = 0;
         try {
-            $import = function () use ($settingData, $mode, $conflictHandling, $connection): int {
+            $import = function () use ($settingData, $mode, $connection): int {
                 if (isset($settingData['__raw_sql'])) {
                     return $this->importSql($settingData['__raw_sql'], $connection);
                 }
                 if (! is_scalar($settingData['key'] ?? null) || (string) $settingData['key'] === '') {
                     return 0;
                 }
-                $this->importSetting($settingData, $mode, $conflictHandling, $connection);
+                $this->importSetting($settingData, $mode, $connection);
 
                 return 1;
             };
@@ -238,7 +238,7 @@ class ImportManager
     /**
      * @param  array<string, mixed>  $data
      */
-    protected function importSetting(array $data, string $mode, string $conflictHandling, ?string $connection = null): void
+    protected function importSetting(array $data, string $mode, ?string $connection = null): void
     {
         $keyValue = $data['key'] ?? null;
         if (! is_scalar($keyValue)) {

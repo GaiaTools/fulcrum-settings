@@ -124,43 +124,60 @@ class SqlFormatter implements Formatter
         }
 
         if (isset($rule['conditions']) && is_array($rule['conditions'])) {
-            foreach ($rule['conditions'] as $condition) {
-                if (! is_array($condition)) {
-                    continue;
-                }
-                $conditionData = [
-                    'setting_rule_id' => $ruleIdSubquery,
-                    'tenant_id' => $condition['tenant_id'] ?? $rule['tenant_id'] ?? $tenantId,
-                    'type' => $condition['type'] ?? ConditionType::default(),
-                    'attribute' => $condition['attribute'],
-                    'operator' => $condition['operator'],
-                    'value' => $this->encodeJsonValue($condition['value']),
-                ];
-                $sql .= '  '.$this->insertStatement('setting_rule_conditions', $conditionData)."\n";
-            }
+            $sql .= $this->generateConditionsSql($rule['conditions'], $ruleIdSubquery, $rule['tenant_id'] ?? $tenantId);
+        }
+        if (isset($rule['rollout_variants']) && is_array($rule['rollout_variants'])) {
+            $sql .= $this->generateVariantsSql($rule['rollout_variants'], $ruleIdSubquery, $rule['tenant_id'] ?? $tenantId);
         }
 
-        if (isset($rule['rollout_variants']) && is_array($rule['rollout_variants'])) {
-            foreach ($rule['rollout_variants'] as $variant) {
-                if (! is_array($variant)) {
-                    continue;
-                }
-                $variantData = [
-                    'setting_rule_id' => $ruleIdSubquery,
-                    'tenant_id' => $variant['tenant_id'] ?? $rule['tenant_id'] ?? $tenantId,
-                    'name' => $this->stringifyValue($variant['name'] ?? ''),
-                    'weight' => $variant['weight'],
-                ];
-                $sql .= '  '.$this->insertStatement('setting_rule_rollout_variants', $variantData)."\n";
+        return $sql;
+    }
 
-                $variantIdSubquery = $this->selectId('setting_rule_rollout_variants', [
-                    'setting_rule_id' => $ruleIdSubquery,
-                    'name' => $this->stringifyValue($variant['name'] ?? ''),
-                ]);
+    /** @param array<array-key, mixed> $conditions */
+    protected function generateConditionsSql(array $conditions, Builder $ruleIdSubquery, mixed $tenantId): string
+    {
+        $sql = '';
+        foreach ($conditions as $condition) {
+            if (! is_array($condition)) {
+                continue;
+            }
+            $conditionData = [
+                'setting_rule_id' => $ruleIdSubquery,
+                'tenant_id' => $condition['tenant_id'] ?? $tenantId,
+                'type' => $condition['type'] ?? ConditionType::default(),
+                'attribute' => $condition['attribute'],
+                'operator' => $condition['operator'],
+                'value' => $this->encodeJsonValue($condition['value']),
+            ];
+            $sql .= '  '.$this->insertStatement('setting_rule_conditions', $conditionData)."\n";
+        }
 
-                if (array_key_exists('value', $variant)) {
-                    $sql .= '  '.$this->insertValueSql((new SettingRuleRolloutVariant)->getMorphClass(), $variantIdSubquery, $variant['tenant_id'] ?? $rule['tenant_id'] ?? $tenantId, $variant['value']);
-                }
+        return $sql;
+    }
+
+    /** @param array<array-key, mixed> $variants */
+    protected function generateVariantsSql(array $variants, Builder $ruleIdSubquery, mixed $tenantId): string
+    {
+        $sql = '';
+        foreach ($variants as $variant) {
+            if (! is_array($variant)) {
+                continue;
+            }
+            $variantData = [
+                'setting_rule_id' => $ruleIdSubquery,
+                'tenant_id' => $variant['tenant_id'] ?? $tenantId,
+                'name' => $this->stringifyValue($variant['name'] ?? ''),
+                'weight' => $variant['weight'],
+            ];
+            $sql .= '  '.$this->insertStatement('setting_rule_rollout_variants', $variantData)."\n";
+
+            $variantIdSubquery = $this->selectId('setting_rule_rollout_variants', [
+                'setting_rule_id' => $ruleIdSubquery,
+                'name' => $this->stringifyValue($variant['name'] ?? ''),
+            ]);
+
+            if (array_key_exists('value', $variant)) {
+                $sql .= '  '.$this->insertValueSql((new SettingRuleRolloutVariant)->getMorphClass(), $variantIdSubquery, $variant['tenant_id'] ?? $tenantId, $variant['value']);
             }
         }
 
@@ -204,9 +221,7 @@ class SqlFormatter implements Formatter
     /** @param array<string, mixed> $where */
     protected function selectId(string $table, array $where): Builder
     {
-        $query = $this->connection()->table($this->tableName($table))->select('id')->where($where)->orderByDesc('id')->limit(1);
-
-        return $query;
+        return $this->connection()->table($this->tableName($table))->select('id')->where($where)->orderByDesc('id')->limit(1);
     }
 
     protected function stringifyValue(mixed $value): string
