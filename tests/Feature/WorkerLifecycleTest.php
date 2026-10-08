@@ -52,7 +52,10 @@ test('successive worker jobs cannot inherit tenant user reveal force or targetin
             ->and(app(LoadedLifecycleSettings::class)->value)->toBe('tenant-a');
         FulcrumContext::setGroup('private');
         FulcrumContext::set('plan', 'premium');
+        FulcrumContext::reveal();
         FulcrumContext::set('reveal', true);
+        expect(FulcrumContext::shouldReveal())->toBeTrue()
+            ->and(FulcrumContext::get('reveal'))->toBeTrue();
         FulcrumContext::force();
         if ($fail) {
             throw new RuntimeException('job failed');
@@ -215,7 +218,10 @@ test('legacy queue completion events clean direct worker operations', function (
     $worker = app('queue.worker');
     $job = lifecycleJob(function () use ($fail) {
         FulcrumContext::setTenantId('legacy');
+        FulcrumContext::reveal();
         FulcrumContext::set('reveal', true);
+        expect(FulcrumContext::shouldReveal())->toBeTrue()
+            ->and(FulcrumContext::get('reveal'))->toBeTrue();
         auth()->setUser((new User)->forceFill(['id' => 7]));
         if ($fail) {
             throw new RuntimeException('retryable failure');
@@ -227,11 +233,12 @@ test('legacy queue completion events clean direct worker operations', function (
         $worker->process('testing', $job, new WorkerOptions(maxTries: 0));
     }
     expect(FulcrumContext::getTenantId())->toBeNull()
-        ->and(FulcrumContext::get('reveal', false))->toBeFalse()
+        ->and(FulcrumContext::shouldReveal())->toBeFalse()
+        ->and(FulcrumContext::get('reveal'))->toBeNull()
         ->and(auth()->user())->toBeNull();
 })->with([false, true]);
 
-test('legacy terminal failure cleanup runs after the job failure handler', function () {
+test('legacy terminal failure cleanup responds to JobFailed dispatched by the mock', function () {
     $dispatcher = new Dispatcher(app());
     app()->instance('events', $dispatcher);
     app()->forgetInstance('queue.worker');

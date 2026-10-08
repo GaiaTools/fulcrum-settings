@@ -24,11 +24,11 @@ condition handlers by their registered container binding keys, including
 abstract-to-concrete mappings, and clears the Fulcrum facade reference.
 
 On releases with `JobAttempted`, `JobProcessed` and `JobExceptionOccurred`
-listeners can still read the job's
-context for logging and metrics. By `JobAttempted`, cleanup may already have run;
-observers requiring context should use the earlier completion/exception events.
-Direct `Worker::process()` callers receive final cleanup but do not emit `Looping`.
-They must start their first operation with a clean application scope, or call
+listeners can still read the job's context for logging and metrics. By
+`JobAttempted`, cleanup may already have run; observers requiring context
+should use the earlier completion/exception events. Direct `Worker::process()`
+callers receive final cleanup but do not emit `Looping`. They must start their
+first operation with a clean application scope, or call
 `app(FulcrumLifecycle::class)->reset(app())` before processing begins.
 
 Each job must establish its own tenant and user. Context is not automatically
@@ -58,12 +58,12 @@ errors. Resolved instances are released from the operation's sandbox, as exposed
 by [Octane's lifecycle events](https://github.com/laravel/octane/blob/2.x/src/Events/RequestReceived.php).
 Octane is optional; installing Fulcrum does not require it.
 
-Stateful Fulcrum services and configured/discovered settings classes use Laravel
-scoped bindings. Cleanup also forgets application-bound singleton instances of
-`FulcrumSettings` subclasses, including abstract-to-concrete bindings. Resolving
-those bindings in the next operation creates fresh instances. Configuration registries and shared cached results survive
-cleanup. Lifecycle cleanup neither flushes the result cache nor rotates its
-generation.
+Stateful Fulcrum services and configured/discovered settings classes use
+Laravel scoped bindings. Cleanup also forgets application-bound singleton
+instances of `FulcrumSettings` subclasses, including abstract-to-concrete
+bindings. Resolving those bindings in the next operation creates fresh
+instances. Configuration registries and shared cached results survive cleanup.
+Lifecycle cleanup neither flushes the result cache nor rotates its generation.
 
 Custom services should use scoped container factories. Do not retain a resolver,
 settings object, user, or request in an application singleton across operations.
@@ -101,4 +101,4 @@ testing remains a follow-up.
 The current CI dependency matrix uses Testbench 10/11 and therefore tests Laravel
 12/13. Legacy completion events are exercised with an isolated dispatcher and a
 provider that selects the fallback path; a complete Laravel 11 dependency matrix
-remains a follow-up.
+is tracked in [issue #83](https://github.com/GaiaTools/fulcrum-settings/issues/83).
