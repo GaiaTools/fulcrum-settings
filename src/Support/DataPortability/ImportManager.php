@@ -93,7 +93,7 @@ class ImportManager
     {
         $count = 0;
         try {
-            $count = DB::connection($connection)->transaction(function () use ($settingData, $mode, $conflictHandling, $connection): int {
+            $import = function () use ($settingData, $mode, $conflictHandling, $connection): int {
                 if (isset($settingData['__raw_sql'])) {
                     return $this->importSql($settingData['__raw_sql'], $connection);
                 }
@@ -103,7 +103,12 @@ class ImportManager
                 $this->importSetting($settingData, $mode, $conflictHandling, $connection);
 
                 return 1;
-            });
+            };
+            // Fail-fast imports already roll back the outer transaction. Only
+            // skip/log modes need a savepoint to discard an individual record.
+            $count = $conflictHandling === 'fail'
+                ? $import()
+                : DB::connection($connection)->transaction($import);
         } catch (\Throwable $e) {
             if ($conflictHandling === 'fail') {
                 throw $e;
