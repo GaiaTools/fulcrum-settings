@@ -7,13 +7,19 @@ use GaiaTools\FulcrumSettings\Contracts\SettingResolver;
 use GaiaTools\FulcrumSettings\Contracts\UserAgentResolver;
 use GaiaTools\FulcrumSettings\Facades\Fulcrum;
 use GaiaTools\FulcrumSettings\Models\Setting;
+use GaiaTools\FulcrumSettings\Providers\FulcrumLifecycleServiceProvider;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use GaiaTools\FulcrumSettings\Support\Lifecycle\FulcrumLifecycle;
 use GaiaTools\FulcrumSettings\Support\Settings\FulcrumSettings;
+use GaiaTools\FulcrumSettings\Support\TypeRegistry;
 use Illuminate\Contracts\Queue\Job;
 use Illuminate\Foundation\Auth\User;
 use Illuminate\Http\Request;
+use Illuminate\Queue\Events\JobAttempted;
+use Illuminate\Queue\Events\JobExceptionOccurred;
+use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Queue\Events\Looping;
 use Illuminate\Queue\Jobs\SyncJob;
 use Illuminate\Queue\WorkerOptions;
 use Illuminate\Support\Facades\Event;
@@ -68,6 +74,7 @@ test('successive worker jobs cannot inherit tenant user reveal force or targetin
             ->and(app(LoadedLifecycleSettings::class)->value)->toBe('public')
             ->and(auth()->user())->toBeNull();
     });
+    Event::dispatch(new Looping('testing', 'default'));
     $worker->process('testing', $second, new WorkerOptions(maxTries: 0));
 })->with([false, true]);
 
@@ -83,21 +90,21 @@ test('worker boundaries release facade resolvers settings objects and retained r
     $newRequest = Request::create('/');
     $newRequest->headers->set('User-Agent', 'Firefox/130.0');
     app()->instance('request', $newRequest);
-    Event::dispatch(new JobProcessing('testing', Mockery::mock(Job::class)->shouldIgnoreMissing()));
+    Event::dispatch(new Looping('testing', 'default'));
     expect(Fulcrum::getFacadeRoot())->not->toBe($resolver)
         ->and(app(SettingResolver::class))->toBe(Fulcrum::getFacadeRoot())
         ->and(app(LifecycleSettings::class))->not->toBe($before)
         ->and(app(UserAgentResolver::class)->resolve()['browser'])->toBe('Firefox');
 });
 
-test('inline sync jobs preserve the caller context and instances', function () {
+test('sync backed job events preserve the current context and instances', function (string $driver) {
     FulcrumContext::setTenantId('caller');
     $resolver = app(SettingResolver::class);
-    $job = new SyncJob(app(), '{}', 'sync', 'default');
-    Event::dispatch(new JobProcessing('sync', $job));
+    $job = new SyncJob(app(), '{}', $driver, 'default');
+    Event::dispatch(new JobAttempted($driver, $job));
     expect(FulcrumContext::getTenantId())->toBe('caller')
         ->and(app(SettingResolver::class))->toBe($resolver);
-});
+})->with(['sync', 'deferred', 'background']);
 
 test('Octane hooks reset the sandbox without clearing base application instances', function (string $event) {
     $baseResolver = app(SettingResolver::class);
@@ -108,14 +115,6 @@ test('Octane hooks reset the sandbox without clearing base application instances
         ->and($sandbox->make(SettingResolver::class))->not->toBe($baseResolver)
         ->and(app(SettingResolver::class))->toBe($baseResolver);
 })->with(array_map(fn ($name) => 'Laravel\\Octane\\Events\\'.$name, ['RequestReceived', 'RequestTerminated', 'TaskReceived', 'TaskTerminated', 'TickReceived', 'TickTerminated', 'WorkerErrorOccurred']));
-
-class LifecycleSettings extends FulcrumSettings {}
-
-class LoadedLifecycleSettings extends FulcrumSettings
-{
-    #[SettingProperty(key: 'worker-value')]
-    public string $value;
-}
 
 test('user targeted flags do not inherit the previous jobs authenticated user', function () {
     $setting = Setting::create(['key' => 'worker-user', 'type' => 'boolean']);
@@ -141,3 +140,77 @@ test('a cold sandbox tracks its own resolved settings instances', function () {
     Event::dispatch('Laravel\\Octane\\Events\\RequestTerminated', [(object) ['sandbox' => $sandbox]]);
     expect($sandbox->make(LifecycleSettings::class))->not->toBe($before);
 });
+
+test('tenancy listeners and completion observers retain their job context', function (bool $fail) {
+    Event::listen(JobProcessing::class, fn () => FulcrumContext::setTenantId('assigned'));
+    // Simulate a package whose provider boots after the application's listener.
+    (new FulcrumLifecycleServiceProvider(app()))->boot();
+    $observed = [];
+    Event::listen([JobProcessed::class, JobExceptionOccurred::class], function () use (&$observed) {
+        $observed[] = FulcrumContext::getTenantId();
+    });
+    $job = lifecycleJob(function () use ($fail) {
+        expect(FulcrumContext::getTenantId())->toBe('assigned');
+        if ($fail) {
+            throw new RuntimeException('expected failure');
+        }
+    });
+    $worker = app('queue.worker');
+    if ($fail) {
+        expect(fn () => $worker->process('testing', $job, new WorkerOptions(maxTries: 0)))->toThrow(RuntimeException::class);
+    } else {
+        $worker->process('testing', $job, new WorkerOptions(maxTries: 0));
+    }
+    expect($observed)->toBe(['assigned'])
+        ->and(FulcrumContext::getTenantId())->toBeNull();
+})->with([false, true]);
+
+test('authentication cleanup can be disabled without disabling Fulcrum context cleanup', function () {
+    expect(config('fulcrum.lifecycle.reset_authentication'))->toBeTrue();
+    config(['fulcrum.lifecycle.reset_authentication' => false]);
+    $user = (new User)->forceFill(['id' => 7]);
+    auth()->setUser($user);
+    FulcrumContext::setTenantId('old');
+    Event::dispatch(new Looping('testing', 'default'));
+    expect(auth()->user())->toBe($user)
+        ->and(FulcrumContext::getTenantId())->toBeNull();
+});
+
+test('cleanup forgets abstract binding keys and their separately shared concrete implementations', function () {
+    app()->singleton(AbstractLifecycleSettings::class, ConcreteLifecycleSettings::class);
+    app()->singleton(ConcreteLifecycleSettings::class);
+    app()->bind(LifecycleSettings::class);
+    $before = app(AbstractLifecycleSettings::class);
+    expect(app(ConcreteLifecycleSettings::class))->toBe($before);
+    $registry = app(TypeRegistry::class);
+    Event::dispatch(new Looping('testing', 'default'));
+    expect(app(AbstractLifecycleSettings::class))->not->toBe($before)
+        ->and(app(ConcreteLifecycleSettings::class))->not->toBe($before)
+        ->and(app(TypeRegistry::class))->toBe($registry);
+});
+
+test('Octane authentication cleanup uses the sandbox configuration', function () {
+    $user = (new User)->forceFill(['id' => 7]);
+    auth()->setUser($user);
+    $sandbox = clone app();
+    $configuration = clone app('config');
+    $configuration->set('fulcrum.lifecycle.reset_authentication', false);
+    $sandbox->instance('config', $configuration);
+    FulcrumContext::setTenantId('old');
+    Event::dispatch('Laravel\\Octane\\Events\\TaskTerminated', [(object) ['sandbox' => $sandbox]]);
+    expect(auth()->user())->toBe($user)
+        ->and(FulcrumContext::getTenantId())->toBeNull()
+        ->and(config('fulcrum.lifecycle.reset_authentication'))->toBeTrue();
+});
+
+class LifecycleSettings extends FulcrumSettings {}
+
+class LoadedLifecycleSettings extends FulcrumSettings
+{
+    #[SettingProperty(key: 'worker-value')]
+    public string $value;
+}
+
+abstract class AbstractLifecycleSettings extends FulcrumSettings {}
+
+class ConcreteLifecycleSettings extends AbstractLifecycleSettings {}

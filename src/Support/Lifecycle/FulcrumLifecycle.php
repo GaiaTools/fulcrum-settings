@@ -7,33 +7,49 @@ namespace GaiaTools\FulcrumSettings\Support\Lifecycle;
 use GaiaTools\FulcrumSettings\Contracts;
 use GaiaTools\FulcrumSettings\Facades\Fulcrum;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
+use GaiaTools\FulcrumSettings\Support\Settings\FulcrumSettings;
 use Illuminate\Container\Container;
 
 class FulcrumLifecycle
 {
-    /** @var array<class-string, bool> */
-    private array $instances = [];
+    public const STATEFUL_TYPES = [
+        Contracts\SettingResolver::class,
+        Contracts\RuleEvaluator::class,
+        Contracts\GeoResolver::class,
+        Contracts\UserAgentResolver::class,
+        Contracts\SegmentDriver::class,
+        Contracts\HolidayResolver::class,
+        Contracts\ConditionTypeHandler::class,
+        FulcrumSettings::class,
+    ];
 
-    public function track(object $instance): void
+    private function isStatefulBinding(string $abstract, Container $container): bool
     {
-        $this->instances[$instance::class] = true;
+        if (! $container->isShared($abstract)) {
+            return false;
+        }
+        foreach (self::STATEFUL_TYPES as $type) {
+            if (is_a($abstract, $type, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function reset(Container $container): void
     {
         FulcrumContext::clear();
         Fulcrum::clearResolvedInstance(Contracts\SettingResolver::class);
-        foreach (array_merge([
-            Contracts\SettingResolver::class,
-            Contracts\RuleEvaluator::class,
-            Contracts\GeoResolver::class,
-            Contracts\UserAgentResolver::class,
-            Contracts\SegmentDriver::class,
-            Contracts\HolidayResolver::class,
-        ], array_keys($this->instances)) as $abstract) {
-            $container->forgetInstance($abstract);
+        // Daemon workers also flush scoped bindings. Explicit cleanup covers
+        // direct Worker::process calls and Octane sandboxes. Use binding keys,
+        // including abstract-to-concrete mappings, rather than instance classes.
+        foreach (array_keys($container->getBindings()) as $abstract) {
+            if ($this->isStatefulBinding($abstract, $container)) {
+                $container->forgetInstance($abstract);
+            }
         }
-        if ($container->resolved('auth')) {
+        if ($container->make('config')->boolean('fulcrum.lifecycle.reset_authentication', true) && $container->resolved('auth')) {
             $container->make('auth')->forgetGuards();
         }
     }

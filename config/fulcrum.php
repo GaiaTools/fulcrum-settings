@@ -21,6 +21,10 @@ use GaiaTools\FulcrumSettings\Types\JsonTypeHandler;
 use GaiaTools\FulcrumSettings\Types\StringTypeHandler;
 
 return [
+    'lifecycle' => [
+        'reset_authentication' => true,
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Default Segment Driver

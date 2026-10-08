@@ -387,3 +387,12 @@ This is a complete reference for `config/fulcrum.php`.
 | `portability.routes.middleware` | `array<int, string>` | `['api', 'auth']` | Middleware for portability routes. |
 | `portability.export_ability` | `string` | `exportFulcrumSettings` | Gate ability for exports. |
 | `portability.import_ability` | `string` | `importFulcrumSettings` | Gate ability for imports. |
+
+## Worker lifecycle
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `lifecycle.reset_authentication` | `true` | Forget resolved Laravel authentication guards during lifecycle cleanup. Set to `false` only when the application manages authentication isolation itself. |
+
+See [Worker Lifecycle](../advanced/worker-lifecycle.md) for queue event ordering,
+inline drivers, direct worker calls, and Octane behavior.
