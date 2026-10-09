@@ -127,7 +127,7 @@ class SettingRule extends Model
             return;
         }
 
-        $setting = Setting::find($model->setting_id);
+        $setting = Setting::on($model->getConnectionName())->find($model->setting_id);
         if (! $setting) {
             throw new SettingNotFoundException((string) $model->setting_id);
         }

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use GaiaTools\FulcrumSettings\Exceptions\DuplicateSettingException;
 use GaiaTools\FulcrumSettings\Models\Setting;
+use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\CsvFormatter;
 use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\JsonFormatter;
+use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\YamlFormatter;
 use GaiaTools\FulcrumSettings\Support\DataPortability\ImportManager;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -103,9 +105,81 @@ test('the protected import extension point rejects records without scalar keys',
     {
         public function importInvalidRecord(): void
         {
-            $this->importSetting(['key' => []], 'upsert');
+            $this->importSetting(['key' => []], 'upsert', 'skip');
         }
     };
     $manager->importInvalidRecord();
     expect(Setting::count())->toBe(0);
+});
+
+test('legacy protected overrides keep their signatures and conflict arguments', function () {
+    $manager = new class extends ImportManager
+    {
+        public array $calls = [];
+
+        protected function truncateTables(): void
+        {
+            $this->calls[] = 'truncate';
+            parent::truncateTables();
+        }
+
+        protected function importRecord(array $data, string $mode, string $conflictHandling, ?string $connection): void
+        {
+            $this->calls[] = 'record';
+            parent::importRecord($data, $mode, $conflictHandling, $connection);
+        }
+
+        protected function importSetting(array $data, string $mode, string $conflictHandling): void
+        {
+            $this->calls[] = $conflictHandling;
+            parent::importSetting($data, $mode, $conflictHandling);
+        }
+    };
+    Storage::put('legacy.json', '[{"key":"legacy","type":"string"}]');
+    expect($manager->importWithResult(new JsonFormatter, 'legacy.json', ['truncate' => true, 'conflict_handling' => 'skip']))->toBe(['success' => true, 'count' => 1])
+        ->and($manager->calls)->toBe(['truncate', 'record', 'skip']);
+});
+
+test('structured imports preserve groups on inserts and updates', function () {
+    foreach ([new JsonFormatter, new YamlFormatter, new CsvFormatter] as $formatter) {
+        Storage::put('groups.txt', $formatter->format([['key' => 'grouped', 'type' => 'string', 'group' => 'initial']]));
+        (new ImportManager)->import($formatter, 'groups.txt', ['truncate' => true]);
+        expect(Setting::firstOrFail()->group)->toBe('initial');
+        Storage::put('groups.txt', $formatter->format([['key' => 'grouped', 'type' => 'string', 'group' => 'updated']]));
+        (new ImportManager)->import($formatter, 'groups.txt');
+        expect(Setting::firstOrFail()->group)->toBe('updated');
+    }
+});
+
+test('nested imports restore the outer operation and its count', function () {
+    Storage::put('outer.json', '[{"key":"outer-one","type":"string"},{"key":"outer-two","type":"string"}]');
+    Storage::put('inner.json', '[{"key":"inner","type":"string"}]');
+    $manager = new class extends ImportManager
+    {
+        public ?array $innerResult = null;
+
+        protected function importRecord(array $data, string $mode, string $conflictHandling, ?string $connection): void
+        {
+            if ($data['key'] === 'outer-one') {
+                $this->innerResult = $this->importWithResult(new JsonFormatter, 'inner.json');
+            }
+            parent::importRecord($data, $mode, $conflictHandling, $connection);
+        }
+    };
+    expect($manager->importWithResult(new JsonFormatter, 'outer.json'))->toBe(['success' => true, 'count' => 2])
+        ->and($manager->innerResult)->toBe(['success' => true, 'count' => 1])
+        ->and(Setting::count())->toBe(3);
+});
+
+test('legacy setting overrides still receive record conflict handling', function () {
+    $manager = new class extends ImportManager
+    {
+        protected function importSetting(array $data, string $mode, string $conflictHandling): void
+        {
+            throw new RuntimeException('custom setting failure');
+        }
+    };
+    Storage::put('custom.json', '[{"key":"custom","type":"string"}]');
+    expect($manager->importWithResult(new JsonFormatter, 'custom.json', ['conflict_handling' => 'skip']))->toBe(['success' => true, 'count' => 0])
+        ->and(Setting::count())->toBe(0);
 });

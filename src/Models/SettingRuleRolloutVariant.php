@@ -129,8 +129,8 @@ class SettingRuleRolloutVariant extends Model
 
         static::creating(function (self $model) {
             if (Fulcrum::isMultiTenancyEnabled() && $model->tenant_id === null) {
-                $rule = SettingRule::find($model->setting_rule_id);
-                $setting = $rule ? Setting::find($rule->setting_id) : null;
+                $rule = SettingRule::on($model->getConnectionName())->find($model->setting_rule_id);
+                $setting = $rule ? Setting::on($model->getConnectionName())->find($rule->setting_id) : null;
                 if ($setting) {
                     $model->tenant_id = $setting->tenant_id;
                 }

@@ -92,7 +92,7 @@ class Setting extends Model
         static::addGlobalScope(new TenantScope);
 
         static::saving(function (self $model) {
-            if (! $model->isDirty('key') && $model->group !== null) {
+            if ($model->isDirty('group') || (! $model->isDirty('key') && $model->group !== null)) {
                 return;
             }
 

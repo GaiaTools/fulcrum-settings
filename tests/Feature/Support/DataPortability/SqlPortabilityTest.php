@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace GaiaTools\FulcrumSettings\Tests\Feature\Support\DataPortability;
 
 use GaiaTools\FulcrumSettings\Models\Setting;
+use GaiaTools\FulcrumSettings\Models\SettingValue;
 use GaiaTools\FulcrumSettings\Support\DataPortability\ExportManager;
+use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\JsonFormatter;
 use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\SqlFormatter;
 use GaiaTools\FulcrumSettings\Support\DataPortability\ImportManager;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use GaiaTools\FulcrumSettings\Tests\TestCase;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 class SqlPortabilityTest extends TestCase
@@ -62,5 +66,68 @@ class SqlPortabilityTest extends TestCase
         foreach (config('fulcrum.table_names') as $table) {
             $this->assertFalse(DB::connection()->getSchemaBuilder()->hasTable($table));
         }
+    }
+
+    public function test_sql_round_trip_preserves_null_values_for_all_owner_types(): void
+    {
+        foreach ([false, true] as $masked) {
+            $setting = Setting::create(['key' => 'null-'.(int) $masked, 'type' => 'string', 'masked' => $masked]);
+            $rule = $setting->rules()->create(['priority' => 1]);
+            $variant = $rule->rolloutVariants()->create(['name' => 'nullable', 'weight' => 100]);
+            foreach ([$setting, $rule, $variant] as $owner) {
+                DB::table((new SettingValue)->getTable())->insert([
+                    'valuable_type' => $owner->getMorphClass(), 'valuable_id' => $owner->getKey(), 'value' => null,
+                ]);
+            }
+        }
+        Storage::fake('local');
+        $path = (new ExportManager)->export(new SqlFormatter, ['filename' => 'nulls.sql', 'decrypt' => true]);
+        (new ImportManager)->import(new SqlFormatter, $path, ['truncate' => true]);
+        $this->assertSame(array_fill(0, 6, null), DB::table((new SettingValue)->getTable())->pluck('value')->all());
+        foreach (Setting::all() as $setting) {
+            $this->assertNull($setting->defaultValue->value);
+            $this->assertNull($setting->rules->first()->value->value);
+            $this->assertNull($setting->rules->first()->rolloutVariants->first()->value->value);
+        }
+    }
+
+    public function test_alternate_connection_values_use_their_own_setting_type_and_encryption(): void
+    {
+        Storage::fake('local');
+        foreach ([false, true] as $collision) {
+            $name = 'alternate_'.(int) $collision;
+            config(['database.connections.'.$name => config('database.connections.testing')]);
+            $database = DB::connection($name);
+            $originalSchema = Schema::getFacadeRoot();
+            Schema::swap($database->getSchemaBuilder());
+            try {
+                foreach (glob(__DIR__.'/../../../../database/migrations/*.php') as $migration) {
+                    (require $migration)->up();
+                }
+            } finally {
+                Schema::swap($originalSchema);
+            }
+            if ($collision) {
+                Setting::create(['key' => 'wrong-owner', 'type' => 'integer', 'masked' => false]);
+            }
+            $data = [['key' => 'masked', 'type' => 'string', 'masked' => true, 'default_value' => 'secret', 'rules' => [[
+                'priority' => 1, 'value' => 'rule secret',
+                'rollout_variants' => [['name' => 'secret variant', 'weight' => 100, 'value' => 'variant secret']],
+            ]]], ['key' => 'typed', 'type' => 'json', 'default_value' => ['enabled' => true]]];
+            Storage::put('alternate.json', json_encode($data));
+            $this->assertSame(['success' => true, 'count' => 2], (new ImportManager)->importWithResult(new JsonFormatter, 'alternate.json', ['connection' => $name]));
+            $typed = Setting::on($name)->where('key', 'typed')->firstOrFail();
+            $this->assertSame(['enabled' => true], $typed->defaultValue->value);
+            $this->assertSame(['enabled' => true], json_decode($typed->defaultValue->getRawOriginal('value'), true));
+            $restored = Setting::on($name)->firstOrFail();
+            $this->assertSame('secret', $restored->defaultValue->value);
+            $this->assertSame('rule secret', $restored->rules->first()->value->value);
+            $this->assertSame('variant secret', $restored->rules->first()->rolloutVariants->first()->value->value);
+            foreach ($database->table((new SettingValue)->getTable())->where('valuable_id', $restored->id)->pluck('value') as $stored) {
+                $this->assertContains(Crypt::decryptString($stored), ['secret', 'rule secret', 'variant secret']);
+            }
+        }
+        $this->assertSame('wrong-owner', Setting::firstOrFail()->key);
+        $this->assertSame(0, DB::table((new SettingValue)->getTable())->count());
     }
 }

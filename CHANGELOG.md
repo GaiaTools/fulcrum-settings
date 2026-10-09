@@ -5,9 +5,13 @@
 ### Fixes
 
 - SQL exports honor configured table names, connection prefixes and driver quoting, preserve relation IDs and condition types, and leave foreign-key checks enabled. Models and migration foreign keys now consistently honor configured table names.
+- SQL exports preserve SQL NULL values for setting, rule and variant values. Structured imports preserve explicitly supplied groups.
+- Original protected ImportManager hook signatures remain supported; per-invocation count/connection context is restored after errors and nested imports. Value-owner lookup and tenant inheritance use each model's connection, including type serialization and masked-value encryption.
 - HTTP imports report successful setting counts instead of zero. Structured imports and truncation use the selected connection; failed records are rolled back before skip/log handling. The existing boolean import API remains available.
 
 ### Behavior changes
+
+- Explicitly supplied model groups are preserved; automatic group derivation still applies when no group is supplied.
 
 - Worker lifecycle cleanup now forgets resolved Laravel authentication guards by default. Set `fulcrum.lifecycle.reset_authentication` to `false` to preserve application-managed authentication state.
 - Queue context cleanup runs on `Looping` and `JobAttempted`, preserving tenant initialization on `JobProcessing` and context visibility for completion/exception observers. Older Laravel 11 releases fall back to `JobProcessed`, `JobExceptionOccurred`, and `JobFailed`; later listeners for those events may see cleared context.

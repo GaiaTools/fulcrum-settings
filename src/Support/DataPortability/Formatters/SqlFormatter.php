@@ -190,7 +190,7 @@ class SqlFormatter implements Formatter
             'valuable_type' => $type,
             'valuable_id' => $id,
             'tenant_id' => $tenantId,
-            'value' => is_string($value) ? $value : $this->encodeJsonValue($value),
+            'value' => $value === null || is_string($value) ? $value : $this->encodeJsonValue($value),
         ];
 
         return $this->insertStatement('setting_values', $data)."\n";

@@ -95,16 +95,20 @@ When enabled:
 SQL exports use `fulcrum.table_names`, the selected connection's table prefix,
 identifier grammar, and literal quoting. Related rows are inserted after their
 parents, without disabling foreign-key checks. SQL files target the export
-connection's database dialect; use JSON, YAML, CSV, or XML when moving between
-engines. Import SQL only from trusted sources, since SQL imports execute the file.
+connection's database dialect and literal table prefix; use JSON, YAML, CSV, or
+XML when moving between engines or connections with different prefixes. Import
+SQL only from trusted sources, since SQL imports execute the file.
 
 HTTP JSON responses return the actual count in `data.imported_count`; browser
 imports flash `imported_count` in the session. Structured imports count each
 successfully inserted or updated setting record. Skipped, malformed, and failed
-records do not count, and failed records roll back their partial writes. A dry run
-reports zero writes. SQL imports report the nonnegative net increase in setting
-rows per SQL payload, rather than counting arbitrary SQL statements or updates.
+records do not count, and failed records roll back their partial writes. A dry
+run reports zero writes. SQL imports report the nonnegative net increase in
+setting rows per SQL payload, rather than counting arbitrary SQL statements or
+updates.
 
 `ImportManager::import()` retains its boolean return value. Use
-`importWithResult()` for `['success' => bool, 'count' => int]` without storing
-per-import counters on the manager.
+`importWithResult()` for `['success' => bool, 'count' => int]` with counts and
+connections scoped to one invocation. Original protected import hook signatures
+remain supported, including subclasses that delegate to their parent hooks.
+Nested imports restore the outer invocation context.

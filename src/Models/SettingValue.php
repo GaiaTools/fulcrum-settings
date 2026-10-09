@@ -131,11 +131,11 @@ class SettingValue extends Model
             $id = $id ?? $this->valuable_id;
 
             if ($type === Setting::class) {
-                $owner = Setting::query()->find($id);
+                $owner = Setting::on($this->getConnectionName())->find($id);
             } elseif ($type === SettingRule::class) {
-                $owner = SettingRule::query()->find($id);
+                $owner = SettingRule::on($this->getConnectionName())->find($id);
             } elseif ($type === SettingRuleRolloutVariant::class) {
-                $owner = SettingRuleRolloutVariant::query()->find($id);
+                $owner = SettingRuleRolloutVariant::on($this->getConnectionName())->find($id);
             }
         }
 
