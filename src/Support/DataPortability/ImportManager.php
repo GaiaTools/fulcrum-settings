@@ -309,21 +309,27 @@ class ImportManager
             }
 
             if (isset($data['rules']) && is_array($data['rules'])) {
-                // Rules are replaced wholesale so the imported state exactly
-                // mirrors the source rather than merging with existing rules.
-                $setting->rules()->lazyById()->each(fn ($rule) => $rule->delete());
-                foreach ($data['rules'] as $ruleData) {
-                    if (is_array($ruleData)) {
-                        /** @var array<string, mixed> $ruleData */
-                        $this->importRule($setting, $ruleData);
-                    }
-                }
+                $this->replaceRules($setting, $data['rules']);
             }
         } finally {
             FulcrumContext::force(false);
         }
 
         return 1;
+    }
+
+    /** @param array<array-key, mixed> $rules */
+    private function replaceRules(Setting $setting, array $rules): void
+    {
+        // Rules are replaced wholesale so the imported state exactly
+        // mirrors the source rather than merging with existing rules.
+        $setting->rules()->lazyById()->each(fn ($rule) => $rule->delete());
+        foreach ($rules as $ruleData) {
+            if (is_array($ruleData)) {
+                /** @var array<string, mixed> $ruleData */
+                $this->importRule($setting, $ruleData);
+            }
+        }
     }
 
     /**
