@@ -170,7 +170,7 @@ class PipelinesTest extends TestCase
     public function test_store_data_pipeline()
     {
         $manager = \Mockery::mock(ImportManager::class);
-        $manager->shouldReceive('import')->once()->andReturn(true);
+        $manager->shouldReceive('importWithResult')->once()->andReturn(['success' => true, 'count' => 3]);
 
         $request = new ImportRequest;
         $request->attributes->set('formatter', new JsonFormatter);
@@ -178,7 +178,7 @@ class PipelinesTest extends TestCase
 
         $pipeline = new StoreData($manager);
         $pipeline->handle($request, function ($req) {
-            $this->assertEquals(['success' => true, 'count' => 0], $req->attributes->get('import_result'));
+            $this->assertEquals(['success' => true, 'count' => 3], $req->attributes->get('import_result'));
         });
     }
 
@@ -205,5 +205,21 @@ class PipelinesTest extends TestCase
 
         $this->expectException(ValidationException::class);
         $pipeline->handle($request, function ($req) {});
+    }
+
+    public function test_store_data_rejects_a_missing_formatter(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Import formatter is missing.');
+        (new StoreData(new ImportManager))->handle(new ImportRequest, fn () => null);
+    }
+
+    public function test_store_data_rejects_a_missing_file_path(): void
+    {
+        $request = new ImportRequest;
+        $request->attributes->set('formatter', new JsonFormatter);
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Import file path is missing.');
+        (new StoreData(new ImportManager))->handle($request, fn () => null);
     }
 }

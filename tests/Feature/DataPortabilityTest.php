@@ -81,7 +81,7 @@ class DataPortabilityTest extends TestCase
         ]);
 
         $response->assertStatus(200);
-        $response->assertJson(['message' => 'Settings imported successfully']);
+        $response->assertJson(['message' => 'Settings imported successfully', 'data' => ['imported_count' => 1]]);
         $this->assertDatabaseHas('settings', ['key' => 'api_imported']);
     }
 
@@ -97,6 +97,7 @@ class DataPortabilityTest extends TestCase
 
         $response->assertRedirect('/previous-page');
         $response->assertSessionHas('success', 'Settings imported successfully');
+        $response->assertSessionHas('imported_count', 1);
         $this->assertDatabaseHas('settings', ['key' => 'web_imported']);
     }
 

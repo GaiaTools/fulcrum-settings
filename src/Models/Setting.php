@@ -7,6 +7,7 @@ namespace GaiaTools\FulcrumSettings\Models;
 use GaiaTools\FulcrumSettings\Enums\SettingType;
 use GaiaTools\FulcrumSettings\Exceptions\ImmutableSettingException;
 use GaiaTools\FulcrumSettings\Models\Concerns\HasMaskedValue;
+use GaiaTools\FulcrumSettings\Models\Concerns\UsesConfiguredTable;
 use GaiaTools\FulcrumSettings\Models\Scopes\TenantScope;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use Illuminate\Database\Eloquent\Model;
@@ -30,6 +31,7 @@ use Illuminate\Support\Facades\Gate;
 class Setting extends Model
 {
     use HasMaskedValue;
+    use UsesConfiguredTable;
 
     protected $fillable = [
         'key',
@@ -90,7 +92,7 @@ class Setting extends Model
         static::addGlobalScope(new TenantScope);
 
         static::saving(function (self $model) {
-            if (! $model->isDirty('key') && $model->group !== null) {
+            if ($model->isDirty('group') || (! $model->isDirty('key') && $model->group !== null)) {
                 return;
             }
 

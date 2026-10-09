@@ -38,13 +38,13 @@ class StoreData
             'chunk_size' => $request->integer('chunk_size', 1000),
         ];
 
-        $result = $this->manager->import(
+        $result = $this->manager->importWithResult(
             $formatter,
             $filePath,
             array_filter($options, fn ($value) => $value !== null)
         );
 
-        $request->attributes->set('import_result', ['success' => $result, 'count' => 0]); // Simplification for now
+        $request->attributes->set('import_result', $result);
 
         return $next($request);
     }

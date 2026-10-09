@@ -9,6 +9,7 @@ use GaiaTools\FulcrumSettings\Models\SettingRule;
 use GaiaTools\FulcrumSettings\Models\SettingRuleCondition;
 use GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant;
 use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\Formatter;
+use GaiaTools\FulcrumSettings\Support\DataPortability\Formatters\SqlFormatter;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 
@@ -48,6 +49,9 @@ class ExportManager
             return true;
         }
 
+        if ($formatter instanceof SqlFormatter) {
+            $formatter = $formatter->usingConnection($connection);
+        }
         $content = $formatter->format($data);
 
         if ($gzip) {

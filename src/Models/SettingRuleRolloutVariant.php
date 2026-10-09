@@ -7,6 +7,7 @@ namespace GaiaTools\FulcrumSettings\Models;
 use GaiaTools\FulcrumSettings\Exceptions\ImmutableSettingException;
 use GaiaTools\FulcrumSettings\Facades\Fulcrum;
 use GaiaTools\FulcrumSettings\Models\Concerns\HasMaskedValue;
+use GaiaTools\FulcrumSettings\Models\Concerns\UsesConfiguredTable;
 use GaiaTools\FulcrumSettings\Models\Scopes\TenantScope;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -33,6 +34,7 @@ use Illuminate\Support\Facades\Gate;
 class SettingRuleRolloutVariant extends Model
 {
     use HasMaskedValue;
+    use UsesConfiguredTable;
 
     /**
      * Weight precision: 100000 = 100.000% (3 decimal places)
@@ -125,15 +127,7 @@ class SettingRuleRolloutVariant extends Model
     {
         static::addGlobalScope(new TenantScope);
 
-        static::creating(function (self $model) {
-            if (Fulcrum::isMultiTenancyEnabled() && $model->tenant_id === null) {
-                $rule = SettingRule::find($model->setting_rule_id);
-                $setting = $rule ? Setting::find($rule->setting_id) : null;
-                if ($setting) {
-                    $model->tenant_id = $setting->tenant_id;
-                }
-            }
-        });
+        static::creating(fn (self $model) => self::assignTenantFromRule($model));
 
         // Immutability guards
         $guard = function (self $model) {
@@ -156,5 +150,16 @@ class SettingRuleRolloutVariant extends Model
                 throw new ImmutableSettingException('Setting is immutable. Deletion is not allowed.');
             }
         });
+    }
+
+    private static function assignTenantFromRule(self $model): void
+    {
+        if (Fulcrum::isMultiTenancyEnabled() && $model->tenant_id === null) {
+            $rule = SettingRule::on($model->getConnectionName())->find($model->setting_rule_id);
+            $setting = $rule ? Setting::on($model->getConnectionName())->find($rule->setting_id) : null;
+            if ($setting) {
+                $model->tenant_id = $setting->tenant_id;
+            }
+        }
     }
 }
