@@ -7,6 +7,7 @@ namespace GaiaTools\FulcrumSettings\Models;
 use GaiaTools\FulcrumSettings\Exceptions\ImmutableSettingException;
 use GaiaTools\FulcrumSettings\Exceptions\SettingNotFoundException;
 use GaiaTools\FulcrumSettings\Facades\Fulcrum;
+use GaiaTools\FulcrumSettings\Models\Concerns\UsesConfiguredTable;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use GaiaTools\FulcrumSettings\Support\TypeRegistry;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -28,6 +29,8 @@ use Illuminate\Support\Facades\Gate;
  */
 class SettingValue extends Model
 {
+    use UsesConfiguredTable;
+
     protected $fillable = [
         'valuable_type',
         'valuable_id',
@@ -128,11 +131,11 @@ class SettingValue extends Model
             $id = $id ?? $this->valuable_id;
 
             if ($type === Setting::class) {
-                $owner = Setting::query()->find($id);
+                $owner = Setting::on($this->getConnectionName())->find($id);
             } elseif ($type === SettingRule::class) {
-                $owner = SettingRule::query()->find($id);
+                $owner = SettingRule::on($this->getConnectionName())->find($id);
             } elseif ($type === SettingRuleRolloutVariant::class) {
-                $owner = SettingRuleRolloutVariant::query()->find($id);
+                $owner = SettingRuleRolloutVariant::on($this->getConnectionName())->find($id);
             }
         }
 

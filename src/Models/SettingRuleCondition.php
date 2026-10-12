@@ -8,6 +8,7 @@ use GaiaTools\FulcrumSettings\Enums\ComparisonOperator;
 use GaiaTools\FulcrumSettings\Enums\ConditionType;
 use GaiaTools\FulcrumSettings\Exceptions\ImmutableSettingException;
 use GaiaTools\FulcrumSettings\Facades\Fulcrum;
+use GaiaTools\FulcrumSettings\Models\Concerns\UsesConfiguredTable;
 use GaiaTools\FulcrumSettings\Models\Scopes\TenantScope;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use Illuminate\Database\Eloquent\Model;
@@ -28,6 +29,8 @@ use Illuminate\Support\Carbon;
  */
 class SettingRuleCondition extends Model
 {
+    use UsesConfiguredTable;
+
     protected $fillable = [
         'setting_rule_id',
         'tenant_id',

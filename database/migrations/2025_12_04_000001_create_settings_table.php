@@ -32,9 +32,9 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create($tables['setting_rules'], function (Blueprint $table) {
+        Schema::create($tables['setting_rules'], function (Blueprint $table) use ($settingsTable) {
             $table->id();
-            $table->foreignId('setting_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('setting_id')->constrained($settingsTable)->cascadeOnDelete();
             $table->string('name')->nullable();
             $table->integer('priority')->default(0);
             $table->string('rollout_salt', 32)->nullable();
@@ -45,9 +45,9 @@ return new class extends Migration
             $table->index(['setting_id', 'priority']);
         });
 
-        Schema::create($tables['setting_rule_conditions'], function (Blueprint $table) {
+        Schema::create($tables['setting_rule_conditions'], function (Blueprint $table) use ($tables) {
             $table->id();
-            $table->foreignId('setting_rule_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('setting_rule_id')->constrained($tables['setting_rules'])->cascadeOnDelete();
             $table->string('type')->default(ConditionType::default());
             $table->string('attribute');
             $table->string('operator');
@@ -87,8 +87,8 @@ return new class extends Migration
 
         Schema::dropIfExists($tables['setting_rule_conditions'] ?? 'setting_rule_conditions');
         Schema::dropIfExists($tables['setting_values'] ?? 'setting_values');
+        Schema::dropIfExists($tables['setting_rule_rollout_variants'] ?? 'setting_rule_rollout_variants');
         Schema::dropIfExists($tables['setting_rules'] ?? 'setting_rules');
         Schema::dropIfExists($tables['settings'] ?? 'settings');
-        Schema::dropIfExists($tables['setting_rule_rollout_variants'] ?? 'setting_rule_rollout_variants');
     }
 };

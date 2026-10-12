@@ -129,7 +129,7 @@ class ExportSettingsCommandTest extends TestCase
 
         Storage::disk('local')->assertExists('export.sql');
         $content = Storage::disk('local')->get('export.sql');
-        $this->assertStringContainsString('INSERT INTO `settings`', $content);
+        $this->assertStringContainsString('insert into "settings"', $content);
         $this->assertStringContainsString('test_setting', $content);
     }
 

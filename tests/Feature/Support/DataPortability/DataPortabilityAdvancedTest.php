@@ -21,6 +21,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Mockery;
 
+require_once __DIR__.'/../../../Fixtures/FailingGzip.php';
+
 class DataPortabilityAdvancedTest extends TestCase
 {
     use RefreshDatabase;
@@ -633,5 +635,36 @@ class DataPortabilityAdvancedTest extends TestCase
 
         // If I use a character that str_getcsv doesn't like or results in null.
         // Actually, $this->assertEquals([], $formatter->parse("\n")); SHOULD hit 42.
+    }
+
+    public function test_export_rejects_failed_compression_without_writing_a_file(): void
+    {
+        app()->instance('testing.fail-gzip', true);
+        try {
+            (new ExportManager)->export(new JsonFormatter, ['filename' => 'failed.json', 'gzip' => true]);
+            $this->fail('Compression failure must be reported.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('Failed to gzip export content.', $exception->getMessage());
+            Storage::disk('local')->assertMissing('failed.json.gz');
+        } finally {
+            app()->forgetInstance('testing.fail-gzip');
+        }
+    }
+
+    public function test_export_handles_non_string_connection_options_using_the_default(): void
+    {
+        $this->assertTrue((new ExportManager)->export(new JsonFormatter, ['connection' => false, 'dry_run' => true]));
+    }
+
+    public function test_decrypted_export_preserves_a_null_masked_value(): void
+    {
+        $setting = Setting::create(['key' => 'nullable-masked', 'type' => 'string', 'masked' => true]);
+        \Illuminate\Support\Facades\DB::table((new SettingValue)->getTable())->insert([
+            'valuable_type' => $setting->getMorphClass(), 'valuable_id' => $setting->id, 'value' => null,
+        ]);
+        (new ExportManager)->export(new JsonFormatter, ['filename' => 'null.json', 'decrypt' => true]);
+        $data = json_decode(Storage::disk('local')->get('null.json'), true);
+        $this->assertArrayHasKey('default_value', $data[0]);
+        $this->assertNull($data[0]['default_value']);
     }
 }
