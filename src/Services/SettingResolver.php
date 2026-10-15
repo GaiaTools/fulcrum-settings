@@ -65,8 +65,8 @@ class SettingResolver implements CacheContextProvider, SettingResolverContract
             return null;
         }
 
-        [$rule, $variant, $count] = $this->evaluateRules($setting, $scope, $effectiveUser);
-        [$value, $source] = $this->resolveValueAndSource($setting, $rule, $variant, $scope, $tenantId);
+        [$rule, $variant, $count, $identifier] = $this->evaluateRules($setting, $scope, $effectiveUser);
+        [$value, $source] = $this->resolveValueAndSource($setting, $rule, $variant, $scope, $tenantId, $identifier);
 
         $context = ResolutionContext::fromResolution(
             $resolvedKey, $value, $setting, $rule, $count, $source, $tenantId, $scope, $startTime, $variant
@@ -145,7 +145,7 @@ class SettingResolver implements CacheContextProvider, SettingResolverContract
     /**
      * Evaluate all rules for a setting and return the first matching rule/variant.
      *
-     * @return array{0: SettingRule|null, 1: SettingRuleRolloutVariant|null, 2: int}
+     * @return array{0: SettingRule|null, 1: SettingRuleRolloutVariant|null, 2: int, 3: string|null}
      */
     protected function evaluateRules(Setting $setting, mixed $scope, ?Authenticatable $user): array
     {
@@ -159,17 +159,17 @@ class SettingResolver implements CacheContextProvider, SettingResolverContract
             }
 
             if ($rule->hasRolloutVariants()) {
-                if ($variant = $this->selectRolloutVariant($rule, $scope)) {
-                    return [$rule, $variant, $rulesEvaluated];
+                if ($variant = $this->selectRolloutVariant($rule, $scope, $user, $identifier)) {
+                    return [$rule, $variant, $rulesEvaluated, $identifier];
                 }
 
                 continue;
             }
 
-            return [$rule, null, $rulesEvaluated];
+            return [$rule, null, $rulesEvaluated, null];
         }
 
-        return [null, null, $rulesEvaluated];
+        return [null, null, $rulesEvaluated, null];
     }
 
     /**
@@ -191,10 +191,11 @@ class SettingResolver implements CacheContextProvider, SettingResolverContract
         ?SettingRule $rule,
         ?SettingRuleRolloutVariant $variant,
         mixed $scope,
-        ?string $tenantId
+        ?string $tenantId,
+        ?string $identifier = null,
     ): array {
         if ($variant !== null) {
-            $this->fireVariantAssignedEvent($setting, $rule, $variant, $scope, $tenantId);
+            $this->fireVariantAssignedEvent($setting, $rule, $variant, $scope, $tenantId, $identifier);
 
             return [$variant->getValue(), 'rollout'];
         }

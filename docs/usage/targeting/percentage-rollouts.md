@@ -41,8 +41,11 @@ $this->createSetting('checkout.button_color')
 Rollouts require an identifier to bucket users. Fulcrum resolves identifiers in this order:
 
 1. Custom resolver configured in `config/fulcrum.php`
-2. Authenticated user ID
-3. Explicit scope passed to `Fulcrum::get()`
+2. User selected with `forUser()`
+3. Explicit scope: `getAuthIdentifier()` for an `Authenticatable`, a scalar, or an array/object `id`
+4. Current authenticated user ID
+
+The custom resolver receives the scope and effective user. A `null` or empty-string result falls back to the standard identifier sources. Effective users are resolved for each call and are not retained on the shared resolver.
 
 ## Related Reading
 

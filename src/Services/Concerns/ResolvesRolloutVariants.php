@@ -8,15 +8,16 @@ use GaiaTools\FulcrumSettings\Events\VariantAssigned;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Models\SettingRule;
 use GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant;
+use Illuminate\Contracts\Auth\Authenticatable;
 
 trait ResolvesRolloutVariants
 {
     /**
      * Select a rollout variant based on consistent bucketing.
      */
-    protected function selectRolloutVariant(SettingRule $rule, mixed $scope): ?SettingRuleRolloutVariant
+    protected function selectRolloutVariant(SettingRule $rule, mixed $scope, ?Authenticatable $user = null, ?string &$identifier = null): ?SettingRuleRolloutVariant
     {
-        $identifier = $this->resolveRolloutIdentifier($scope);
+        $identifier = $this->resolveRolloutIdentifier($scope, $user);
 
         if ($identifier === null) {
             return null;
@@ -50,22 +51,23 @@ trait ResolvesRolloutVariants
     /**
      * Resolve the identifier used for bucket calculation.
      */
-    protected function resolveRolloutIdentifier(mixed $scope): ?string
+    protected function resolveRolloutIdentifier(mixed $scope, ?Authenticatable $user = null): ?string
     {
         // Custom resolver takes precedence
-        if ($customIdentifier = $this->callCustomIdentifierResolver($scope)) {
+        if (($customIdentifier = $this->callCustomIdentifierResolver($scope, $user)) !== null) {
             return $customIdentifier;
         }
 
         // Try standard identifier sources
         return $this->extractIdentifierFromUser()
-            ?? $this->extractIdentifierFromScope($scope);
+            ?? $this->extractIdentifierFromScope($scope)
+            ?? $this->extractAuthIdentifier($user);
     }
 
     /**
      * Call the custom identifier resolver if configured.
      */
-    protected function callCustomIdentifierResolver(mixed $scope): ?string
+    protected function callCustomIdentifierResolver(mixed $scope, ?Authenticatable $user = null): ?string
     {
         $resolver = config('fulcrum.rollout.identifier_resolver');
 
@@ -73,14 +75,16 @@ trait ResolvesRolloutVariants
             return null;
         }
 
-        $result = $resolver($scope, $this->user);
+        $result = $resolver($scope, $user ?? $this->user);
 
-        return match (true) {
+        $identifier = match (true) {
             $result === null => null,
             is_scalar($result) => (string) $result,
             is_object($result) && method_exists($result, '__toString') => (string) $result,
             default => null,
         };
+
+        return $identifier === '' ? null : $identifier;
     }
 
     /**
@@ -88,7 +92,12 @@ trait ResolvesRolloutVariants
      */
     protected function extractIdentifierFromUser(): ?string
     {
-        $identifier = $this->user?->getAuthIdentifier();
+        return $this->extractAuthIdentifier($this->user);
+    }
+
+    protected function extractAuthIdentifier(?Authenticatable $user): ?string
+    {
+        $identifier = $user?->getAuthIdentifier();
 
         return is_scalar($identifier) ? (string) $identifier : null;
     }
@@ -100,6 +109,7 @@ trait ResolvesRolloutVariants
     {
         return match (true) {
             is_scalar($scope) => (string) $scope,
+            $scope instanceof Authenticatable => $this->extractAuthIdentifier($scope),
             is_array($scope) && isset($scope['id']) && is_scalar($scope['id']) => (string) $scope['id'],
             is_object($scope) && property_exists($scope, 'id') && is_scalar($scope->id) => (string) $scope->id,
             default => null,
@@ -115,6 +125,7 @@ trait ResolvesRolloutVariants
         SettingRuleRolloutVariant $variant,
         mixed $scope,
         ?string $tenantId,
+        ?string $identifier = null,
     ): void {
         if (! config('fulcrum.rollout.fire_assignment_events', true)) {
             return;
@@ -125,7 +136,7 @@ trait ResolvesRolloutVariants
             ruleName: $rule && is_string($rule->name) ? $rule->name : 'unnamed',
             variantName: $variant->name,
             value: $variant->getValue(),
-            identifier: $this->resolveRolloutIdentifier($scope) ?? 'unknown',
+            identifier: $identifier ?? $this->resolveRolloutIdentifier($scope) ?? 'unknown',
             bucket: $this->lastCalculatedBucket ?? 0,
             setting: $setting,
             rule: $rule,

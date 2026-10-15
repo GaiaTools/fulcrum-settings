@@ -13,9 +13,10 @@ Fulcrum hashes a rollout identifier (usually the authenticated user ID) into a b
 
 The identifier is resolved in this order:
 
-1. Authenticated user ID
-2. Explicit scope passed to `Fulcrum::get()` or `Fulcrum::forUser()`
-3. Custom resolver from `config/fulcrum.php` (`rollout.identifier_resolver`)
+1. Custom resolver configured in `config/fulcrum.php`
+2. User selected with `forUser()`
+3. Explicit scope: `getAuthIdentifier()` for an `Authenticatable`, a scalar, or an array/object `id`
+4. Current authenticated user ID
 
 If no identifier is available, the rollout cannot be evaluated and Fulcrum will fall back to the next rule or default value.
 
