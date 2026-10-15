@@ -10,21 +10,17 @@ It does not reset on `JobProcessing`: tenancy listeners can establish the curren
 job's context there without depending on package-provider registration order.
 No job trait is required for standard daemon workers.
 
-On older Laravel 11 releases without `JobAttempted`, Fulcrum falls back to
-`JobProcessed`, `JobExceptionOccurred`, and `JobFailed`. This also cleans up
-retryable exceptions and direct `Worker::process()` calls. Cleanup on those
-fallback events depends on listener order: later completion/exception listeners
-may see cleared context. Capture any required context earlier in job processing,
-or upgrade to a release with `JobAttempted` for cleanup after those observers.
-The job's `failed()` handler runs before `JobFailed` cleanup.
+Because `JobAttempted` fires after both successful and failed processing, this
+also cleans up retryable exceptions and direct `Worker::process()` calls. The
+job's `failed()` handler runs before cleanup.
 
 Cleanup clears ambient tenant, group, custom targeting attributes, reveal mode,
 and force mode. It releases shared setting services, settings objects, and
 condition handlers by their registered container binding keys, including
 abstract-to-concrete mappings, and clears the Fulcrum facade reference.
 
-On releases with `JobAttempted`, `JobProcessed` and `JobExceptionOccurred`
-listeners can still read the job's context for logging and metrics. By
+`JobProcessed` and `JobExceptionOccurred` listeners can still read the job's
+context for logging and metrics. By
 `JobAttempted`, cleanup may already have run; observers requiring context
 should use the earlier completion/exception events. Direct `Worker::process()`
 callers receive final cleanup but do not emit `Looping`. They must start their

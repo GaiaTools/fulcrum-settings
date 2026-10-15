@@ -1,6 +1,6 @@
 # Laravel Modules integration
 
-Use for Fulcrum integration with `nwidart/laravel-modules` **13.x on Laravel 13**. Core Fulcrum supports Laravel 11/12/13 without this optional dependency. Installing Fulcrum does not change the application's selected activator.
+Use for Fulcrum integration with `nwidart/laravel-modules` **13.x on Laravel 13**. Core Fulcrum supports Laravel 12/13 without this optional dependency. Installing Fulcrum does not change the application's selected activator.
 
 ## Choose the controls needed
 

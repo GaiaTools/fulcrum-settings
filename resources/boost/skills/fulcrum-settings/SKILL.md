@@ -17,7 +17,7 @@ and rule-based feature flags behind a single, type-safe API with a powerful rule
 
 **Package**: `gaiatools/fulcrum-settings`
 **Namespace**: `GaiaTools\FulcrumSettings`
-**Requirements**: PHP 8.3+, Laravel 11.x / 12.x / 13.x
+**Requirements**: PHP 8.3+, Laravel 12.x / 13.x
 
 ## Table of Contents
 
