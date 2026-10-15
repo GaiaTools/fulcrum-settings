@@ -21,6 +21,41 @@ use GaiaTools\FulcrumSettings\Types\JsonTypeHandler;
 use GaiaTools\FulcrumSettings\Types\StringTypeHandler;
 
 return [
+    'modules' => [
+        'denied_status' => 404,
+
+        // String mappings are shorthand for access_setting only.
+        'mappings' => [
+            // 'Reports' => [
+            //     'activation_setting' => 'module.reports.loaded',
+            //     'access_setting' => 'module.reports.enabled',
+            //     'requires' => [],
+            // ],
+        ],
+
+        'aliases' => [
+            // 'reports.enabled' => 'Reports',
+        ],
+
+        'storage' => [
+            'driver' => 'filesystem', // filesystem, cache, database, or a custom store class
+            'path' => storage_path('framework/fulcrum/module-activation.json'),
+            'cache_store' => null,
+            'cache_key' => 'fulcrum:module-activation',
+            'connection' => null,
+            'table' => 'fulcrum_module_activation',
+            'key' => 'default',
+        ],
+
+        // Use a shared lock store when publishing from multiple servers.
+        'lock' => [
+            'store' => 'file',
+            'key' => 'fulcrum:module-activation:publish',
+            'seconds' => 60,
+            'wait' => 10,
+        ],
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Worker Lifecycle

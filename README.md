@@ -77,3 +77,7 @@ $value = Fulcrum::get('discount_percentage', default: 0);
 ```
 
 For more details, see the [Full Documentation](docs/index).
+
+### Laravel Modules
+
+Optional Laravel Modules 13 integration provides Fulcrum-managed activation, contextual access middleware, and middleware aliases. See the [Laravel Modules guide](docs/guides/laravel-modules.md).

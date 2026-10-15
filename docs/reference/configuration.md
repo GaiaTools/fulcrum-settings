@@ -396,3 +396,40 @@ This is a complete reference for `config/fulcrum.php`.
 
 See [Worker Lifecycle](../advanced/worker-lifecycle.md) for queue event ordering,
 inline drivers, direct worker calls, and Octane behavior.
+
+## Laravel Modules
+
+Optional Laravel Modules **13.x on Laravel 13** integration is configured under `modules`. Installing Fulcrum does not change `modules.activator` in Laravel Modules' own configuration. See the [setup guide](../guides/laravel-modules) for selecting the activator, route protection, setting migrations, and deployment.
+
+| Option under `modules` | Type | Default | Description |
+|------------------------|------|---------|-------------|
+| `denied_status` | `int` | `404` | Global HTTP access-denial status. Set to `403` for forbidden responses; other values fall back to 404. |
+| `mappings` | `array` | `[]` | Exact module names mapped to setting definitions; a string value is shorthand for `access_setting`. |
+| `aliases` | `array<string, string>` | `[]` | Middleware shorthand mapped to module names, e.g. `reports.enabled` to `Reports`. |
+| `storage.driver` | `string` | `filesystem` | `filesystem`, `cache`, `database`, or a class implementing `Contracts\Modules\ActivationStore`. |
+| `storage.path` | `string` | `storage_path('framework/fulcrum/module-activation.json')` | Filesystem document path. |
+| `storage.cache_store` | `string|null` | `null` | Laravel cache store; null selects Laravel's default store. |
+| `storage.cache_key` | `string` | `fulcrum:module-activation` | Non-expiring cached activation document key. |
+| `storage.connection` | `string|null` | `null` | Database connection; null selects the default connection. |
+| `storage.table` | `string` | `fulcrum_module_activation` | Optional database publication table. |
+| `storage.key` | `string` | `default` | Publication row key within the activation table. |
+| `lock.store` | `string` | `file` | Laravel cache store supporting atomic locks; use a writable shared store for shared publication. |
+| `lock.key` | `string` | `fulcrum:module-activation:publish` | Shared publication lock name. |
+| `lock.seconds` | `int` | `60` | Lock lease in seconds; configure it to exceed the maximum sync duration. |
+| `lock.wait` | `int` | `10` | Maximum seconds to wait to acquire the publication lock. |
+
+Each array mapping supports:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `activation_setting` | `string|null` | `null` | Unique global boolean setting without targeting rules; controls startup loading when using the Fulcrum activator. |
+| `access_setting` | `string|null` | `null` | Normal contextual Fulcrum setting; access is allowed only for boolean `true`. |
+| `requires` | `list<string>` | `[]` | Managed modules that must be enabled when this module is enabled; requires an activation setting. |
+
+Activation and access setting keys must be separate. Dependencies validate activation, not provider boot order. There is no per-module denial-status option.
+
+Aliases register middleware groups containing `fulcrum.module:<ModuleName>`; each module reuses the same middleware class. Run access middleware after authentication and tenant context are established. Missing access mappings/settings and disabled or absent installed modules deny access.
+
+Only modules with an activation setting use Fulcrum-managed loading. Other modules use the file activator. Missing, invalid, outdated, or unavailable published state disables managed modules without deliberately preventing startup. Existing processes retain their loaded state. Publication fingerprints cover activation definitions and dependencies, not access rules or aliases.
+
+Cache data has no expiration but can be evicted or cleared. Database storage requires the optional migration published with the `fulcrum-module-migrations` tag. Custom stores must atomically replace the complete document and throw on failure.

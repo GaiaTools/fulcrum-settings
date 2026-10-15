@@ -9,6 +9,7 @@ Fulcrum integrates with common Laravel tooling and third-party packages for segm
 
 ## Core Integrations
 
+- [Laravel Modules](../guides/laravel-modules)
 - [Laravel Pennant](pennant)
 - [Spatie Permissions](spatie-permissions)
 - [Laravel Telescope](telescope)

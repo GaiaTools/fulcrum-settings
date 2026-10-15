@@ -14,6 +14,7 @@ use GaiaTools\FulcrumSettings\Contracts\SettingResolver as SettingResolverContra
 use GaiaTools\FulcrumSettings\Contracts\UserAgentResolver as UserAgentResolverContract;
 use GaiaTools\FulcrumSettings\Drivers\WeightDistributionStrategy;
 use GaiaTools\FulcrumSettings\Providers\FulcrumLifecycleServiceProvider;
+use GaiaTools\FulcrumSettings\Providers\FulcrumModulesServiceProvider;
 use GaiaTools\FulcrumSettings\Providers\FulcrumSettingsBootServiceProvider;
 use GaiaTools\FulcrumSettings\Services\CachedSettingResolver;
 use GaiaTools\FulcrumSettings\Services\Crc32BucketCalculator;
@@ -34,6 +35,7 @@ class FulcrumSettingsServiceProvider extends ServiceProvider
             'fulcrum'
         );
 
+        $this->app->register(FulcrumModulesServiceProvider::class);
         $this->app->register(FulcrumSettingsBootServiceProvider::class);
         $this->app->register(FulcrumLifecycleServiceProvider::class);
 

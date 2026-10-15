@@ -7,6 +7,7 @@ description: Practical workflows and migration guidance
 
 Hands-on guides for common Fulcrum workflows.
 
+- [Laravel Modules](laravel-modules)
 - [Data Portability](data-portability)
 - [Best Practices](best-practices)
 - [Performance Guide](performance)
