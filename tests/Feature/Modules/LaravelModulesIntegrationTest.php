@@ -44,7 +44,7 @@ class LaravelModulesIntegrationTest extends TestCase
         $modules['scan']['enabled'] = false;
         $modules['activators']['fulcrum'] = ['class' => FulcrumModuleActivator::class];
         $modules['activators']['file']['statuses-file'] = $this->directory.'/modules_statuses.json';
-        $modules['activator'] = 'fulcrum';
+        $modules['activator'] = str_contains($this->name(), 'file_activator_selected') ? 'file' : 'fulcrum';
         $app['config']->set('modules', $modules);
         $app['config']->set('fulcrum.modules', [
             'mappings' => [
@@ -183,6 +183,15 @@ class LaravelModulesIntegrationTest extends TestCase
         $setting = Setting::create(['key' => 'module.export.enabled', 'type' => SettingType::BOOLEAN]);
         $setting->defaultValue()->create(['value' => true]);
         $this->assertFalse($this->app->make(ModuleAccess::class)->allows('Export'));
+    }
+
+    public function test_commands_with_file_activator_selected_do_not_report_pending_fulcrum_activation(): void
+    {
+        $this->app->make(Kernel::class)->rerouteSymfonyCommandEvents();
+        $this->artisan('module:disable', ['module' => ['Legacy']])
+            ->doesntExpectOutputToContain('Fulcrum-managed changes')
+            ->assertSuccessful();
+        $this->assertFalse($this->app->make(RepositoryInterface::class)->find('Legacy')->isEnabled());
     }
 
     public function test_status_command_distinguishes_desired_published_and_loaded_activation(): void

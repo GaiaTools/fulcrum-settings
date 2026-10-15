@@ -87,11 +87,18 @@ class FulcrumModulesServiceProvider extends ServiceProvider
             $this->commands([SyncModulesCommand::class, ModuleStatusCommand::class]);
             $this->app->make(Dispatcher::class)->listen(CommandFinished::class, function (CommandFinished $event): void {
                 if ($event->exitCode === 0 && in_array($event->command, ['module:enable', 'module:disable'], true)
-                    && $this->app->bound(ActivatorInterface::class)
-                    && $this->app->make(ActivatorInterface::class) instanceof FulcrumModuleActivator) {
+                    && $this->moduleActivator() instanceof FulcrumModuleActivator) {
                     $event->output->writeln('<comment>Fulcrum-managed changes affect application-wide loading for everyone. Run fulcrum:modules:sync, refresh caches and restart workers to apply them.</comment>');
                 }
             });
         }
+    }
+
+    private function moduleActivator(): ?ActivatorInterface
+    {
+        // The selected implementation is configurable; callers depend on the activator contract.
+        return $this->app->bound(ActivatorInterface::class)
+            ? $this->app->make(ActivatorInterface::class)
+            : null;
     }
 }
