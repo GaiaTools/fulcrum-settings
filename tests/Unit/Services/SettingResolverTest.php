@@ -25,7 +25,9 @@ use GaiaTools\FulcrumSettings\Services\Crc32BucketCalculator;
 use GaiaTools\FulcrumSettings\Services\RuleEvaluator;
 use GaiaTools\FulcrumSettings\Services\SettingResolver;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
+use Illuminate\Auth\GenericUser;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Foundation\Auth\User;
 use Illuminate\Support\Facades\Event;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
@@ -554,4 +556,83 @@ test('authenticatable scope is passed to the rule evaluator', function () {
     $user->shouldReceive('getAuthIdentifier')->andReturn(7);
     $this->segmentDriver->shouldReceive('evaluate')->with(Mockery::any(), $user, Mockery::any())->andReturn(true);
     expect($this->resolver->resolve('scope-user', $user))->toBe('matched');
+});
+
+test('rollouts bucket authenticatable scopes and current users without retaining user state', function () {
+    $setting = Setting::create(['key' => 'user.rollout', 'type' => SettingType::BOOLEAN]);
+    $setting->defaultValue()->create(['value' => false]);
+    $rule = $setting->rules()->create(['rollout_salt' => 'user-salt']);
+    $variant = $rule->rolloutVariants()->create(['name' => 'enabled', 'weight' => 100000]);
+    $variant->value()->create(['value' => true]);
+
+    $eloquent = new class extends User {};
+    $eloquent->setAttribute('id', '7');
+    $generic = new GenericUser(['id' => '7']);
+    $identifiers = [];
+    Event::listen(VariantAssigned::class, function ($event) use (&$identifiers) {
+        $identifiers[] = $event->identifier;
+    });
+
+    foreach (['7', ['id' => '7'], $generic, $eloquent] as $scope) {
+        expect($this->resolver->resolve('user.rollout', $scope))->toBeTrue()
+            ->and($this->resolver->getLastCalculatedBucket())
+            ->toBe($this->bucketCalculator->calculate('7', $rule->fresh()->getEffectiveSalt(), 100000));
+    }
+    expect($identifiers)->toBe(array_fill(0, 4, '7'));
+
+    $explicit = new GenericUser(['id' => 'explicit']);
+    $scoped = $this->resolver->forUser($explicit);
+    expect($scoped->resolve('user.rollout', $generic))->toBeTrue();
+    expect(end($identifiers))->toBe('explicit');
+
+    foreach (['first', 'second'] as $id) {
+        auth()->setUser(new GenericUser(['id' => $id]));
+        expect($this->resolver->resolve('user.rollout'))->toBeTrue();
+        expect(end($identifiers))->toBe($id);
+    }
+    foreach (['team', ['id' => 'team'], (object) ['id' => 'team'], $generic] as $scope) {
+        $expected = $scope === $generic ? '7' : 'team';
+        expect($this->resolver->resolve('user.rollout', $scope))->toBeTrue();
+        expect(end($identifiers))->toBe($expected)
+            ->and($this->resolver->getLastCalculatedBucket())
+            ->toBe($this->bucketCalculator->calculate($expected, $rule->fresh()->getEffectiveSalt(), 100000));
+        expect($scoped->resolve('user.rollout', $scope))->toBeTrue();
+        expect(end($identifiers))->toBe('explicit');
+    }
+    auth()->forgetUser();
+    expect($this->resolver->resolve('user.rollout'))->toBeFalse()
+        ->and($this->resolver->resolve('user.rollout', $generic))->toBeTrue()
+        ->and($this->resolver->resolve('user.rollout'))->toBeFalse();
+});
+
+test('custom rollout identifiers take precedence and receive the effective user', function () {
+    $setting = Setting::create(['key' => 'custom.user.rollout', 'type' => SettingType::BOOLEAN]);
+    $rule = $setting->rules()->create();
+    $variant = $rule->rolloutVariants()->create(['name' => 'enabled', 'weight' => 100000]);
+    $variant->value()->create(['value' => true]);
+    $user = new GenericUser(['id' => 'user']);
+    $calls = 0;
+    config(['fulcrum.rollout.identifier_resolver' => function ($scope, $effectiveUser) use ($user, &$calls) {
+        $calls++;
+        expect($effectiveUser)->toBe($user);
+
+        return '0';
+    }]);
+    Event::fake([VariantAssigned::class]);
+    expect($this->resolver->resolve('custom.user.rollout', $user))->toBeTrue();
+    Event::assertDispatched(VariantAssigned::class, fn ($event) => $event->identifier === '0');
+    expect($calls)->toBe(1);
+
+    foreach ([null, '', new class implements \Stringable
+    {
+        public function __toString(): string
+        {
+            return '';
+        }
+    }] as $result) {
+        Event::fake([VariantAssigned::class]);
+        config(['fulcrum.rollout.identifier_resolver' => fn () => $result]);
+        expect($this->resolver->resolve('custom.user.rollout', $user))->toBeTrue();
+        Event::assertDispatched(VariantAssigned::class, fn ($event) => $event->identifier === 'user');
+    }
 });

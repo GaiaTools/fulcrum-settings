@@ -467,7 +467,7 @@ return [
     |
     | The 'identifier_resolver' determines which identifier is used to
     | consistently bucket users. It can be:
-    | - null: Uses authenticated user ID, falls back to scope if scalar
+    | - null: Uses forUser() ID, then explicit scope, then authenticated user ID
     | - A closure: fn($scope, $user) => string|null
     | - A class implementing a __invoke method
     |
