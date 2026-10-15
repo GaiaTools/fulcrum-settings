@@ -25,6 +25,7 @@ Complete reference for all `config/fulcrum.php` options and artisan command flag
 19. [Data Portability](#data-portability)
 20. [Telescope](#telescope)
 21. [Artisan Command Reference](#artisan-command-reference)
+22. [Laravel Modules](#laravel-modules)
 
 ---
 
@@ -366,3 +367,10 @@ php artisan make:setting-migration {name} [--path=]
 ```bash
 php artisan fulcrum:migrate-spatie [--table=] [--connection=] [--force]
 ```
+
+
+## Laravel Modules
+
+`fulcrum.modules` configures optional Laravel Modules 13 integration on Laravel 13. It does not automatically select the custom activator. Read [laravel-modules.md](laravel-modules.md) for module mappings, global denial status, middleware aliases, all storage/lock defaults, and the `fulcrum:modules:sync` / `fulcrum:modules:status` commands.
+
+Keep activation keys separate from access keys. Activation is global loading state applied at startup; access uses existing contextual Fulcrum evaluation at operation boundaries.

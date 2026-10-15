@@ -118,3 +118,23 @@ These contracts extend `Illuminate\Contracts\Support\Responsable`:
 - `GaiaTools\FulcrumSettings\Contracts\DataPortability\ExportViewResponse`
 - `GaiaTools\FulcrumSettings\Contracts\DataPortability\ImportResponse`
 - `GaiaTools\FulcrumSettings\Contracts\DataPortability\ImportViewResponse`
+
+## Modules\ActivationStore
+
+`GaiaTools\FulcrumSettings\Contracts\Modules\ActivationStore` supplies optional module activation storage:
+
+```php
+/** @return array<array-key, mixed>|null */
+public function read(): ?array;
+
+/** @param array<array-key, mixed> $state */
+public function write(array $state): void;
+```
+
+`read()` returns null when no document exists and throws when storage cannot be read. `write()` must atomically replace the complete document, preserve the previous publication on failure, and throw on failure. Fulcrum's publisher coordinates sync calls using the configured cache lock.
+
+The version 1 document contains `version` (integer 1), `definitions` (the activation-definition fingerprint), and `modules` (module-name-to-boolean loading decisions). It contains no targeting rules or user context. Implementations should treat the document as opaque data; `ModuleActivation` owns validation and failure fallback.
+
+Built-in implementations live under `Support\Modules\Stores`: `FilesystemActivationStore`, `CacheActivationStore`, and `DatabaseActivationStore`. Select a custom class with `fulcrum.modules.storage.driver`, or bind this interface in an application provider before it is resolved.
+
+See [Laravel Modules](../guides/laravel-modules) for configuration and lifecycle behavior.

@@ -14,6 +14,19 @@ Interfaces, event classes, and exception types in Fulcrum Settings.
 
 All contracts are in the `GaiaTools\FulcrumSettings\Contracts` namespace.
 
+### Modules\ActivationStore
+
+`GaiaTools\FulcrumSettings\Contracts\Modules\ActivationStore` stores published module-loading decisions:
+
+```php
+/** @return array<array-key, mixed>|null */
+public function read(): ?array;
+/** @param array<array-key, mixed> $state */
+public function write(array $state): void;
+```
+
+Return null for missing state; throw for read/write failures. Writes must atomically replace the complete opaque document and preserve previous data on failure. Built-in drivers are filesystem, cache, and database. Bind the interface before resolution or configure a custom driver class. See [laravel-modules.md](laravel-modules.md).
+
 ### SettingResolver
 
 The core service behind the `Fulcrum` facade.

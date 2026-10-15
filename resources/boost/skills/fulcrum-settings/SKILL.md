@@ -1,16 +1,13 @@
 ---
 name: fulcrum-settings
 description: >
-  Laravel Fulcrum Settings — rule-based feature flags and dynamic configuration for Laravel.
-  Use this skill whenever the user mentions Fulcrum, feature flags, targeting rules, percentage rollouts,
-  A/B testing variants, settings migrations, class-based settings, FulcrumSettings, the Fulcrum facade,
-  setting types/handlers, masked settings, multi-tenancy settings, or any configuration management
-  that involves conditional/contextual evaluation in a Laravel app. Also trigger when the user asks
-  about creating setting migrations, defining rules or conditions, rollout strategies, segment-based
-  targeting, geo-targeting, time-based rules, or importing/exporting settings. If the user references
-  `gaiatools/fulcrum-settings`, `GaiaTools\FulcrumSettings`, or any Fulcrum artisan commands
-  (`fulcrum:set`, `fulcrum:get`, `fulcrum:list`, `fulcrum:export`, `fulcrum:import`,
-  `make:setting-migration`, `fulcrum:migrate-spatie`), use this skill.
+  Build and maintain Laravel applications using gaiatools/fulcrum-settings
+  (GaiaTools\FulcrumSettings). Use for Fulcrum feature flags, dynamic settings,
+  targeting rules, percentage rollouts, A/B variants, setting migrations, typed
+  FulcrumSettings classes, masked values, custom types and condition handlers,
+  multi-tenancy, imports/exports, and Fulcrum facade or Artisan APIs. Also use for
+  Fulcrum-managed Laravel Modules activation, contextual module access, middleware
+  aliases, and activation storage, status, sync, and deployment workflows.
 ---
 
 # Fulcrum Settings Skill
@@ -20,7 +17,7 @@ and rule-based feature flags behind a single, type-safe API with a powerful rule
 
 **Package**: `gaiatools/fulcrum-settings`
 **Namespace**: `GaiaTools\FulcrumSettings`
-**Requirements**: PHP 8.3+, Laravel 11.x / 12.x
+**Requirements**: PHP 8.3+, Laravel 11.x / 12.x / 13.x
 
 ## Table of Contents
 
@@ -34,12 +31,14 @@ and rule-based feature flags behind a single, type-safe API with a powerful rule
 8. [Custom Types](#custom-types)
 9. [Testing](#testing)
 10. [Artisan Commands](#artisan-commands)
+11. [Laravel Modules](#laravel-modules)
 
 For detailed references, read these as needed:
 - `references/targeting-rules.md` — Full operator list, condition types, rollout strategies
 - `references/migrations-api.md` — Complete migration builder API and modification helpers
 - `references/configuration.md` — All `config/fulcrum.php` options
 - `references/contracts-events.md` — Interfaces, events, and exceptions
+- [references/laravel-modules.md](references/laravel-modules.md) — Read when configuring module activation, contextual access, middleware aliases, storage, or sync/deployment
 
 ---
 
@@ -418,10 +417,26 @@ Ensure test database is refreshed between runs (settings are database-stored).
 | `fulcrum:export` | Export settings (json, yaml, csv, xml, sql) |
 | `fulcrum:import {path}` | Import settings from file |
 | `fulcrum:migrate-spatie` | Migrate from spatie/laravel-settings |
+| `fulcrum:modules:sync {--dry-run}` | Validate and publish managed module activation |
+| `fulcrum:modules:status` | Compare desired, published, and current-process activation |
 
 Common flags: `--tenant=`, `--reveal`, `--scope=`, `--force`, `--masked`, `--type=`, `--dry-run`
 
 > For full command options, read `references/configuration.md`.
+
+---
+
+## Laravel Modules
+
+Optional support targets `nwidart/laravel-modules` 13.x on Laravel 13. Preserve the application's chosen activator unless the user requests Fulcrum-managed loading.
+
+- Activation is a global, unmasked boolean without targeting rules. The custom activator reads published decisions once at startup; missing or unreadable state disables managed modules without deliberately stopping the application.
+- Contextual access evaluates existing Fulcrum rules at runtime. For a tester rollout, keep the module loaded and make its access setting default false with a rule allowing testers. Never serialize targeting rules into activation storage or use per-user activator decisions.
+- Route groups reuse `fulcrum.module:Reports`; optional aliases such as `reports.enabled` expand to that middleware. Run after authentication/tenant context. Denial status is global, default 404, optionally 403.
+- `ModuleAccess::allows($module, $scope)` provides the same check for other operation boundaries. Route middleware does not automatically protect jobs, listeners, or services.
+- Storage defaults to filesystem and supports cache, database, or a custom `ActivationStore`. Managed activation changes need sync, cache refreshes in new processes, and worker restarts; access-rule changes follow normal Fulcrum caching.
+
+Read [references/laravel-modules.md](references/laravel-modules.md) for mappings, exact namespaces, storage options, command behavior, and deployment steps.
 
 ---
 

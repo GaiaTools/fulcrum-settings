@@ -164,3 +164,40 @@ php artisan fulcrum:migrate-spatie
 | `--force` | Overwrite existing Fulcrum settings |
 
 See [Migrating from Spatie](../migrate/spatie) for details.
+
+---
+
+## fulcrum:modules:sync
+
+Validate and publish application-wide module activation from global Fulcrum settings. Available when Laravel Modules is installed. Select the Fulcrum activator in `config/modules.php` to use the published state for module loading.
+
+```bash
+php artisan fulcrum:modules:sync --dry-run
+php artisan fulcrum:modules:sync
+```
+
+| Option | Description |
+|--------|-------------|
+| `--dry-run` | Validate installed modules, boolean defaults, and activation dependencies without publishing |
+
+Missing settings resolve to disabled. Masked settings, non-boolean defaults, and settings with targeting rules are rejected. Sync reads global settings independently of the current tenant. Validation, locking, or publication failures return a nonzero exit code.
+
+The command publishes a complete activation document to the configured filesystem, cache, or database store. It does not change the modules already loaded by the current process. After publication, refresh module/route/event caches in new application processes, distribute filesystem state when necessary, and restart long-running workers.
+
+Runtime access rules remain in Fulcrum and do not require this command. See [Laravel Modules](../guides/laravel-modules).
+
+## fulcrum:modules:status
+
+Compare each managed module's desired global setting, published activation, and enabled status in the current application process.
+
+```bash
+php artisan fulcrum:modules:status
+```
+
+The table contains `Module`, `Desired`, `Published`, and `This process`. Uninstalled managed modules are shown as `not installed` in the last column. Other running processes can retain older activation until restarted. Missing or unreadable publication is displayed using the same disabled fallback as the activator.
+
+## Laravel Modules activation commands
+
+With the Fulcrum activator selected, `module:enable` and `module:disable` update managed modules' desired activation settings. Run `fulcrum:modules:sync` and apply the published state afterward. Disabling activation makes the module unavailable to everyone, including testers; use the access setting for contextual targeting.
+
+Unmanaged modules retain file activator behavior. Deleting a managed module requires explicit removal of its mapping and settings first; activation reset is rejected. These commands are supplied by Laravel Modules, not Fulcrum.

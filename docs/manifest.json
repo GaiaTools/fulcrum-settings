@@ -193,6 +193,10 @@
                 {
                     "text": "Yasumi Holidays",
                     "link": "integrations/yasumi-holidays"
+                },
+                {
+                    "text": "Laravel Modules",
+                    "link": "guides/laravel-modules"
                 }
             ]
         },
