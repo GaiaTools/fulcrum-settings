@@ -71,9 +71,8 @@ Application code remains responsible for its own state and database transactions
 `fulcrum.lifecycle.reset_authentication` defaults to `true`. Cleanup forgets
 Laravel's resolved authentication guards, including their cached users. This
 changes application-wide authentication state at operation boundaries, rather
-than only Fulcrum's own context. On releases with `JobAttempted`, completion and exception observers run before
-the final cleanup; older Laravel 11 fallback events have the listener-order
-limitation described above.
+than only Fulcrum's own context. Completion and exception observers run before
+the final cleanup on `JobAttempted`.
 
 Applications that manage authentication lifecycle themselves can opt out:
 
@@ -94,7 +93,6 @@ against the documented Octane event structure. They do not instantiate the actua
 optional Octane event classes or run a live Octane server. Full Octane integration
 testing remains a follow-up.
 
-The current CI dependency matrix uses Testbench 10/11 and therefore tests Laravel
-12/13. Legacy completion events are exercised with an isolated dispatcher and a
-provider that selects the fallback path; a complete Laravel 11 dependency matrix
-is tracked in [issue #83](https://github.com/GaiaTools/fulcrum-settings/issues/83).
+The CI dependency matrix uses Testbench 10/11 and therefore tests Laravel 12/13,
+the supported releases. Queue cleanup tests run real `Worker::process()` calls
+through Laravel's `JobAttempted` event.
