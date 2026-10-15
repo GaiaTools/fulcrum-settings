@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace GaiaTools\FulcrumSettings\Support\Modules;
 
 use GaiaTools\FulcrumSettings\Enums\SettingType;
+use GaiaTools\FulcrumSettings\Exceptions\ModuleActivationException;
 use GaiaTools\FulcrumSettings\Models\Scopes\TenantScope;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use Illuminate\Database\Eloquent\Builder;
-use RuntimeException;
 
 class ModuleSettings
 {
@@ -48,11 +48,11 @@ class ModuleSettings
     {
         $rules = $setting->getAttribute('rules_count');
         if ($setting->type !== SettingType::BOOLEAN || $setting->masked || (is_numeric($rules) && $rules > 0)) {
-            throw new RuntimeException("{$setting->key} must be an unmasked global boolean without targeting rules.");
+            throw new ModuleActivationException("{$setting->key} must be an unmasked global boolean without targeting rules.");
         }
         $value = $setting->getDefaultValue();
         if (! is_bool($value)) {
-            throw new RuntimeException("{$setting->key} must have a boolean default value.");
+            throw new ModuleActivationException("{$setting->key} must have a boolean default value.");
         }
 
         return $value;
@@ -62,7 +62,7 @@ class ModuleSettings
     {
         $key = $this->configuration->managed()[$module]['activation_setting'] ?? null;
         if ($key === null) {
-            throw new RuntimeException("Module {$module} has no Fulcrum activation setting.");
+            throw new ModuleActivationException("Module {$module} has no Fulcrum activation setting.");
         }
         (new Setting)->getConnection()->transaction(function () use ($key, $active): void {
             $setting = $this->query()->withCount(['rules' => fn (Builder $query) => $query->withoutGlobalScope(TenantScope::class)])->where('key', $key)->first();

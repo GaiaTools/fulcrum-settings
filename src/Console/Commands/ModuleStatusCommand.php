@@ -25,11 +25,13 @@ class ModuleStatusCommand extends Command
             $rows = [];
             foreach (array_keys($configuration->managed()) as $name) {
                 $installed = $modules->find($name);
+                $loaded = $installed !== null && $installed->isEnabled();
+                $loadedStatus = $loaded ? 'enabled' : 'disabled';
                 $rows[] = [
                     $name,
                     ($desired[$name] ?? false) ? 'enabled' : 'disabled',
                     ($published[$name] ?? false) ? 'enabled' : 'disabled',
-                    $installed === null ? 'not installed' : ($installed->isEnabled() ? 'enabled' : 'disabled'),
+                    $installed === null ? 'not installed' : $loadedStatus,
                 ];
             }
             $this->table(['Module', 'Desired', 'Published', 'This process'], $rows);

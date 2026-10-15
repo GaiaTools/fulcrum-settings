@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use GaiaTools\FulcrumSettings\Contracts\Modules\ActivationStore;
 use GaiaTools\FulcrumSettings\Enums\SettingType;
+use GaiaTools\FulcrumSettings\Exceptions\ModuleActivationException;
 use GaiaTools\FulcrumSettings\Models\Setting;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
 use GaiaTools\FulcrumSettings\Support\Modules\FulcrumModuleActivator;
@@ -60,7 +61,7 @@ test('module activation rejects dependencies without replacing published data', 
     app(ModuleActivation::class)->sync();
     $before = file_get_contents(config('fulcrum.modules.storage.path'));
     app(ModuleSettings::class)->set('Export', true);
-    expect(fn () => app(ModuleActivation::class)->sync())->toThrow(RuntimeException::class, 'requires enabled module Reports');
+    expect(fn () => app(ModuleActivation::class)->sync())->toThrow(ModuleActivationException::class, 'requires enabled module Reports');
     expect(file_get_contents(config('fulcrum.modules.storage.path')))->toBe($before);
 });
 
@@ -82,7 +83,7 @@ test('module activation rejects targeted masked and non boolean settings without
         'masked' => $setting->update(['masked' => true]),
         'string' => $setting->update(['type' => SettingType::STRING]),
     };
-    expect(fn () => app(ModuleActivation::class)->sync())->toThrow(RuntimeException::class, 'unmasked global boolean');
+    expect(fn () => app(ModuleActivation::class)->sync())->toThrow(ModuleActivationException::class, 'unmasked global boolean');
     expect(file_get_contents(config('fulcrum.modules.storage.path')))->toBe($before);
 })->with(['targeted', 'masked', 'string']);
 
@@ -176,3 +177,21 @@ test('a partial activation document defaults unspecified modules to disabled', f
     ]);
     expect(app(ModuleActivation::class)->read())->toBe(['Reports' => true, 'Export' => false]);
 });
+
+test('module mappings reject invalid definitions and relationships', function (array $mappings) {
+    config(['fulcrum.modules.mappings' => $mappings]);
+    expect(fn () => app(ModuleConfiguration::class)->mappings())->toThrow(InvalidArgumentException::class);
+})->with([
+    'missing module name' => [['' => 'reports.enabled']],
+    'invalid mapping' => [['Reports' => true]],
+    'invalid activation key' => [['Reports' => ['activation_setting' => false]]],
+    'empty access key' => [['Reports' => ['access_setting' => '']]],
+    'dependencies must be a list' => [['Reports' => ['activation_setting' => 'reports.loaded', 'requires' => ['required' => 'Other']]]],
+    'self dependency' => [['Reports' => ['activation_setting' => 'reports.loaded', 'requires' => ['Reports']]]],
+    'dependencies need managed activation' => [['Reports' => ['access_setting' => 'reports.enabled', 'requires' => ['Other']]]],
+    'unknown dependency' => [['Reports' => ['activation_setting' => 'reports.loaded', 'requires' => ['Other']]]],
+    'access key cannot be another activation key' => [[
+        'Reports' => ['activation_setting' => 'reports.loaded'],
+        'Other' => ['access_setting' => 'reports.loaded'],
+    ]],
+]);

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace GaiaTools\FulcrumSettings\Support\Modules\Stores;
 
 use GaiaTools\FulcrumSettings\Contracts\Modules\ActivationStore;
+use GaiaTools\FulcrumSettings\Exceptions\ModuleActivationException;
 use Illuminate\Cache\CacheManager;
 use Illuminate\Config\Repository;
-use RuntimeException;
 
 class CacheActivationStore implements ActivationStore
 {
@@ -18,7 +18,7 @@ class CacheActivationStore implements ActivationStore
         $state = $this->cache->store($this->cacheStore())
             ->get($this->config->string('fulcrum.modules.storage.cache_key'));
         if ($state !== null && ! is_array($state)) {
-            throw new RuntimeException('Invalid cached module activation document.');
+            throw new ModuleActivationException('Invalid cached module activation document.');
         }
 
         return $state;
@@ -28,7 +28,7 @@ class CacheActivationStore implements ActivationStore
     {
         if (! $this->cache->store($this->cacheStore())
             ->forever($this->config->string('fulcrum.modules.storage.cache_key'), $state)) {
-            throw new RuntimeException('Cannot publish module activation to cache.');
+            throw new ModuleActivationException('Cannot publish module activation to cache.');
         }
     }
 
@@ -36,7 +36,7 @@ class CacheActivationStore implements ActivationStore
     {
         $name = $this->config->get('fulcrum.modules.storage.cache_store');
         if ($name !== null && ! is_string($name)) {
-            throw new RuntimeException('Invalid module activation storage configuration.');
+            throw new ModuleActivationException('Invalid module activation storage configuration.');
         }
 
         return $name;

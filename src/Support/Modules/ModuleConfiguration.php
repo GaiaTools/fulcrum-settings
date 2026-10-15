@@ -20,50 +20,77 @@ class ModuleConfiguration
         }
 
         $result = [];
-        $activationKeys = [];
         foreach ($mappings as $name => $mapping) {
-            if (! is_string($name) || $name === '' || (! is_string($mapping) && ! is_array($mapping))) {
-                throw new InvalidArgumentException('Fulcrum module mappings require module names and setting definitions.');
+            if (! is_string($name) || $name === '') {
+                throw new InvalidArgumentException('Fulcrum module mappings require module names.');
             }
-            $mapping = is_string($mapping) ? ['access_setting' => $mapping] : $mapping;
-            $activation = $mapping['activation_setting'] ?? null;
-            $access = $mapping['access_setting'] ?? null;
-            if ($activation !== null && (! is_string($activation) || $activation === '')) {
-                throw new InvalidArgumentException("Invalid activation setting key for module {$name}.");
-            }
-            if ($access !== null && (! is_string($access) || $access === '')) {
-                throw new InvalidArgumentException("Invalid access setting key for module {$name}.");
-            }
-            if ($activation !== null && ($activation === $access || in_array($activation, $activationKeys, true))) {
-                throw new InvalidArgumentException('Module activation settings must be unique and separate from access settings.');
-            }
-            $requires = $mapping['requires'] ?? [];
-            if (! is_array($requires) || ! array_is_list($requires)) {
-                throw new InvalidArgumentException("Module {$name} requires a list of dependencies.");
-            }
-            foreach ($requires as $dependency) {
-                if (! is_string($dependency) || $dependency === '' || $dependency === $name) {
-                    throw new InvalidArgumentException("Invalid dependency for module {$name}.");
-                }
-            }
-            if ($activation === null && $requires !== []) {
-                throw new InvalidArgumentException("Module {$name} needs an activation setting to declare activation dependencies.");
-            }
-            $activationKeys[] = $activation;
-            $result[$name] = ['activation_setting' => $activation, 'access_setting' => $access, 'requires' => $requires];
+            $result[$name] = $this->parseMapping($name, $mapping);
         }
-        foreach ($result as $name => $mapping) {
+        $this->validateRelationships($result);
+
+        return $result;
+    }
+
+    /** @return array{activation_setting: ?string, access_setting: ?string, requires: list<string>} */
+    private function parseMapping(string $name, mixed $mapping): array
+    {
+        if (is_string($mapping)) {
+            $mapping = ['access_setting' => $mapping];
+        }
+        if (! is_array($mapping)) {
+            throw new InvalidArgumentException("Module {$name} requires a setting definition.");
+        }
+        $activation = $this->settingKey($name, 'activation', $mapping['activation_setting'] ?? null);
+        $access = $this->settingKey($name, 'access', $mapping['access_setting'] ?? null);
+        $requires = $this->dependencies($name, $mapping['requires'] ?? []);
+        if ($activation === null && $requires !== []) {
+            throw new InvalidArgumentException("Module {$name} needs an activation setting to declare activation dependencies.");
+        }
+
+        return ['activation_setting' => $activation, 'access_setting' => $access, 'requires' => $requires];
+    }
+
+    private function settingKey(string $name, string $kind, mixed $key): ?string
+    {
+        if ($key !== null && (! is_string($key) || $key === '')) {
+            throw new InvalidArgumentException("Invalid {$kind} setting key for module {$name}.");
+        }
+
+        return $key;
+    }
+
+    /** @return list<string> */
+    private function dependencies(string $name, mixed $requires): array
+    {
+        if (! is_array($requires) || ! array_is_list($requires)) {
+            throw new InvalidArgumentException("Module {$name} requires a list of dependencies.");
+        }
+        foreach ($requires as $dependency) {
+            if (! is_string($dependency) || $dependency === '' || $dependency === $name) {
+                throw new InvalidArgumentException("Invalid dependency for module {$name}.");
+            }
+        }
+
+        return $requires;
+    }
+
+    /** @param array<string, array{activation_setting: ?string, access_setting: ?string, requires: list<string>}> $mappings */
+    private function validateRelationships(array $mappings): void
+    {
+        $activationKeys = array_filter(array_column($mappings, 'activation_setting'), fn (?string $key) => $key !== null);
+        if (count($activationKeys) !== count(array_unique($activationKeys))) {
+            throw new InvalidArgumentException('Module activation settings must be unique.');
+        }
+        foreach ($mappings as $name => $mapping) {
             if ($mapping['access_setting'] !== null && in_array($mapping['access_setting'], $activationKeys, true)) {
                 throw new InvalidArgumentException('Module activation settings must be separate from access settings.');
             }
             foreach ($mapping['requires'] as $dependency) {
-                if (($result[$dependency]['activation_setting'] ?? null) === null) {
+                if (($mappings[$dependency]['activation_setting'] ?? null) === null) {
                     throw new InvalidArgumentException("Module {$name} requires managed module {$dependency}.");
                 }
             }
         }
-
-        return $result;
     }
 
     /** @return array<string, array{activation_setting: string, access_setting: ?string, requires: list<string>}> */

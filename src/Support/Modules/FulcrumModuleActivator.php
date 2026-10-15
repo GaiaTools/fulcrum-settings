@@ -37,6 +37,7 @@ class FulcrumModuleActivator implements ActivatorInterface
             try {
                 report($exception);
             } catch (Throwable) {
+                // Logging may be unavailable during early bootstrap; continue with disabled modules.
             }
             $this->statuses = [];
         }

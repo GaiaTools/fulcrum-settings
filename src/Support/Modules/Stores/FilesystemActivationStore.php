@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace GaiaTools\FulcrumSettings\Support\Modules\Stores;
 
 use GaiaTools\FulcrumSettings\Contracts\Modules\ActivationStore;
+use GaiaTools\FulcrumSettings\Exceptions\ModuleActivationException;
 use Illuminate\Config\Repository;
 use Illuminate\Filesystem\Filesystem;
-use RuntimeException;
 
 class FilesystemActivationStore implements ActivationStore
 {
@@ -21,7 +21,7 @@ class FilesystemActivationStore implements ActivationStore
         }
         $state = json_decode($this->files->get($path), true, flags: JSON_THROW_ON_ERROR);
         if (! is_array($state)) {
-            throw new RuntimeException('Invalid module activation document.');
+            throw new ModuleActivationException('Invalid module activation document.');
         }
 
         return $state;
@@ -34,13 +34,13 @@ class FilesystemActivationStore implements ActivationStore
         $this->files->ensureDirectoryExists(dirname($path));
         $temporary = tempnam(dirname($path), '.fulcrum-');
         if ($temporary === false) {
-            throw new RuntimeException('Cannot create module activation file.');
+            throw new ModuleActivationException('Cannot create module activation file.');
         }
         try {
             $permissions = $this->files->exists($path) ? fileperms($path) : (0666 & ~umask());
             if ($permissions === false || file_put_contents($temporary, $json) !== strlen($json)
                 || ! chmod($temporary, $permissions & 0777) || ! rename($temporary, $path)) {
-                throw new RuntimeException('Cannot publish module activation file.');
+                throw new ModuleActivationException('Cannot publish module activation file.');
             }
         } finally {
             if (is_file($temporary)) {

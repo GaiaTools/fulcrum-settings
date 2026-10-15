@@ -48,3 +48,7 @@ Thrown when attempting to modify or delete an immutable setting without force ov
 ## `PennantException`
 
 Thrown when Pennant integration is misconfigured or disabled.
+
+## `ModuleActivationException`
+
+Thrown when module activation state, activation settings, dependencies, publication locks, or built-in activation storage configuration fail validation, or when publication cannot complete. Extends `RuntimeException`. Startup catches activation-read failures and disables managed modules; CLI sync reports errors with a nonzero exit code. Underlying storage providers may also throw their own exceptions.

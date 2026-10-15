@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace GaiaTools\FulcrumSettings\Console\Commands;
 
+use GaiaTools\FulcrumSettings\Exceptions\ModuleActivationException;
 use GaiaTools\FulcrumSettings\Support\Modules\ModuleActivation;
 use GaiaTools\FulcrumSettings\Support\Modules\ModuleConfiguration;
 use Illuminate\Console\Command;
 use Nwidart\Modules\Contracts\RepositoryInterface;
-use RuntimeException;
 use Throwable;
 
 class SyncModulesCommand extends Command
@@ -22,7 +22,7 @@ class SyncModulesCommand extends Command
         try {
             foreach (array_keys($configuration->managed()) as $name) {
                 if ($modules->find($name) === null) {
-                    throw new RuntimeException("Configured module {$name} is not installed.");
+                    throw new ModuleActivationException("Configured module {$name} is not installed.");
                 }
             }
             $statuses = $activation->sync((bool) $this->option('dry-run'));

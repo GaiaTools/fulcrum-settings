@@ -266,3 +266,7 @@ All exceptions are in the `GaiaTools\FulcrumSettings\Exceptions` namespace.
 | `MissingTypeHandlerException` | Setting type has no registered handler |
 | `ImmutableSettingException` | Attempting to modify/delete an immutable setting without `--force` |
 | `PennantException` | Pennant integration is misconfigured or disabled |
+
+### ModuleActivationException
+
+`GaiaTools\FulcrumSettings\Exceptions\ModuleActivationException` extends `RuntimeException` for invalid module activation/settings/dependencies and built-in storage publication failures. Startup catches activation-read failures and disables managed modules; sync reports failure without deliberately replacing previous publication. Underlying storage exceptions can also propagate to sync.

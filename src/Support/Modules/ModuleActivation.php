@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace GaiaTools\FulcrumSettings\Support\Modules;
 
 use GaiaTools\FulcrumSettings\Contracts\Modules\ActivationStore;
+use GaiaTools\FulcrumSettings\Exceptions\ModuleActivationException;
 use Illuminate\Cache\CacheManager;
 use Illuminate\Config\Repository;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Cache\LockProvider;
-use RuntimeException;
 use Throwable;
 
 class ModuleActivation
@@ -32,13 +32,13 @@ class ModuleActivation
             }
             if (($state['version'] ?? null) !== 1 || ($state['definitions'] ?? null) !== $this->configuration->fingerprint()
                 || ! is_array($state['modules'] ?? null)) {
-                throw new RuntimeException('Invalid or outdated module activation state. Run fulcrum:modules:sync.');
+                throw new ModuleActivationException('Invalid or outdated module activation state. Run fulcrum:modules:sync.');
             }
             $statuses = [];
             foreach ($this->configuration->managed() as $name => $mapping) {
                 $value = $state['modules'][$name] ?? false;
                 if (! is_bool($value)) {
-                    throw new RuntimeException("Invalid activation status for module {$name}.");
+                    throw new ModuleActivationException("Invalid activation status for module {$name}.");
                 }
                 $statuses[$name] = $value;
             }
@@ -50,6 +50,7 @@ class ModuleActivation
             try {
                 report($exception);
             } catch (Throwable) {
+                // Logging may be unavailable during early bootstrap; continue with disabled modules.
             }
 
             return [];
@@ -65,7 +66,7 @@ class ModuleActivation
             }
             foreach ($mapping['requires'] as $dependency) {
                 if (! ($statuses[$dependency] ?? false)) {
-                    throw new RuntimeException("Module {$name} requires enabled module {$dependency}.");
+                    throw new ModuleActivationException("Module {$name} requires enabled module {$dependency}.");
                 }
             }
         }
@@ -77,7 +78,7 @@ class ModuleActivation
         // Resolve desired state inside the lock so an older sync cannot overwrite a newer one.
         $store = $this->app->make(CacheManager::class)->store($this->config->string('fulcrum.modules.lock.store'))->getStore();
         if (! $store instanceof LockProvider) {
-            throw new RuntimeException('The module activation lock store must support atomic locks.');
+            throw new ModuleActivationException('The module activation lock store must support atomic locks.');
         }
 
         $lock = $store->lock($this->config->string('fulcrum.modules.lock.key'), $this->config->integer('fulcrum.modules.lock.seconds'));

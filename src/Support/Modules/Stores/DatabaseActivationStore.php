@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace GaiaTools\FulcrumSettings\Support\Modules\Stores;
 
 use GaiaTools\FulcrumSettings\Contracts\Modules\ActivationStore;
+use GaiaTools\FulcrumSettings\Exceptions\ModuleActivationException;
 use Illuminate\Config\Repository;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Database\Query\Builder;
-use RuntimeException;
 
 class DatabaseActivationStore implements ActivationStore
 {
@@ -21,11 +21,11 @@ class DatabaseActivationStore implements ActivationStore
             return null;
         }
         if (! is_string($json)) {
-            throw new RuntimeException('Invalid database module activation document.');
+            throw new ModuleActivationException('Invalid database module activation document.');
         }
         $state = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
         if (! is_array($state)) {
-            throw new RuntimeException('Invalid database module activation document.');
+            throw new ModuleActivationException('Invalid database module activation document.');
         }
 
         return $state;
@@ -49,7 +49,7 @@ class DatabaseActivationStore implements ActivationStore
     {
         $name = $this->config->get('fulcrum.modules.storage.connection');
         if ($name !== null && ! is_string($name)) {
-            throw new RuntimeException('Invalid module activation storage configuration.');
+            throw new ModuleActivationException('Invalid module activation storage configuration.');
         }
 
         return $name;
