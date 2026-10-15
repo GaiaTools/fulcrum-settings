@@ -5,7 +5,7 @@ Follow these steps to install and configure Laravel Fulcrum in your project.
 ## Requirements
 
 - PHP 8.3 or higher
-- Laravel 11.x or 12.x
+- Laravel 12.x or 13.x
 
 ## Step 1: Install the Package
 

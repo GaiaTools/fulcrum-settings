@@ -41,6 +41,6 @@ $settings->rate_limit; // 500
 ## Requirements
 
 - PHP 8.3+
-- Laravel 11.x or 12.x
+- Laravel 12.x or 13.x
 
 [Get Started ->](getting-started/overview)

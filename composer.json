@@ -20,9 +20,9 @@
         "php": "^8.3|^8.4",
         "azuyalabs/yasumi": "^2.10",
         "dragonmantank/cron-expression": "^3.6",
-        "illuminate/contracts": "^11.0|^12.0|^13.0",
-        "illuminate/database": "^11.0|^12.0|^13.0",
-        "illuminate/support": "^11.0|^12.0|^13.0"
+        "illuminate/contracts": "^12.0|^13.0",
+        "illuminate/database": "^12.0|^13.0",
+        "illuminate/support": "^12.0|^13.0"
     },
     "require-dev": {
         "larastan/larastan": "^3.8",

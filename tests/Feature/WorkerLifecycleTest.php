@@ -13,7 +13,6 @@ use GaiaTools\FulcrumSettings\Support\Lifecycle\FulcrumLifecycle;
 use GaiaTools\FulcrumSettings\Support\Settings\FulcrumSettings;
 use GaiaTools\FulcrumSettings\Support\TypeRegistry;
 use Illuminate\Contracts\Queue\Job;
-use Illuminate\Events\Dispatcher;
 use Illuminate\Foundation\Auth\User;
 use Illuminate\Http\Request;
 use Illuminate\Queue\Events\JobAttempted;
@@ -209,15 +208,10 @@ test('Octane authentication cleanup uses the sandbox configuration', function ()
         ->and(config('fulcrum.lifecycle.reset_authentication'))->toBeTrue();
 });
 
-test('legacy queue completion events clean direct worker operations', function (bool $fail) {
-    $dispatcher = new Dispatcher(app());
-    app()->instance('events', $dispatcher);
-    app()->forgetInstance('queue.worker');
-    (new LegacyLifecycleServiceProvider(app()))->boot();
-    expect($dispatcher->hasListeners(JobAttempted::class))->toBeFalse();
+test('queue completion cleans direct worker operations', function (bool $fail) {
     $worker = app('queue.worker');
     $job = lifecycleJob(function () use ($fail) {
-        FulcrumContext::setTenantId('legacy');
+        FulcrumContext::setTenantId('direct');
         FulcrumContext::reveal();
         FulcrumContext::set('reveal', true);
         expect(FulcrumContext::shouldReveal())->toBeTrue()
@@ -238,21 +232,18 @@ test('legacy queue completion events clean direct worker operations', function (
         ->and(auth()->user())->toBeNull();
 })->with([false, true]);
 
-test('legacy terminal failure cleanup responds to JobFailed dispatched by the mock', function () {
-    $dispatcher = new Dispatcher(app());
-    app()->instance('events', $dispatcher);
-    app()->forgetInstance('queue.worker');
-    (new LegacyLifecycleServiceProvider(app()))->boot();
+test('terminal failure handlers run before queue completion cleanup', function () {
     $job = lifecycleJob(function () {
         FulcrumContext::setTenantId('failed');
         throw new RuntimeException('terminal failure');
     });
-    $job->shouldReceive('fail')->once()->andReturnUsing(function ($exception) use ($dispatcher, $job) {
+    $job->shouldReceive('fail')->once()->andReturnUsing(function ($exception) use ($job) {
         expect(FulcrumContext::getTenantId())->toBe('failed');
-        $dispatcher->dispatch(new JobFailed('testing', $job, $exception));
-        expect(FulcrumContext::getTenantId())->toBeNull();
+        Event::dispatch(new JobFailed('testing', $job, $exception));
+        expect(FulcrumContext::getTenantId())->toBe('failed');
     });
-    expect(fn () => app('queue.worker')->process('testing', $job, new WorkerOptions(maxTries: 1)))->toThrow(RuntimeException::class);
+    expect(fn () => app('queue.worker')->process('testing', $job, new WorkerOptions(maxTries: 1)))->toThrow(RuntimeException::class)
+        ->and(FulcrumContext::getTenantId())->toBeNull();
 });
 
 test('unresolved shared bindings do not trigger autoloading during cleanup', function () {
@@ -269,14 +260,6 @@ test('unresolved shared bindings do not trigger autoloading during cleanup', fun
         spl_autoload_unregister($autoload);
     }
 });
-
-class LegacyLifecycleServiceProvider extends FulcrumLifecycleServiceProvider
-{
-    protected function hasJobAttemptedEvent(): bool
-    {
-        return false;
-    }
-}
 
 class LifecycleSettings extends FulcrumSettings {}
 
