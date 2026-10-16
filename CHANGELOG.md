@@ -17,6 +17,43 @@
 - Queue context cleanup runs on `Looping` and `JobAttempted`, preserving tenant initialization on `JobProcessing` and context visibility for completion/exception observers. Older Laravel 11 releases fall back to `JobProcessed`, `JobExceptionOccurred`, and `JobFailed`; later listeners for those events may see cleared context.
 - Lifecycle cleanup releases application-bound `FulcrumSettings` singletons, including abstract-to-concrete bindings, so the next operation resolves fresh instances.
 
+## [2.0.0](https://github.com/GaiaTools/fulcrum-settings/compare/v1.0.3...v2.0.0) (2026-10-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* Laravel 11 is no longer supported.
+
+### Features
+
+* add optional Laravel Modules integration ([8be39e8](https://github.com/GaiaTools/fulcrum-settings/commit/8be39e878f0d1f9e07ba693946dc6afc1ecbf10e))
+* invalidate cached settings after committed writes ([0f6e2c3](https://github.com/GaiaTools/fulcrum-settings/commit/0f6e2c3973c004af58078a95615206e64f1b339a))
+
+
+### Bug Fixes
+
+* clean worker state on early Laravel 11 ([a905f8c](https://github.com/GaiaTools/fulcrum-settings/commit/a905f8c207b34dd50ca3044667947f3f70fd7da8))
+* coalesce cache invalidation and preserve successful writes ([5a7a2fc](https://github.com/GaiaTools/fulcrum-settings/commit/5a7a2fc23312a622f0c6d59d9f94bca27e4ddeca))
+* finish SQL portability and import count reporting ([183d222](https://github.com/GaiaTools/fulcrum-settings/commit/183d2222c2032fb7ad63996dec3b5ac06b9f8313))
+* isolate cached setting results by evaluation context ([773f801](https://github.com/GaiaTools/fulcrum-settings/commit/773f801f7691695c61c407310509c0cb85a6ad97))
+* isolate Fulcrum context between worker operations ([225e566](https://github.com/GaiaTools/fulcrum-settings/commit/225e566f146ef4e0b2c3a193ea02ea9b69956a2f))
+* preserve configurable activator type during analysis ([fb91aca](https://github.com/GaiaTools/fulcrum-settings/commit/fb91acacca9758d8920b95a8ad3e304c75bc1aef))
+* preserve import hooks and value ownership ([2144482](https://github.com/GaiaTools/fulcrum-settings/commit/2144482cb4064ba22203f109b1a984aaef5b9d64))
+* preserve tenancy listener context during worker cleanup ([012e72c](https://github.com/GaiaTools/fulcrum-settings/commit/012e72c123201371c7d32045951b0573e1d1e866))
+* resolve rollout identifiers for authenticatable scopes ([fd51763](https://github.com/GaiaTools/fulcrum-settings/commit/fd51763d6aaab162c29b4328aac2718183894f11))
+* track lifecycle state in the resolving container ([e3a9a66](https://github.com/GaiaTools/fulcrum-settings/commit/e3a9a6682e6a5645b43c6ebed99d6ef633d10e23))
+* vary cached settings only by relevant request inputs ([48c2caa](https://github.com/GaiaTools/fulcrum-settings/commit/48c2caa3cfe2bfb287a527fc10ebd77c43541223))
+
+
+### Performance Improvements
+
+* avoid redundant savepoints in fail-fast imports ([be86707](https://github.com/GaiaTools/fulcrum-settings/commit/be867073b84278f31f6de79017b4dc9b605664fe))
+
+
+### Miscellaneous Chores
+
+* require Laravel 12 or newer ([4fee979](https://github.com/GaiaTools/fulcrum-settings/commit/4fee979977248a0c5e96074cf2e9785e8ab87622))
+
 ## [1.0.3](https://github.com/GaiaTools/fulcrum-settings/compare/v1.0.2...v1.0.3) (2026-10-05)
 
 
