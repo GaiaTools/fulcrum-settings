@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Gate;
 
 /**
  * @property int $id
- * @property string $valuable_type
+ * @property string|null $valuable_type
  * @property int $valuable_id
  * @property string|null $tenant_id
  * @property mixed $value
