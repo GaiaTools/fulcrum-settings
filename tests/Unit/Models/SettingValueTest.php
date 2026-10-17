@@ -10,6 +10,7 @@ use GaiaTools\FulcrumSettings\Models\SettingRule;
 use GaiaTools\FulcrumSettings\Models\SettingRuleRolloutVariant;
 use GaiaTools\FulcrumSettings\Models\SettingValue;
 use GaiaTools\FulcrumSettings\Support\FulcrumContext;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Gate;
@@ -358,3 +359,74 @@ test('set mutator fallbacks to manual resolution via instance IDs', function () 
 
     expect($value->value)->toBe('fallback-value');
 });
+
+test('setting values support morph aliases without a loaded owner', function (string $ownerClass) {
+    $originalMap = Relation::morphMap();
+    Relation::morphMap([
+        'setting' => Setting::class,
+        'rule' => SettingRule::class,
+        'variant' => SettingRuleRolloutVariant::class,
+    ], false);
+
+    try {
+        FulcrumContext::setTenantId('morph-tenant');
+        $setting = Setting::create([
+            'key' => 'test.morph-map',
+            'type' => SettingType::JSON,
+            'masked' => true,
+            'tenant_id' => 'morph-tenant',
+        ]);
+        $rule = SettingRule::create(['setting_id' => $setting->id, 'priority' => 1]);
+        $variant = SettingRuleRolloutVariant::create([
+            'setting_rule_id' => $rule->id,
+            'name' => 'variant-a',
+            'weight' => 50000,
+        ]);
+        $owner = match ($ownerClass) {
+            Setting::class => $setting,
+            SettingRule::class => $rule,
+            SettingRuleRolloutVariant::class => $variant,
+        };
+        $data = ['enabled' => true];
+        $value = SettingValue::create([
+            'valuable_type' => $owner->getMorphClass(),
+            'valuable_id' => $owner->id,
+            'value' => $data,
+        ])->fresh();
+
+        expect($value->relationLoaded('valuable'))->toBeFalse()
+            ->and($value->tenant_id)->toBe('morph-tenant')
+            ->and(Crypt::decryptString($value->getRawOriginal('value')))->toBe(json_encode($data))
+            ->and($value->value)->toBe($data);
+
+        $value->update(['value' => ['enabled' => false]]);
+        expect($value->fresh()->value)->toBe(['enabled' => false]);
+
+        FulcrumContext::force(true);
+        $setting->update(['immutable' => true]);
+        FulcrumContext::force(false);
+        expect(fn () => $value->fresh()->update(['value' => $data]))
+            ->toThrow(ImmutableSettingException::class);
+        Gate::define('deleteImmutableSetting', fn ($user = null) => false);
+        expect(fn () => $value->fresh()->delete())->toThrow(ImmutableSettingException::class);
+    } finally {
+        Relation::morphMap($originalMap, false);
+    }
+})->with([Setting::class, SettingRule::class, SettingRuleRolloutVariant::class]);
+
+test('new setting values preserve raw values for missing owners with morph aliases', function (string $ownerClass) {
+    $originalMap = Relation::morphMap();
+    Relation::morphMap(['owner' => $ownerClass], false);
+
+    try {
+        $value = new SettingValue([
+            'valuable_type' => 'owner',
+            'valuable_id' => 999,
+            'value' => 'raw-value',
+        ]);
+
+        expect($value->value)->toBe('raw-value');
+    } finally {
+        Relation::morphMap($originalMap, false);
+    }
+})->with([Setting::class, SettingRule::class, SettingRuleRolloutVariant::class]);

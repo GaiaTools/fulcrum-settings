@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Gate;
 
 /**
  * @property int $id
- * @property string $valuable_type
+ * @property string|null $valuable_type
  * @property int $valuable_id
  * @property string|null $tenant_id
  * @property mixed $value
@@ -129,6 +129,7 @@ class SettingValue extends Model
             // If the relation is not loaded, try to find it via the IDs
             $type = $type ?? $this->valuable_type;
             $id = $id ?? $this->valuable_id;
+            $type = $type !== null ? static::getActualClassNameForMorph($type) : null;
 
             if ($type === Setting::class) {
                 $owner = Setting::on($this->getConnectionName())->find($id);
@@ -212,6 +213,8 @@ class SettingValue extends Model
 
     protected function shouldReturnRawValue(mixed $type, mixed $id): bool
     {
+        $type = is_string($type) ? static::getActualClassNameForMorph($type) : $type;
+
         return match (true) {
             $this->exists => false,
             $type && in_array($type, [Setting::class, SettingRule::class, SettingRuleRolloutVariant::class]) && $id => true,
