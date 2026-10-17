@@ -17,6 +17,14 @@
 - Queue context cleanup runs on `Looping` and `JobAttempted`, preserving tenant initialization on `JobProcessing` and context visibility for completion/exception observers. Older Laravel 11 releases fall back to `JobProcessed`, `JobExceptionOccurred`, and `JobFailed`; later listeners for those events may see cleared context.
 - Lifecycle cleanup releases application-bound `FulcrumSettings` singletons, including abstract-to-concrete bindings, so the next operation resolves fresh instances.
 
+## [2.0.1](https://github.com/GaiaTools/fulcrum-settings/compare/v2.0.0...v2.0.1) (2026-10-17)
+
+
+### Bug Fixes
+
+* document nullable setting value morph type ([a68dbbf](https://github.com/GaiaTools/fulcrum-settings/commit/a68dbbfcef9259db47ea84a3c1241ad3e61aebcd))
+* resolve setting value morph-map aliases ([b088bd5](https://github.com/GaiaTools/fulcrum-settings/commit/b088bd509b45e1df279ea880a60679f56b39682c))
+
 ## [2.0.0](https://github.com/GaiaTools/fulcrum-settings/compare/v1.0.3...v2.0.0) (2026-10-15)
 
 
