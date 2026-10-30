@@ -7431,16 +7431,16 @@
         },
         {
             "name": "nwidart/laravel-modules",
-            "version": "v13.0.0",
+            "version": "v13.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nWidart/laravel-modules.git",
-                "reference": "6aa5461e57ac89d0dc8377cdda074c10487f92f9"
+                "reference": "59714840708a2aece19e810764473f53227c35fe"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nWidart/laravel-modules/zipball/6aa5461e57ac89d0dc8377cdda074c10487f92f9",
-                "reference": "6aa5461e57ac89d0dc8377cdda074c10487f92f9",
+                "url": "https://api.github.com/repos/nWidart/laravel-modules/zipball/59714840708a2aece19e810764473f53227c35fe",
+                "reference": "59714840708a2aece19e810764473f53227c35fe",
                 "shasum": ""
             },
             "require": {
@@ -7451,13 +7451,12 @@
                 "wikimedia/composer-merge-plugin": "^2.1"
             },
             "require-dev": {
-                "friendsofphp/php-cs-fixer": "^v3.52",
+                "larastan/larastan": "^3.9.3",
                 "laravel/framework": "^13.0",
                 "laravel/pint": "^1.16",
                 "mockery/mockery": "^1.6",
                 "orchestra/testbench": "^11.0",
-                "phpstan/phpstan": "^2.0",
-                "phpunit/phpunit": "^12.0.",
+                "phpunit/phpunit": "^12.0",
                 "spatie/phpunit-snapshot-assertions": "^5.0"
             },
             "type": "library",
@@ -7504,7 +7503,7 @@
             ],
             "support": {
                 "issues": "https://github.com/nWidart/laravel-modules/issues",
-                "source": "https://github.com/nWidart/laravel-modules/tree/v13.0.0"
+                "source": "https://github.com/nWidart/laravel-modules/tree/v13.2.0"
             },
             "funding": [
                 {
@@ -7516,7 +7515,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-03-19T19:16:52+00:00"
+            "time": "2026-10-25T18:32:55+00:00"
         },
         {
             "name": "orchestra/canvas",
