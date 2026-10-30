@@ -10409,16 +10409,16 @@
         },
         {
             "name": "spatie/laravel-permission",
-            "version": "8.3.0",
+            "version": "8.3.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/spatie/laravel-permission.git",
-                "reference": "60e8ed5b2fbf043c2264433fc2680c76b8b66aa6"
+                "reference": "e4e906f8ca5fe10fbe4b6a81f6c4e544a01d8053"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/spatie/laravel-permission/zipball/60e8ed5b2fbf043c2264433fc2680c76b8b66aa6",
-                "reference": "60e8ed5b2fbf043c2264433fc2680c76b8b66aa6",
+                "url": "https://api.github.com/repos/spatie/laravel-permission/zipball/e4e906f8ca5fe10fbe4b6a81f6c4e544a01d8053",
+                "reference": "e4e906f8ca5fe10fbe4b6a81f6c4e544a01d8053",
                 "shasum": ""
             },
             "require": {
@@ -10435,8 +10435,8 @@
                 "laravel/passport": "^13.0",
                 "laravel/pint": "^1.0",
                 "orchestra/testbench": "^10.0|^11.0",
-                "pestphp/pest": "^3.0|^4.0",
-                "pestphp/pest-plugin-laravel": "^3.0|^4.1",
+                "pestphp/pest": "^4.7.8|^5.3.3",
+                "pestphp/pest-plugin-laravel": "^4.1|^5.0.1",
                 "phpstan/phpstan": "^2.1"
             },
             "type": "library",
@@ -10485,7 +10485,7 @@
             ],
             "support": {
                 "issues": "https://github.com/spatie/laravel-permission/issues",
-                "source": "https://github.com/spatie/laravel-permission/tree/8.3.0"
+                "source": "https://github.com/spatie/laravel-permission/tree/8.3.2"
             },
             "funding": [
                 {
@@ -10493,7 +10493,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-07-03T15:36:01+00:00"
+            "time": "2026-10-19T16:31:21+00:00"
         },
         {
             "name": "staabm/side-effects-detector",
