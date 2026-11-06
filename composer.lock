@@ -7516,16 +7516,16 @@
         },
         {
             "name": "nwidart/laravel-modules",
-            "version": "v13.2.0",
+            "version": "v13.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nWidart/laravel-modules.git",
-                "reference": "59714840708a2aece19e810764473f53227c35fe"
+                "reference": "abfa48cc11eba3bd30f4a07f903c2c0235973045"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nWidart/laravel-modules/zipball/59714840708a2aece19e810764473f53227c35fe",
-                "reference": "59714840708a2aece19e810764473f53227c35fe",
+                "url": "https://api.github.com/repos/nWidart/laravel-modules/zipball/abfa48cc11eba3bd30f4a07f903c2c0235973045",
+                "reference": "abfa48cc11eba3bd30f4a07f903c2c0235973045",
                 "shasum": ""
             },
             "require": {
@@ -7588,7 +7588,7 @@
             ],
             "support": {
                 "issues": "https://github.com/nWidart/laravel-modules/issues",
-                "source": "https://github.com/nWidart/laravel-modules/tree/v13.2.0"
+                "source": "https://github.com/nWidart/laravel-modules/tree/v13.3.0"
             },
             "funding": [
                 {
@@ -7600,7 +7600,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-25T18:32:55+00:00"
+            "time": "2026-10-28T20:16:53+00:00"
         },
         {
             "name": "orchestra/canvas",
