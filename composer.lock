@@ -6884,16 +6884,16 @@
         },
         {
             "name": "laravel/pennant",
-            "version": "v1.26.0",
+            "version": "v1.27.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/pennant.git",
-                "reference": "a343096b4b01a23a5dfadf92b0907f710134d5e0"
+                "reference": "cec5f8d3c3384088263b2969408309cd1ce28687"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/pennant/zipball/a343096b4b01a23a5dfadf92b0907f710134d5e0",
-                "reference": "a343096b4b01a23a5dfadf92b0907f710134d5e0",
+                "url": "https://api.github.com/repos/laravel/pennant/zipball/cec5f8d3c3384088263b2969408309cd1ce28687",
+                "reference": "cec5f8d3c3384088263b2969408309cd1ce28687",
                 "shasum": ""
             },
             "require": {
@@ -6957,7 +6957,7 @@
                 "issues": "https://github.com/laravel/pennant/issues",
                 "source": "https://github.com/laravel/pennant"
             },
-            "time": "2026-08-13T13:05:53+00:00"
+            "time": "2026-10-29T13:56:13+00:00"
         },
         {
             "name": "laravel/pint",
