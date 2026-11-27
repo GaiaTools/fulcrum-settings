@@ -7520,16 +7520,16 @@
         },
         {
             "name": "nwidart/laravel-modules",
-            "version": "v13.2.0",
+            "version": "v13.4.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nWidart/laravel-modules.git",
-                "reference": "59714840708a2aece19e810764473f53227c35fe"
+                "reference": "2a15565c2ecd989f7e9b3d2e4b00984c8d288939"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nWidart/laravel-modules/zipball/59714840708a2aece19e810764473f53227c35fe",
-                "reference": "59714840708a2aece19e810764473f53227c35fe",
+                "url": "https://api.github.com/repos/nWidart/laravel-modules/zipball/2a15565c2ecd989f7e9b3d2e4b00984c8d288939",
+                "reference": "2a15565c2ecd989f7e9b3d2e4b00984c8d288939",
                 "shasum": ""
             },
             "require": {
@@ -7544,9 +7544,13 @@
                 "laravel/framework": "^13.0",
                 "laravel/pint": "^1.16",
                 "mockery/mockery": "^1.6",
+                "nwidart/laravel-actuator": "^1.1",
                 "orchestra/testbench": "^11.0",
-                "phpunit/phpunit": "^12.0",
+                "phpunit/phpunit": "^12.0|^13.0",
                 "spatie/phpunit-snapshot-assertions": "^5.0"
+            },
+            "suggest": {
+                "nwidart/laravel-actuator": "Report module health on the actuator health endpoint and list the modules on a modules endpoint (^1.1)."
             },
             "type": "library",
             "extra": {
@@ -7592,7 +7596,7 @@
             ],
             "support": {
                 "issues": "https://github.com/nWidart/laravel-modules/issues",
-                "source": "https://github.com/nWidart/laravel-modules/tree/v13.2.0"
+                "source": "https://github.com/nWidart/laravel-modules/tree/v13.4.0"
             },
             "funding": [
                 {
@@ -7604,7 +7608,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-25T18:32:55+00:00"
+            "time": "2026-11-23T08:46:13+00:00"
         },
         {
             "name": "orchestra/canvas",
